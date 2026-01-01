@@ -362,7 +362,7 @@ const QuizCreator = () => {
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-2xl">
-          <ListChecks className="h-6 w-6" /> Create New Quiz
+          <ListChecks className="h-6 w-6" /> Generate New Quiz
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">

@@ -17,7 +17,7 @@ const TeacherSidebar = ({ activeView, setActiveView, isMobile }: TeacherSidebarP
   const navItems = [
     { id: 'create-question', label: 'Create Question', icon: PlusCircle },
     // Removed AI Generator from here
-    { id: 'create-quiz', label: 'Create Quiz', icon: ListChecks },
+    { id: 'create-quiz', label: 'Generate Quiz', icon: ListChecks },
     { id: 'available-quizzes', label: 'Available Quizzes', icon: Trophy },
   ];
 
