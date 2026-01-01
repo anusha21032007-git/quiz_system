@@ -7,11 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ListChecks, Trophy } from 'lucide-react';
+import { ListChecks, Trophy, Clock, MinusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const StudentDashboard = () => {
-  const { quizzes } = useQuiz();
+  const { quizzes, questions, getQuestionsForQuiz } = useQuiz();
   const [studentName, setStudentName] = useState('');
 
   const handleStartQuiz = (quizId: string) => {
@@ -19,9 +19,7 @@ const StudentDashboard = () => {
       toast.error("Please enter your name to start the quiz.");
       return;
     }
-    // Navigate to quiz page, studentName will be passed via state or context if needed,
-    // but for now, we'll just rely on the user entering it on the quiz page if required.
-    // For this simple setup, we'll assume the student name is entered once here.
+    // Navigation is handled by the Link component, but this check ensures name is entered.
   };
 
   return (
@@ -64,23 +62,34 @@ const StudentDashboard = () => {
               <p className="text-gray-500">No quizzes available yet. Please check back later!</p>
             ) : (
               <ul className="space-y-4">
-                {quizzes.map((quiz) => (
-                  <li key={quiz.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border rounded-md bg-white shadow-sm">
-                    <div>
-                      <h3 className="font-semibold text-lg">{quiz.title}</h3>
-                      <p className="text-sm text-gray-600">{quiz.questionIds.length} questions</p>
-                    </div>
-                    <Link to={`/quiz/${quiz.id}`} state={{ studentName }}>
-                      <Button
-                        onClick={() => handleStartQuiz(quiz.id)}
-                        disabled={!studentName.trim()}
-                        className="mt-3 sm:mt-0 bg-blue-600 hover:bg-blue-700 text-white"
-                      >
-                        Start Quiz
-                      </Button>
-                    </Link>
-                  </li>
-                ))}
+                {quizzes.map((quiz) => {
+                  const quizQuestions = getQuestionsForQuiz(quiz.id);
+                  const totalMarks = quizQuestions.reduce((sum, q) => sum + q.marks, 0);
+
+                  return (
+                    <li key={quiz.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border rounded-md bg-white shadow-sm">
+                      <div>
+                        <h3 className="font-semibold text-lg">{quiz.title}</h3>
+                        <p className="text-sm text-gray-600 flex items-center gap-1">
+                          <ListChecks className="h-4 w-4 inline-block" /> {quiz.questionIds.length} questions
+                          <Clock className="h-4 w-4 inline-block ml-2" /> {quiz.timeLimitMinutes} min
+                          <Trophy className="h-4 w-4 inline-block ml-2" /> {totalMarks} marks
+                          {quiz.negativeMarking && <MinusCircle className="h-4 w-4 inline-block text-red-500 ml-2" />}
+                          {quiz.negativeMarking && <span className="text-red-500 text-xs">Negative Marking</span>}
+                        </p>
+                      </div>
+                      <Link to={`/quiz/${quiz.id}`} state={{ studentName }}>
+                        <Button
+                          onClick={() => handleStartQuiz(quiz.id)}
+                          disabled={!studentName.trim()}
+                          className="mt-3 sm:mt-0 bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          Start Quiz
+                        </Button>
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </CardContent>
