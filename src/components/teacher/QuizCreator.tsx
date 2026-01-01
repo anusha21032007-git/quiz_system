@@ -20,6 +20,7 @@ interface LocalQuestion {
   options: string[];
   correctAnswerIndex: number | null; // Index of the correct option, or null if none selected
   marks: number;
+  timeLimitMinutes: number; // Added timeLimitMinutes for individual questions
 }
 
 // Define a type for the entire quiz data managed locally
@@ -45,6 +46,7 @@ interface StoredQuiz {
     options: string[];
     correctAnswer: string; // Converted from index
     marks: number;
+    timeLimitMinutes: number; // Added timeLimitMinutes for stored questions
   }[];
 }
 
@@ -64,6 +66,7 @@ const QuizCreator = () => {
   const [quizTimeLimit, setQuizTimeLimit] = useState<number>(30);
   const [negativeMarking, setNegativeMarking] = useState<boolean>(false);
   const [competitionMode, setCompetitionMode] = useState<boolean>(false);
+  const [defaultTimePerQuestion, setDefaultTimePerQuestion] = useState<number | null>(null); // New state for optional default time
 
   const [isQuizStructureInitialized, setIsQuizStructureInitialized] = useState<boolean>(false);
 
@@ -81,7 +84,7 @@ const QuizCreator = () => {
       return false;
     }
     if (quizTimeLimit <= 0) {
-      toast.error("Please set a valid time limit (at least 1 minute).");
+      toast.error("Please set a valid overall quiz time limit (at least 1 minute).");
       return false;
     }
     if (quizData.questions.length === 0) {
@@ -104,6 +107,10 @@ const QuizCreator = () => {
       }
       if (q.marks <= 0) {
         toast.error(`Question ${index + 1}: Marks must be at least 1.`);
+        return false;
+      }
+      if (q.timeLimitMinutes <= 0) { // New validation for individual question time
+        toast.error(`Question ${index + 1}: Time limit must be at least 1 minute.`);
         return false;
       }
     }
@@ -129,6 +136,7 @@ const QuizCreator = () => {
       options: Array(quizData.optionsPerQuestion).fill(''),
       correctAnswerIndex: null,
       marks: 1,
+      timeLimitMinutes: defaultTimePerQuestion !== null ? defaultTimePerQuestion : 1, // Use default or 1
     }));
 
     setQuizData((prev) => ({
@@ -149,6 +157,7 @@ const QuizCreator = () => {
           options: Array(prev.optionsPerQuestion).fill(''),
           correctAnswerIndex: null,
           marks: 1,
+          timeLimitMinutes: defaultTimePerQuestion !== null ? defaultTimePerQuestion : 1, // Use default or 1
         },
       ],
       totalQuestions: prev.totalQuestions + 1, // Update totalQuestions count
@@ -177,7 +186,7 @@ const QuizCreator = () => {
 
   const handleUpdateDraftQuestion = (
     questionIndex: number,
-    field: 'questionText' | 'marks',
+    field: 'questionText' | 'marks' | 'timeLimitMinutes', // Added timeLimitMinutes
     value: string | number
   ) => {
     setQuizData((prev) => {
@@ -233,6 +242,7 @@ const QuizCreator = () => {
       options: q.options,
       correctAnswerIndex: q.options.indexOf(q.correctAnswer), // Find index of correct answer
       marks: 1, // Default marks, as per requirement for manual input
+      timeLimitMinutes: defaultTimePerQuestion !== null ? defaultTimePerQuestion : 1, // Use default or 1
     }));
 
     setQuizData((prev) => ({
@@ -258,6 +268,7 @@ const QuizCreator = () => {
         options: q.options,
         correctAnswer: q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : '',
         marks: q.marks,
+        timeLimitMinutes: q.timeLimitMinutes, // Include timeLimitMinutes
       };
     });
 
@@ -325,6 +336,7 @@ const QuizCreator = () => {
     setQuizTimeLimit(30);
     setNegativeMarking(false);
     setCompetitionMode(false);
+    setDefaultTimePerQuestion(null); // Reset default time
     setIsQuizStructureInitialized(false);
     setAiCoursePaperName('');
     setAiDifficulty('Easy');
@@ -376,7 +388,7 @@ const QuizCreator = () => {
             <div className="border-t pt-4 mt-4">
               <h3 className="text-lg font-semibold mb-2">Additional Quiz Settings</h3>
               <div>
-                <Label htmlFor="quizTimeLimit">Time Limit (minutes)</Label>
+                <Label htmlFor="quizTimeLimit">Overall Quiz Time Limit (minutes)</Label>
                 <Input
                   id="quizTimeLimit"
                   type="number"
@@ -385,6 +397,24 @@ const QuizCreator = () => {
                   onChange={(e) => setQuizTimeLimit(parseInt(e.target.value) || 1)}
                   className="mt-1"
                 />
+              </div>
+              <div className="mt-3">
+                <Label htmlFor="defaultTimePerQuestion">Default Time per Question (minutes, optional)</Label>
+                <Input
+                  id="defaultTimePerQuestion"
+                  type="number"
+                  min="1"
+                  placeholder="e.g., 1 (will be overridden by question-specific time)"
+                  value={defaultTimePerQuestion === null ? '' : defaultTimePerQuestion}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setDefaultTimePerQuestion(value === '' ? null : parseInt(value) || 1);
+                  }}
+                  className="mt-1"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  This sets a default for new questions. Individual questions can override this.
+                </p>
               </div>
               <div className="flex items-center justify-between mt-3">
                 <Label htmlFor="negativeMarking">Enable Negative Marking</Label>
@@ -448,7 +478,7 @@ const QuizCreator = () => {
               </Button>
               <p className="text-sm text-gray-500 mt-2">
                 AI will generate {quizData.totalQuestions} questions with {quizData.optionsPerQuestion} options each.
-                You will still need to manually set marks for each question.
+                You will still need to manually set marks and time for each question.
               </p>
             </div>
 
@@ -512,6 +542,17 @@ const QuizCreator = () => {
                           min="1"
                           value={q.marks}
                           onChange={(e) => handleUpdateDraftQuestion(index, 'marks', parseInt(e.target.value) || 1)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor={`q-time-${index}`}>Time for this Question (minutes)</Label>
+                        <Input
+                          id={`q-time-${index}`}
+                          type="number"
+                          min="1"
+                          value={q.timeLimitMinutes}
+                          onChange={(e) => handleUpdateDraftQuestion(index, 'timeLimitMinutes', parseInt(e.target.value) || 1)}
                           className="mt-1"
                         />
                       </div>
