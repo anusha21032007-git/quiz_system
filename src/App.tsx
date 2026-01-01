@@ -5,11 +5,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import { QuizProvider } from "@/context/QuizContext"; // Updated import path
-import TeacherDashboard from "./pages/TeacherDashboard"; // New page
-import StudentDashboard from "./pages/StudentDashboard"; // New page
-import QuizPage from "./pages/QuizPage"; // New page
-import Leaderboard from "./pages/Leaderboard"; // New page
+import { QuizProvider } from "@/context/QuizContext";
+import TeacherDashboard from "./pages/TeacherDashboard";
+import StudentDashboard from "./pages/StudentDashboard";
+import QuizPage from "./pages/QuizPage";
+import Leaderboard from "./pages/Leaderboard";
+import QuizPreviewPage from "./pages/QuizPreviewPage"; // New page import
 
 const queryClient = new QueryClient();
 
@@ -19,13 +20,14 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <QuizProvider> {/* Wrap with QuizProvider */}
+        <QuizProvider>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/teacher" element={<TeacherDashboard />} />
             <Route path="/student" element={<StudentDashboard />} />
             <Route path="/quiz/:quizId" element={<QuizPage />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/quiz-preview/:quizId" element={<QuizPreviewPage />} /> {/* New route for quiz preview */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

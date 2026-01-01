@@ -8,8 +8,9 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/componen
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ListChecks, PlusCircle, Trash2 } from 'lucide-react';
+import { ListChecks, PlusCircle, Trash2, Eye, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 // Define a type for questions in local draft state
 interface LocalQuestion {
@@ -27,7 +28,27 @@ interface LocalQuizData {
   questions: LocalQuestion[];
 }
 
+// Define the structure for a quiz stored in session storage (compatible with QuizContext types for preview)
+interface StoredQuiz {
+  id: string;
+  title: string;
+  questionIds: string[];
+  timeLimitMinutes: number;
+  negativeMarking: boolean;
+  competitionMode: boolean;
+  _questionsData: { // Store actual question data for easy retrieval in preview
+    id: string;
+    quizId: string;
+    questionText: string;
+    options: string[];
+    correctAnswer: string; // Converted from index
+    marks: number;
+  }[];
+}
+
 const QuizCreator = () => {
+  const navigate = useNavigate(); // Initialize useNavigate
+
   // Consolidated quiz data state
   const [quizData, setQuizData] = useState<LocalQuizData>({
     quizTitle: '',
@@ -45,6 +66,42 @@ const QuizCreator = () => {
 
   // Calculate total marks dynamically
   const totalQuizMarks = quizData.questions.reduce((sum, q) => sum + q.marks, 0);
+
+  // Helper validation function
+  const validateQuizDraft = (): boolean => {
+    if (!quizData.quizTitle.trim()) {
+      toast.error("Please provide a quiz title.");
+      return false;
+    }
+    if (quizTimeLimit <= 0) {
+      toast.error("Please set a valid time limit (at least 1 minute).");
+      return false;
+    }
+    if (quizData.questions.length === 0) {
+      toast.error("Please add at least one question to the quiz.");
+      return false;
+    }
+
+    for (const [index, q] of quizData.questions.entries()) {
+      if (!q.questionText.trim()) {
+        toast.error(`Question ${index + 1}: Question text cannot be empty.`);
+        return false;
+      }
+      if (q.options.some(opt => !opt.trim())) {
+        toast.error(`Question ${index + 1}: All options must be filled.`);
+        return false;
+      }
+      if (q.correctAnswerIndex === null || q.correctAnswerIndex < 0 || q.correctAnswerIndex >= q.options.length) {
+        toast.error(`Question ${index + 1}: Please select a correct answer.`);
+        return false;
+      }
+      if (q.marks <= 0) {
+        toast.error(`Question ${index + 1}: Marks must be at least 1.`);
+        return false;
+      }
+    }
+    return true;
+  };
 
   const handleInitializeQuizStructure = () => {
     if (!quizData.quizTitle.trim()) {
@@ -150,58 +207,80 @@ const QuizCreator = () => {
     });
   };
 
-  const handleAddQuiz = () => {
-    // Basic validations
-    if (!quizData.quizTitle.trim()) {
-      toast.error("Please provide a quiz title.");
-      return;
-    }
-    if (quizTimeLimit <= 0) {
-      toast.error("Please set a valid time limit (at least 1 minute).");
-      return;
-    }
-    if (quizData.questions.length === 0) {
-      toast.error("Please add at least one question to the quiz.");
-      return;
+  // Helper to prepare quiz data for storage/logging
+  const prepareQuizForOutput = (isForPreview: boolean = false): StoredQuiz | null => {
+    if (!validateQuizDraft()) {
+      return null;
     }
 
-    for (const [index, q] of quizData.questions.entries()) {
-      if (!q.questionText.trim()) {
-        toast.error(`Question ${index + 1}: Question text cannot be empty.`);
-        return;
-      }
-      if (q.options.some(opt => !opt.trim())) {
-        toast.error(`Question ${index + 1}: All options must be filled.`);
-        return;
-      }
-      if (q.correctAnswerIndex === null || q.correctAnswerIndex < 0 || q.correctAnswerIndex >= q.options.length) {
-        toast.error(`Question ${index + 1}: Please select a correct answer.`);
-        return;
-      }
-      if (q.marks <= 0) {
-        toast.error(`Question ${index + 1}: Marks must be at least 1.`);
-        return;
-      }
-    }
+    const quizId = `qz-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const questionsForOutput = quizData.questions.map((q, qIndex) => {
+      const questionId = `q-${Date.now()}-${qIndex}-${Math.random().toString(36).substr(2, 4)}`;
+      return {
+        id: questionId,
+        quizId: quizId, // Assign the quizId to questions
+        questionText: q.questionText,
+        options: q.options,
+        correctAnswer: q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : '',
+        marks: q.marks,
+      };
+    });
 
-    // Construct the final quiz object to be logged
-    const finalQuiz = {
-      ...quizData,
+    return {
+      id: quizId,
+      title: quizData.quizTitle,
+      questionIds: questionsForOutput.map(q => q.id),
       timeLimitMinutes: quizTimeLimit,
       negativeMarking: negativeMarking,
       competitionMode: competitionMode,
-      // For logging, convert correctAnswerIndex back to string for clarity
-      questions: quizData.questions.map(q => ({
-        ...q,
-        correctAnswer: q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : 'N/A',
-        correctAnswerIndex: undefined, // Remove the index if not needed in final output
-      })),
+      _questionsData: questionsForOutput, // Include full question data for easy retrieval
     };
+  };
 
-    console.log("Quiz Data to be 'saved' (logged to console):", finalQuiz);
-    toast.success("Quiz data logged to console (not persisted due to local state mode).");
+  const handleCreateQuizAndLog = () => {
+    const finalQuiz = prepareQuizForOutput();
+    if (finalQuiz) {
+      console.log("Quiz Data (Logged to Console):", finalQuiz);
+      toast.success("Quiz data logged to console (not persisted).");
+      resetForm();
+    }
+  };
 
-    // Reset all local states after "saving"
+  const handleSaveQuizToSession = () => {
+    const finalQuiz = prepareQuizForOutput();
+    if (finalQuiz) {
+      try {
+        const existingSavedQuizzesString = sessionStorage.getItem('saved_quizzes_frontend_only');
+        const existingSavedQuizzes: StoredQuiz[] = existingSavedQuizzesString ? JSON.parse(existingSavedQuizzesString) : [];
+        
+        existingSavedQuizzes.push(finalQuiz);
+        sessionStorage.setItem('saved_quizzes_frontend_only', JSON.stringify(existingSavedQuizzes));
+        
+        toast.success("Quiz saved to session storage (frontend only)!");
+        console.log("Saved Quizzes in Session Storage:", existingSavedQuizzes);
+        resetForm();
+      } catch (error) {
+        console.error("Failed to save quiz to session storage:", error);
+        toast.error("Failed to save quiz. Please try again.");
+      }
+    }
+  };
+
+  const handlePreviewQuiz = () => {
+    const quizToPreview = prepareQuizForOutput(true);
+    if (quizToPreview) {
+      try {
+        sessionStorage.setItem('preview_quiz_data', JSON.stringify(quizToPreview));
+        toast.info("Loading quiz preview...");
+        navigate(`/quiz-preview/${quizToPreview.id}`);
+      } catch (error) {
+        console.error("Failed to save quiz for preview:", error);
+        toast.error("Failed to generate preview. Please try again.");
+      }
+    }
+  };
+
+  const resetForm = () => {
     setQuizData({
       quizTitle: '',
       totalQuestions: 0,
@@ -373,8 +452,16 @@ const QuizCreator = () => {
         )}
       </CardContent>
       {isQuizStructureInitialized && (
-        <CardFooter>
-          <Button onClick={handleAddQuiz} className="w-full bg-blue-600 hover:bg-blue-700">Create Quiz</Button>
+        <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 mt-6">
+          <Button onClick={handlePreviewQuiz} variant="outline" className="w-full sm:w-auto">
+            <Eye className="h-4 w-4 mr-2" /> Preview Quiz
+          </Button>
+          <Button onClick={handleSaveQuizToSession} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
+            <Save className="h-4 w-4 mr-2" /> Save Quiz (Frontend Only)
+          </Button>
+          <Button onClick={handleCreateQuizAndLog} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
+            Create Quiz (Log to Console)
+          </Button>
         </CardFooter>
       )}
     </Card>
