@@ -5,119 +5,154 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ListChecks, PlusCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Question } from '@/context/QuizContext';
-import { useQuiz } from '@/context/QuizContext'; // Import useQuiz
 
-// Define a type for questions in draft state (before being added to global pool)
-interface DraftQuestion extends Omit<Question, 'id' | 'quizId'> {
-  tempId: string; // Temporary ID for local management
+// Define a type for questions in local draft state
+interface LocalQuestion {
+  questionText: string;
+  options: string[];
+  correctAnswerIndex: number | null; // Index of the correct option, or null if none selected
+  marks: number;
 }
 
-interface QuizCreatorProps {
-  // No longer needs questions or selectedQuestionIds as props
-  // These will be managed internally or fetched from context
+// Define a type for the entire quiz data managed locally
+interface LocalQuizData {
+  quizTitle: string;
+  totalQuestions: number;
+  optionsPerQuestion: number;
+  questions: LocalQuestion[];
 }
 
-const QuizCreator = ({}: QuizCreatorProps) => {
-  const { addQuestion, addQuiz } = useQuiz();
+const QuizCreator = () => {
+  // Consolidated quiz data state
+  const [quizData, setQuizData] = useState<LocalQuizData>({
+    quizTitle: '',
+    totalQuestions: 0,
+    optionsPerQuestion: 0,
+    questions: [],
+  });
 
-  // Quiz Structure Initialization State
-  const [totalQuestionsToGenerate, setTotalQuestionsToGenerate] = useState<number>(5);
-  const [mcqOptionsCount, setMcqOptionsCount] = useState<number>(4);
-  const [isQuizStructureInitialized, setIsQuizStructureInitialized] = useState<boolean>(false);
-
-  // Quiz Details State
-  const [quizTitle, setQuizTitle] = useState('');
+  // Other quiz details not explicitly part of the 'Quiz' structure provided by user, but still needed
   const [quizTimeLimit, setQuizTimeLimit] = useState<number>(30);
   const [negativeMarking, setNegativeMarking] = useState<boolean>(false);
   const [competitionMode, setCompetitionMode] = useState<boolean>(false);
 
-  // Draft Questions State (questions being created for this quiz)
-  const [quizQuestionsDraft, setQuizQuestionsDraft] = useState<DraftQuestion[]>([]);
+  const [isQuizStructureInitialized, setIsQuizStructureInitialized] = useState<boolean>(false);
 
   // Calculate total marks dynamically
-  const totalQuizMarks = quizQuestionsDraft.reduce((sum, q) => sum + q.marks, 0);
+  const totalQuizMarks = quizData.questions.reduce((sum, q) => sum + q.marks, 0);
 
   const handleInitializeQuizStructure = () => {
-    if (totalQuestionsToGenerate <= 0) {
+    if (!quizData.quizTitle.trim()) {
+      toast.error("Please provide a quiz title before initializing structure.");
+      return;
+    }
+    if (quizData.totalQuestions <= 0) {
       toast.error("Total questions must be at least 1.");
       return;
     }
-    if (mcqOptionsCount < 2 || mcqOptionsCount > 6) { // Reasonable range for MCQ options
-      toast.error("MCQ options per question must be between 2 and 6.");
+    if (quizData.optionsPerQuestion < 2 || quizData.optionsPerQuestion > 6) {
+      toast.error("Options per question must be between 2 and 6.");
       return;
     }
 
-    const newDraftQuestions: DraftQuestion[] = Array.from({ length: totalQuestionsToGenerate }, (_, i) => ({
-      tempId: `temp-q-${Date.now()}-${i}`,
+    const newDraftQuestions: LocalQuestion[] = Array.from({ length: quizData.totalQuestions }, () => ({
       questionText: '',
-      options: Array(mcqOptionsCount).fill(''),
-      correctAnswer: '',
+      options: Array(quizData.optionsPerQuestion).fill(''),
+      correctAnswerIndex: null,
       marks: 1,
     }));
-    setQuizQuestionsDraft(newDraftQuestions);
+
+    setQuizData((prev) => ({
+      ...prev,
+      questions: newDraftQuestions,
+    }));
     setIsQuizStructureInitialized(true);
-    toast.success(`Quiz structure initialized with ${totalQuestionsToGenerate} questions.`);
+    toast.success(`Quiz structure initialized with ${quizData.totalQuestions} questions.`);
   };
 
   const handleAddQuestionToDraft = () => {
-    setQuizQuestionsDraft((prev) => [
+    setQuizData((prev) => ({
       ...prev,
-      {
-        tempId: `temp-q-${Date.now()}-${prev.length}`,
-        questionText: '',
-        options: Array(mcqOptionsCount).fill(''),
-        correctAnswer: '',
-        marks: 1,
-      },
-    ]);
+      questions: [
+        ...prev.questions,
+        {
+          questionText: '',
+          options: Array(prev.optionsPerQuestion).fill(''),
+          correctAnswerIndex: null,
+          marks: 1,
+        },
+      ],
+      totalQuestions: prev.totalQuestions + 1, // Update totalQuestions count
+    }));
     toast.info("New question added to draft.");
   };
 
-  const handleDeleteQuestionFromDraft = (tempId: string) => {
-    setQuizQuestionsDraft((prev) => prev.filter((q) => q.tempId !== tempId));
+  const handleDeleteQuestionFromDraft = (questionIndex: number) => {
+    setQuizData((prev) => {
+      const newQuestions = prev.questions.filter((_, idx) => idx !== questionIndex);
+      return {
+        ...prev,
+        questions: newQuestions,
+        totalQuestions: newQuestions.length, // Update totalQuestions count
+      };
+    });
     toast.info("Question removed from draft.");
   };
 
+  const handleUpdateQuizDetails = (field: keyof LocalQuizData, value: string | number) => {
+    setQuizData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
   const handleUpdateDraftQuestion = (
-    tempId: string,
-    field: 'questionText' | 'correctAnswer' | 'marks',
+    questionIndex: number,
+    field: 'questionText' | 'marks',
     value: string | number
   ) => {
-    setQuizQuestionsDraft((prev) =>
-      prev.map((q) =>
-        q.tempId === tempId
-          ? { ...q, [field]: value }
-          : q
-      )
-    );
+    setQuizData((prev) => {
+      const newQuestions = [...prev.questions];
+      newQuestions[questionIndex] = { ...newQuestions[questionIndex], [field]: value };
+      return { ...prev, questions: newQuestions };
+    });
   };
 
   const handleUpdateDraftOption = (
-    tempId: string,
+    questionIndex: number,
     optionIndex: number,
     value: string
   ) => {
-    setQuizQuestionsDraft((prev) =>
-      prev.map((q) =>
-        q.tempId === tempId
-          ? {
-              ...q,
-              options: q.options.map((opt, idx) => (idx === optionIndex ? value : opt)),
-            }
-          : q
-      )
-    );
+    setQuizData((prev) => {
+      const newQuestions = [...prev.questions];
+      const newOptions = [...newQuestions[questionIndex].options];
+      newOptions[optionIndex] = value;
+      newQuestions[questionIndex] = { ...newQuestions[questionIndex], options: newOptions };
+      return { ...prev, questions: newQuestions };
+    });
+  };
+
+  const handleUpdateCorrectAnswerIndex = (
+    questionIndex: number,
+    selectedOptionValue: string // The string value of the selected option
+  ) => {
+    setQuizData((prev) => {
+      const newQuestions = [...prev.questions];
+      const question = newQuestions[questionIndex];
+      const newCorrectAnswerIndex = question.options.indexOf(selectedOptionValue);
+      newQuestions[questionIndex] = { ...question, correctAnswerIndex: newCorrectAnswerIndex };
+      return { ...prev, questions: newQuestions };
+    });
   };
 
   const handleAddQuiz = () => {
-    if (!quizTitle.trim()) {
+    // Basic validations
+    if (!quizData.quizTitle.trim()) {
       toast.error("Please provide a quiz title.");
       return;
     }
@@ -125,51 +160,58 @@ const QuizCreator = ({}: QuizCreatorProps) => {
       toast.error("Please set a valid time limit (at least 1 minute).");
       return;
     }
-    if (quizQuestionsDraft.length === 0) {
+    if (quizData.questions.length === 0) {
       toast.error("Please add at least one question to the quiz.");
       return;
     }
 
-    const newQuestionIds: string[] = [];
-    for (const draftQ of quizQuestionsDraft) {
-      // Validate each draft question before adding to the global pool
-      if (!draftQ.questionText.trim() || draftQ.options.some(opt => !opt.trim()) || !draftQ.correctAnswer.trim() || draftQ.marks <= 0) {
-        toast.error(`Question "${draftQ.questionText.substring(0, 30) || 'Unnamed question'}" is incomplete or invalid.`);
-        return; // Stop quiz creation if any question is invalid
-      }
-      if (!draftQ.options.includes(draftQ.correctAnswer)) {
-        toast.error(`Correct answer for question "${draftQ.questionText.substring(0, 30) || 'Unnamed question'}" must be one of the provided options.`);
+    for (const [index, q] of quizData.questions.entries()) {
+      if (!q.questionText.trim()) {
+        toast.error(`Question ${index + 1}: Question text cannot be empty.`);
         return;
       }
-
-      // Add question to global pool and get its new ID
-      const newQuestionId = addQuestion({
-        quizId: 'placeholder', // Temporary, will be updated by addQuiz
-        questionText: draftQ.questionText,
-        options: draftQ.options,
-        correctAnswer: draftQ.correctAnswer,
-        marks: draftQ.marks,
-      });
-      newQuestionIds.push(newQuestionId);
+      if (q.options.some(opt => !opt.trim())) {
+        toast.error(`Question ${index + 1}: All options must be filled.`);
+        return;
+      }
+      if (q.correctAnswerIndex === null || q.correctAnswerIndex < 0 || q.correctAnswerIndex >= q.options.length) {
+        toast.error(`Question ${index + 1}: Please select a correct answer.`);
+        return;
+      }
+      if (q.marks <= 0) {
+        toast.error(`Question ${index + 1}: Marks must be at least 1.`);
+        return;
+      }
     }
 
-    // Create the quiz with the IDs of the newly added questions
-    addQuiz({
-      title: quizTitle,
+    // Construct the final quiz object to be logged
+    const finalQuiz = {
+      ...quizData,
       timeLimitMinutes: quizTimeLimit,
       negativeMarking: negativeMarking,
       competitionMode: competitionMode,
-    }, newQuestionIds);
+      // For logging, convert correctAnswerIndex back to string for clarity
+      questions: quizData.questions.map(q => ({
+        ...q,
+        correctAnswer: q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : 'N/A',
+        correctAnswerIndex: undefined, // Remove the index if not needed in final output
+      })),
+    };
 
-    // Reset all local states after successful quiz creation
-    setQuizTitle('');
+    console.log("Quiz Data to be 'saved' (logged to console):", finalQuiz);
+    toast.success("Quiz data logged to console (not persisted due to local state mode).");
+
+    // Reset all local states after "saving"
+    setQuizData({
+      quizTitle: '',
+      totalQuestions: 0,
+      optionsPerQuestion: 0,
+      questions: [],
+    });
     setQuizTimeLimit(30);
     setNegativeMarking(false);
     setCompetitionMode(false);
-    setTotalQuestionsToGenerate(5);
-    setMcqOptionsCount(4);
     setIsQuizStructureInitialized(false);
-    setQuizQuestionsDraft([]);
   };
 
   return (
@@ -187,8 +229,8 @@ const QuizCreator = ({}: QuizCreatorProps) => {
               <Input
                 id="quizTitle"
                 placeholder="e.g., 'Midterm Exam - Chapter 1'"
-                value={quizTitle}
-                onChange={(e) => setQuizTitle(e.target.value)}
+                value={quizData.quizTitle}
+                onChange={(e) => handleUpdateQuizDetails('quizTitle', e.target.value)}
                 className="mt-1"
               />
             </div>
@@ -222,25 +264,25 @@ const QuizCreator = ({}: QuizCreatorProps) => {
             <div className="border-t pt-4 mt-4">
               <h3 className="text-lg font-semibold mb-2">Quiz Structure</h3>
               <div>
-                <Label htmlFor="totalQuestionsToGenerate">Total Questions in Quiz</Label>
+                <Label htmlFor="totalQuestions">Total Questions in Quiz</Label>
                 <Input
-                  id="totalQuestionsToGenerate"
+                  id="totalQuestions"
                   type="number"
                   min="1"
-                  value={totalQuestionsToGenerate}
-                  onChange={(e) => setTotalQuestionsToGenerate(parseInt(e.target.value) || 1)}
+                  value={quizData.totalQuestions}
+                  onChange={(e) => handleUpdateQuizDetails('totalQuestions', parseInt(e.target.value) || 1)}
                   className="mt-1"
                 />
               </div>
               <div className="mt-3">
-                <Label htmlFor="mcqOptionsCount">Options per Question (MCQ)</Label>
+                <Label htmlFor="optionsPerQuestion">Options per Question (MCQ)</Label>
                 <Input
-                  id="mcqOptionsCount"
+                  id="optionsPerQuestion"
                   type="number"
                   min="2"
                   max="6"
-                  value={mcqOptionsCount}
-                  onChange={(e) => setMcqOptionsCount(parseInt(e.target.value) || 4)}
+                  value={quizData.optionsPerQuestion}
+                  onChange={(e) => handleUpdateQuizDetails('optionsPerQuestion', parseInt(e.target.value) || 4)}
                   className="mt-1"
                 />
               </div>
@@ -251,44 +293,44 @@ const QuizCreator = ({}: QuizCreatorProps) => {
           </>
         ) : (
           <>
-            <h3 className="text-lg font-semibold mb-2">Questions for "{quizTitle || 'New Quiz'}"</h3>
+            <h3 className="text-lg font-semibold mb-2">Questions for "{quizData.quizTitle || 'New Quiz'}"</h3>
             <div className="flex justify-between items-center mb-4 p-3 border rounded-md bg-blue-50 text-blue-800 font-semibold">
-              <span>Total Questions: {quizQuestionsDraft.length}</span>
+              <span>Total Questions: {quizData.questions.length}</span>
               <span>Total Marks: {totalQuizMarks}</span>
             </div>
             <div className="space-y-6 max-h-96 overflow-y-auto p-3 border rounded-md bg-gray-50">
-              {quizQuestionsDraft.length === 0 ? (
+              {quizData.questions.length === 0 ? (
                 <p className="text-gray-500 text-center">No questions added yet. Click "Add Question" below.</p>
               ) : (
-                quizQuestionsDraft.map((q, index) => (
-                  <Card key={q.tempId} className="p-4 border rounded-md bg-white shadow-sm relative">
+                quizData.questions.map((q, index) => (
+                  <Card key={index} className="p-4 border rounded-md bg-white shadow-sm relative">
                     <Button
                       variant="destructive"
                       size="icon"
                       className="absolute top-2 right-2 h-7 w-7"
-                      onClick={() => handleDeleteQuestionFromDraft(q.tempId)}
+                      onClick={() => handleDeleteQuestionFromDraft(index)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                     <div className="space-y-3">
                       <div>
-                        <Label htmlFor={`q-text-${q.tempId}`}>Question {index + 1} Text</Label>
+                        <Label htmlFor={`q-text-${index}`}>Question {index + 1} Text</Label>
                         <Textarea
-                          id={`q-text-${q.tempId}`}
+                          id={`q-text-${index}`}
                           placeholder="Enter your question here..."
                           value={q.questionText}
-                          onChange={(e) => handleUpdateDraftQuestion(q.tempId, 'questionText', e.target.value)}
+                          onChange={(e) => handleUpdateDraftQuestion(index, 'questionText', e.target.value)}
                           className="mt-1"
                         />
                       </div>
                       {q.options.map((option, optIndex) => (
                         <div key={optIndex}>
-                          <Label htmlFor={`q-option-${q.tempId}-${optIndex}`}>Option {optIndex + 1}</Label>
+                          <Label htmlFor={`q-option-${index}-${optIndex}`}>Option {optIndex + 1}</Label>
                           <Input
-                            id={`q-option-${q.tempId}-${optIndex}`}
+                            id={`q-option-${index}-${optIndex}`}
                             placeholder={`Option ${optIndex + 1}`}
                             value={option}
-                            onChange={(e) => handleUpdateDraftOption(q.tempId, optIndex, e.target.value)}
+                            onChange={(e) => handleUpdateDraftOption(index, optIndex, e.target.value)}
                             className="mt-1"
                           />
                         </div>
@@ -296,26 +338,26 @@ const QuizCreator = ({}: QuizCreatorProps) => {
                       <div>
                         <Label>Correct Answer</Label>
                         <RadioGroup
-                          onValueChange={(value) => handleUpdateDraftQuestion(q.tempId, 'correctAnswer', value)}
-                          value={q.correctAnswer}
+                          onValueChange={(value) => handleUpdateCorrectAnswerIndex(index, value)}
+                          value={q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : ''}
                           className="flex flex-col space-y-1 mt-2"
                         >
                           {q.options.filter(opt => opt.trim()).map((option, optIndex) => (
                             <div key={optIndex} className="flex items-center space-x-2">
-                              <RadioGroupItem value={option} id={`q-correct-${q.tempId}-${optIndex}`} />
-                              <Label htmlFor={`q-correct-${q.tempId}-${optIndex}`}>{option}</Label>
+                              <RadioGroupItem value={option} id={`q-correct-${index}-${optIndex}`} />
+                              <Label htmlFor={`q-correct-${index}-${optIndex}`}>{option}</Label>
                             </div>
                           ))}
                         </RadioGroup>
                       </div>
                       <div>
-                        <Label htmlFor={`q-marks-${q.tempId}`}>Marks</Label>
+                        <Label htmlFor={`q-marks-${index}`}>Marks</Label>
                         <Input
-                          id={`q-marks-${q.tempId}`}
+                          id={`q-marks-${index}`}
                           type="number"
                           min="1"
                           value={q.marks}
-                          onChange={(e) => handleUpdateDraftQuestion(q.tempId, 'marks', parseInt(e.target.value) || 1)}
+                          onChange={(e) => handleUpdateDraftQuestion(index, 'marks', parseInt(e.target.value) || 1)}
                           className="mt-1"
                         />
                       </div>
