@@ -53,6 +53,7 @@ interface QuizProviderProps {
 }
 
 export const QuizProvider = ({ children }: QuizProviderProps) => {
+  // This context manages all quiz-related data and operations.
   const [questions, setQuestions] = useState<Question[]>([]);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [quizAttempts, setQuizAttempts] = useState<QuizAttempt[]>([]);
