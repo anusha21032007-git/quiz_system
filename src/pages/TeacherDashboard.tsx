@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { PlusCircle, Brain, ListChecks, Trophy, Clock, MinusCircle, Users } from 'lucide-react'; // Added Users icon
+import { PlusCircle, Brain, ListChecks, Trophy, Clock, MinusCircle, Users, Trash2 } from 'lucide-react'; // Added Trash2 icon
 
 const TeacherDashboard = () => {
   const { questions, quizzes, addQuestion, addQuiz, generateAIQuestions } = useQuiz();
@@ -105,8 +105,44 @@ const TeacherDashboard = () => {
     }
     const generated = generateAIQuestions(aiCoursePaperName, aiDifficulty, aiNumQuestions);
     setAiGeneratedQuestions(generated);
-    setAiCoursePaperName('');
-    setAiNumQuestions(3);
+    // setAiCoursePaperName(''); // Keep for potential regeneration
+    // setAiNumQuestions(3); // Keep for potential regeneration
+  };
+
+  const handleEditAIGeneratedQuestion = (
+    questionId: string,
+    field: 'questionText' | 'correctAnswer' | 'marks',
+    value: string | number
+  ) => {
+    setAiGeneratedQuestions((prev) =>
+      prev.map((q) =>
+        q.id === questionId
+          ? { ...q, [field]: value }
+          : q
+      )
+    );
+  };
+
+  const handleEditAIGeneratedOption = (
+    questionId: string,
+    optionIndex: number,
+    value: string
+  ) => {
+    setAiGeneratedQuestions((prev) =>
+      prev.map((q) =>
+        q.id === questionId
+          ? {
+              ...q,
+              options: q.options.map((opt, idx) => (idx === optionIndex ? value : opt)),
+            }
+          : q
+      )
+    );
+  };
+
+  const handleDeleteAIGeneratedQuestion = (questionId: string) => {
+    setAiGeneratedQuestions((prev) => prev.filter((q) => q.id !== questionId));
+    toast.info("AI generated question deleted.");
   };
 
   const handleAddAIGeneratedQuestionsToPool = () => {
@@ -114,15 +150,22 @@ const TeacherDashboard = () => {
       toast.error("No AI generated questions to add.");
       return;
     }
-    aiGeneratedQuestions.forEach(q => addQuestion({
-      quizId: q.quizId,
-      questionText: q.questionText,
-      options: q.options,
-      correctAnswer: q.correctAnswer,
-      marks: q.marks,
-    }));
-    setAiGeneratedQuestions([]);
-    toast.success("AI generated questions added to the question pool!");
+    aiGeneratedQuestions.forEach(q => {
+      // Basic validation for generated questions before adding to pool
+      if (!q.questionText || q.options.some(opt => !opt) || !q.correctAnswer || q.marks <= 0 || !q.options.includes(q.correctAnswer)) {
+        toast.error(`Question "${q.questionText.substring(0, 30)}..." is incomplete or invalid and was not added.`);
+        return;
+      }
+      addQuestion({
+        quizId: q.quizId,
+        questionText: q.questionText,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        marks: q.marks,
+      });
+    });
+    setAiGeneratedQuestions([]); // Clear generated questions after adding
+    toast.success("Selected AI generated questions added to the question pool!");
   };
 
   return (
@@ -239,13 +282,67 @@ const TeacherDashboard = () => {
             <Button onClick={handleGenerateAIQuestions} className="w-full bg-purple-600 hover:bg-purple-700">Generate Questions</Button>
             {aiGeneratedQuestions.length > 0 && (
               <div className="mt-4 p-4 border rounded-md bg-gray-50">
-                <h3 className="font-semibold mb-2">Generated Questions:</h3>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
+                <h3 className="font-semibold mb-4">Generated Questions:</h3>
+                <div className="space-y-6 max-h-96 overflow-y-auto">
                   {aiGeneratedQuestions.map((q, index) => (
-                    <div key={index} className="p-2 border rounded-md bg-white text-sm">
-                      <p className="font-medium">{index + 1}. {q.questionText} ({q.marks} marks)</p>
-                      <p className="text-gray-600">Correct: {q.correctAnswer}</p>
-                    </div>
+                    <Card key={q.id} className="p-4 border rounded-md bg-white shadow-sm relative">
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-7 w-7"
+                        onClick={() => handleDeleteAIGeneratedQuestion(q.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <div className="space-y-3">
+                        <div>
+                          <Label htmlFor={`ai-q-text-${q.id}`}>Question Text</Label>
+                          <Textarea
+                            id={`ai-q-text-${q.id}`}
+                            value={q.questionText}
+                            onChange={(e) => handleEditAIGeneratedQuestion(q.id, 'questionText', e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                        {q.options.map((option, optIndex) => (
+                          <div key={optIndex}>
+                            <Label htmlFor={`ai-q-option-${q.id}-${optIndex}`}>Option {optIndex + 1}</Label>
+                            <Input
+                              id={`ai-q-option-${q.id}-${optIndex}`}
+                              value={option}
+                              onChange={(e) => handleEditAIGeneratedOption(q.id, optIndex, e.target.value)}
+                              className="mt-1"
+                            />
+                          </div>
+                        ))}
+                        <div>
+                          <Label>Correct Answer</Label>
+                          <RadioGroup
+                            onValueChange={(value) => handleEditAIGeneratedQuestion(q.id, 'correctAnswer', value)}
+                            value={q.correctAnswer}
+                            className="flex flex-col space-y-1 mt-2"
+                          >
+                            {q.options.filter(opt => opt).map((option, optIndex) => (
+                              <div key={optIndex} className="flex items-center space-x-2">
+                                <RadioGroupItem value={option} id={`ai-q-correct-${q.id}-${optIndex}`} />
+                                <Label htmlFor={`ai-q-correct-${q.id}-${optIndex}`}>{option}</Label>
+                              </div>
+                            ))}
+                          </RadioGroup>
+                        </div>
+                        <div>
+                          <Label htmlFor={`ai-q-marks-${q.id}`}>Marks</Label>
+                          <Input
+                            id={`ai-q-marks-${q.id}`}
+                            type="number"
+                            min="1"
+                            value={q.marks}
+                            onChange={(e) => handleEditAIGeneratedQuestion(q.id, 'marks', parseInt(e.target.value) || 1)}
+                            className="mt-1"
+                          />
+                        </div>
+                      </div>
+                    </Card>
                   ))}
                 </div>
                 <Button onClick={handleAddAIGeneratedQuestionsToPool} className="w-full mt-4 bg-blue-600 hover:bg-blue-700">Add to Question Pool</Button>

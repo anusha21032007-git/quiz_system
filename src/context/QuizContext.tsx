@@ -117,14 +117,48 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
   // Mock AI Question Generation
   const generateAIQuestions = (coursePaperName: string, difficulty: 'Easy' | 'Medium' | 'Hard', numQuestions: number): Question[] => {
     const generated: Question[] = [];
+    const baseMarks = difficulty === 'Easy' ? 1 : (difficulty === 'Medium' ? 2 : 3);
+
     for (let i = 0; i < numQuestions; i++) {
+      const questionId = `ai-q-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 4)}`;
+      let questionText = '';
+      let options: string[] = [];
+      let correctAnswer = '';
+
+      switch (difficulty) {
+        case 'Easy':
+          questionText = `What is the capital of ${coursePaperName.split(' ')[0] || 'France'}?`;
+          options = ['Paris', 'London', 'Berlin', 'Rome'];
+          correctAnswer = 'Paris';
+          break;
+        case 'Medium':
+          questionText = `In ${coursePaperName}, which concept describes the interaction between supply and demand?`;
+          options = ['Equilibrium', 'Elasticity', 'Utility', 'Scarcity'];
+          correctAnswer = 'Equilibrium';
+          break;
+        case 'Hard':
+          questionText = `Explain the implications of Heisenberg's Uncertainty Principle in the context of ${coursePaperName}.`;
+          options = [
+            'It states that one cannot simultaneously know the exact position and momentum of a particle.',
+            'It describes the behavior of particles at relativistic speeds.',
+            'It quantifies the energy levels of electrons in an atom.',
+            'It relates to the wave-particle duality of light.'
+          ];
+          correctAnswer = 'It states that one cannot simultaneously know the exact position and momentum of a particle.';
+          break;
+        default:
+          questionText = `[${difficulty}] According to "${coursePaperName}", what is the key concept related to topic ${i + 1}?`;
+          options = [`Option A for ${i + 1}`, `Option B for ${i + 1}`, `Option C for ${i + 1}`, `Option D for ${i + 1}`];
+          correctAnswer = `Option A for ${i + 1}`;
+      }
+
       generated.push({
-        id: `ai-q-${Date.now()}-${i}`,
+        id: questionId,
         quizId: 'ai-generated', // A placeholder quizId for now
-        questionText: `[${difficulty}] According to "${coursePaperName}", what is the key concept related to topic ${i + 1}?`,
-        options: [`Option A for ${i + 1}`, `Option B for ${i + 1}`, `Option C for ${i + 1}`, `Option D for ${i + 1}`],
-        correctAnswer: `Option A for ${i + 1}`,
-        marks: difficulty === 'Easy' ? 1 : (difficulty === 'Medium' ? 2 : 3),
+        questionText: questionText.replace(coursePaperName.split(' ')[0] || 'France', coursePaperName),
+        options,
+        correctAnswer,
+        marks: baseMarks,
       });
     }
     toast.info(`Mock AI generated ${numQuestions} questions for "${coursePaperName}" (${difficulty}).`);
