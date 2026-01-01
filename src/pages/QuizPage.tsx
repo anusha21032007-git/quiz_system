@@ -27,7 +27,8 @@ const QuizPage = () => {
   const [answers, setAnswers] = useState<{ questionId: string; selectedAnswer: string; isCorrect: boolean; marksObtained: number }[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [quizStudentName, setQuizStudentName] = useState(studentName || '');
-  const [timeLeft, setTimeLeft] = useState<number>(quiz?.timeLimitMinutes ? quiz.timeLimitMinutes * 60 : 0); // Time in seconds
+  const [initialTime, setInitialTime] = useState<number>(0); // To store the starting time for calculation
+  const [timeLeft, setTimeLeft] = useState<number>(0); // Time in seconds
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize quiz state and handle missing quiz/questions
@@ -42,7 +43,9 @@ const QuizPage = () => {
       navigate('/student');
       return;
     }
-    setTimeLeft(quiz.timeLimitMinutes * 60); // Set initial time
+    const quizDuration = quiz.timeLimitMinutes * 60;
+    setInitialTime(quizDuration);
+    setTimeLeft(quizDuration); // Set initial time
   }, [quizId, quiz, questions.length, navigate]);
 
   // Timer logic
@@ -138,6 +141,7 @@ const QuizPage = () => {
     }
 
     const totalScore = finalAnswers.reduce((sum, ans) => sum + ans.marksObtained, 0);
+    const timeTaken = initialTime - timeLeft; // Calculate time taken
 
     submitQuizAttempt({
       quizId: quiz.id,
@@ -145,6 +149,7 @@ const QuizPage = () => {
       score: totalScore,
       totalQuestions: questions.length,
       answers: finalAnswers,
+      timeTakenSeconds: timeTaken, // Include time taken
     });
 
     if (timerRef.current) {
@@ -206,6 +211,7 @@ const QuizPage = () => {
   if (showResults) {
     const finalScore = answers.reduce((sum, ans) => sum + ans.marksObtained, 0);
     const totalPossibleMarks = questions.reduce((sum, q) => sum + q.marks, 0);
+    const timeTaken = initialTime - timeLeft;
 
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-blue-100 p-8">
@@ -216,6 +222,9 @@ const QuizPage = () => {
           <CardContent className="text-center space-y-4">
             <p className="text-2xl text-gray-800">Congratulations, <span className="font-semibold">{quizStudentName}</span>!</p>
             <p className="text-5xl font-extrabold text-blue-600">Your Score: {finalScore.toFixed(2)} / {totalPossibleMarks}</p>
+            {quiz.competitionMode && (
+              <p className="text-xl text-gray-700">Time Taken: <span className="font-semibold">{formatTime(timeTaken)}</span></p>
+            )}
             <div className="mt-6">
               <h3 className="text-xl font-semibold mb-3">Review Your Answers:</h3>
               <div className="space-y-3 max-h-80 overflow-y-auto p-4 border rounded-md bg-gray-50">

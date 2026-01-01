@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ListChecks, Trophy, Clock, MinusCircle } from 'lucide-react';
+import { ListChecks, Trophy, Clock, MinusCircle, Users } from 'lucide-react'; // Added Users icon
 import { toast } from 'sonner';
 
 const StudentDashboard = () => {
@@ -76,6 +76,8 @@ const StudentDashboard = () => {
                           <Trophy className="h-4 w-4 inline-block ml-2" /> {totalMarks} marks
                           {quiz.negativeMarking && <MinusCircle className="h-4 w-4 inline-block text-red-500 ml-2" />}
                           {quiz.negativeMarking && <span className="text-red-500 text-xs">Negative Marking</span>}
+                          {quiz.competitionMode && <Users className="h-4 w-4 inline-block text-purple-600 ml-2" />}
+                          {quiz.competitionMode && <span className="text-purple-600 text-xs">Competition Mode</span>}
                         </p>
                       </div>
                       <Link to={`/quiz/${quiz.id}`} state={{ studentName }}>

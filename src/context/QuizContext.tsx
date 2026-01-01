@@ -19,6 +19,7 @@ export interface Quiz {
   questionIds: string[]; // IDs of questions belonging to this quiz
   timeLimitMinutes: number; // New field for quiz time limit
   negativeMarking: boolean; // New field for negative marking
+  competitionMode: boolean; // New field for competition mode
 }
 
 export interface QuizAttempt {
@@ -29,6 +30,7 @@ export interface QuizAttempt {
   totalQuestions: number;
   answers: { questionId: string; selectedAnswer: string; isCorrect: boolean }[];
   timestamp: number;
+  timeTakenSeconds: number; // New field for time taken in seconds
 }
 
 interface QuizContextType {

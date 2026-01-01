@@ -2,16 +2,16 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useQuiz } from '@/context/QuizContext';
+import { useQuiz, QuizAttempt } from '@/context/QuizContext';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trophy } from 'lucide-react';
+import { Trophy, Users, Clock } from 'lucide-react'; // Added Users and Clock icons
 
 const Leaderboard = () => {
   const { quizAttempts, quizzes } = useQuiz();
 
-  // Group attempts by quiz and then sort by score
-  const groupedAttempts: { [quizId: string]: typeof quizAttempts } = {};
+  // Group attempts by quiz
+  const groupedAttempts: { [quizId: string]: QuizAttempt[] } = {};
   quizAttempts.forEach(attempt => {
     if (!groupedAttempts[attempt.quizId]) {
       groupedAttempts[attempt.quizId] = [];
@@ -19,10 +19,28 @@ const Leaderboard = () => {
     groupedAttempts[attempt.quizId].push(attempt);
   });
 
-  // Sort each group by score (descending)
+  // Sort each group based on quiz type (competition mode vs. regular)
   Object.keys(groupedAttempts).forEach(quizId => {
-    groupedAttempts[quizId].sort((a, b) => b.score - a.score);
+    const quiz = quizzes.find(q => q.id === quizId);
+    if (quiz?.competitionMode) {
+      // For competition mode: sort by score (desc), then time taken (asc)
+      groupedAttempts[quizId].sort((a, b) => {
+        if (b.score !== a.score) {
+          return b.score - a.score;
+        }
+        return a.timeTakenSeconds - b.timeTakenSeconds; // Tie-breaker: faster time wins
+      });
+    } else {
+      // For regular quizzes: sort by score (desc)
+      groupedAttempts[quizId].sort((a, b) => b.score - a.score);
+    }
   });
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -57,6 +75,8 @@ const Leaderboard = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-2xl">
                     <Trophy className="h-6 w-6 text-yellow-500" /> Leaderboard for: {quiz.title}
+                    {quiz.competitionMode && <Users className="h-6 w-6 text-purple-600 ml-2" />}
+                    {quiz.competitionMode && <span className="text-purple-600 text-base">Competition Mode</span>}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -66,18 +86,29 @@ const Leaderboard = () => {
                         <TableHead className="w-[50px]">Rank</TableHead>
                         <TableHead>Student Name</TableHead>
                         <TableHead className="text-right">Score</TableHead>
+                        {quiz.competitionMode && <TableHead className="text-right">Time Taken</TableHead>}
                         <TableHead className="text-right">Date</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {groupedAttempts[quizId].map((attempt, index) => (
-                        <TableRow key={attempt.id}>
-                          <TableCell className="font-medium">{index + 1}</TableCell>
-                          <TableCell>{attempt.studentName}</TableCell>
-                          <TableCell className="text-right">{attempt.score} / {attempt.totalQuestions}</TableCell>
-                          <TableCell className="text-right">{new Date(attempt.timestamp).toLocaleDateString()}</TableCell>
-                        </TableRow>
-                      ))}
+                      {groupedAttempts[quizId].map((attempt, index) => {
+                        let rowClasses = '';
+                        if (quiz.competitionMode) {
+                          if (index === 0) rowClasses = 'bg-yellow-100 font-bold'; // Gold for 1st
+                          else if (index === 1) rowClasses = 'bg-gray-200 font-semibold'; // Silver for 2nd
+                          else if (index === 2) rowClasses = 'bg-orange-100 font-medium'; // Bronze for 3rd
+                        }
+
+                        return (
+                          <TableRow key={attempt.id} className={rowClasses}>
+                            <TableCell className="font-medium">{index + 1}</TableCell>
+                            <TableCell>{attempt.studentName}</TableCell>
+                            <TableCell className="text-right">{attempt.score.toFixed(2)} / {attempt.totalQuestions}</TableCell>
+                            {quiz.competitionMode && <TableCell className="text-right">{formatTime(attempt.timeTakenSeconds)}</TableCell>}
+                            <TableCell className="text-right">{new Date(attempt.timestamp).toLocaleDateString()}</TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </CardContent>

@@ -10,10 +10,10 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/componen
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
-import { Switch } from '@/components/ui/switch'; // Import Switch component
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { PlusCircle, Brain, ListChecks, Trophy, Clock, MinusCircle } from 'lucide-react';
+import { PlusCircle, Brain, ListChecks, Trophy, Clock, MinusCircle, Users } from 'lucide-react'; // Added Users icon
 
 const TeacherDashboard = () => {
   const { questions, quizzes, addQuestion, addQuiz, generateAIQuestions } = useQuiz();
@@ -22,19 +22,20 @@ const TeacherDashboard = () => {
   const [questionText, setQuestionText] = useState('');
   const [options, setOptions] = useState<string[]>(['', '', '', '']);
   const [correctAnswer, setCorrectAnswer] = useState('');
-  const [questionMarks, setQuestionMarks] = useState<number>(1); // New state for marks
+  const [questionMarks, setQuestionMarks] = useState<number>(1);
 
   // AI Question Generation State
   const [aiCoursePaperName, setAiCoursePaperName] = useState('');
-  const [aiDifficulty, setAiDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Easy'); // New state for difficulty
-  const [aiNumQuestions, setAiNumQuestions] = useState<number>(3); // New state for number of questions
+  const [aiDifficulty, setAiDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Easy');
+  const [aiNumQuestions, setAiNumQuestions] = useState<number>(3);
   const [aiGeneratedQuestions, setAiGeneratedQuestions] = useState<Question[]>([]);
 
   // Quiz Creation State
   const [quizTitle, setQuizTitle] = useState('');
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
-  const [quizTimeLimit, setQuizTimeLimit] = useState<number>(30); // New state for time limit
-  const [negativeMarking, setNegativeMarking] = useState<boolean>(false); // New state for negative marking
+  const [quizTimeLimit, setQuizTimeLimit] = useState<number>(30);
+  const [negativeMarking, setNegativeMarking] = useState<boolean>(false);
+  const [competitionMode, setCompetitionMode] = useState<boolean>(false); // New state for competition mode
 
   const handleOptionChange = (index: number, value: string) => {
     const newOptions = [...options];
@@ -53,11 +54,11 @@ const TeacherDashboard = () => {
     }
 
     addQuestion({
-      quizId: 'unassigned', // Questions are initially unassigned to a specific quiz
+      quizId: 'unassigned',
       questionText,
       options,
       correctAnswer,
-      marks: questionMarks, // Include marks
+      marks: questionMarks,
     });
 
     setQuestionText('');
@@ -74,13 +75,15 @@ const TeacherDashboard = () => {
 
     addQuiz({
       title: quizTitle,
-      timeLimitMinutes: quizTimeLimit, // Include time limit
-      negativeMarking: negativeMarking, // Include negative marking
+      timeLimitMinutes: quizTimeLimit,
+      negativeMarking: negativeMarking,
+      competitionMode: competitionMode, // Include competition mode
     }, selectedQuestionIds);
     setQuizTitle('');
     setSelectedQuestionIds([]);
     setQuizTimeLimit(30);
     setNegativeMarking(false);
+    setCompetitionMode(false); // Reset competition mode
   };
 
   const handleToggleQuestionSelection = (questionId: string) => {
@@ -288,6 +291,14 @@ const TeacherDashboard = () => {
                 onCheckedChange={setNegativeMarking}
               />
             </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="competitionMode">Enable Competition Mode</Label>
+              <Switch
+                id="competitionMode"
+                checked={competitionMode}
+                onCheckedChange={setCompetitionMode}
+              />
+            </div>
             <div>
               <Label>Select Questions for Quiz ({selectedQuestionIds.length} selected)</Label>
               <div className="mt-2 space-y-2 max-h-60 overflow-y-auto border p-3 rounded-md bg-gray-50">
@@ -335,6 +346,8 @@ const TeacherDashboard = () => {
                         <Clock className="h-4 w-4 inline-block" /> {quiz.timeLimitMinutes} min
                         {quiz.negativeMarking && <MinusCircle className="h-4 w-4 inline-block text-red-500 ml-2" />}
                         {quiz.negativeMarking && <span className="text-red-500 text-xs">Negative Marking</span>}
+                        {quiz.competitionMode && <Users className="h-4 w-4 inline-block text-purple-600 ml-2" />}
+                        {quiz.competitionMode && <span className="text-purple-600 text-xs">Competition Mode</span>}
                       </p>
                     </div>
                     <Link to={`/quiz/${quiz.id}`} className="text-sm text-blue-600 hover:underline">
