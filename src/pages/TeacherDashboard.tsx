@@ -30,12 +30,13 @@ const TeacherDashboard = () => {
   const [aiNumQuestions, setAiNumQuestions] = useState<number>(3);
   const [aiGeneratedQuestions, setAiGeneratedQuestions] = useState<Question[]>([]);
 
-  // Quiz Creation State
-  const [quizTitle, setQuizTitle] = useState('');
-  const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
-  const [quizTimeLimit, setQuizTimeLimit] = useState<number>(30);
-  const [negativeMarking, setNegativeMarking] = useState<boolean>(false);
-  const [competitionMode, setCompetitionMode] = useState<boolean>(false);
+  // Quiz Creation State (now mostly handled internally by QuizCreator)
+  // These states are no longer directly passed to QuizCreator, but kept here for other components if needed.
+  // const [quizTitle, setQuizTitle] = useState('');
+  // const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
+  // const [quizTimeLimit, setQuizTimeLimit] = useState<number>(30);
+  // const [negativeMarking, setNegativeMarking] = useState<boolean>(false);
+  // const [competitionMode, setCompetitionMode] = useState<boolean>(false);
 
   const handleAddQuestion = () => {
     if (!questionText || options.some(opt => !opt) || !correctAnswer || questionMarks <= 0) {
@@ -61,32 +62,11 @@ const TeacherDashboard = () => {
     setQuestionMarks(1);
   };
 
-  const handleAddQuiz = () => {
-    if (!quizTitle || selectedQuestionIds.length === 0 || quizTimeLimit <= 0) {
-      toast.error("Please provide a quiz title, select at least one question, and set a valid time limit.");
-      return;
-    }
+  // handleAddQuiz logic is now entirely within QuizCreator.tsx
+  // const handleAddQuiz = () => { ... };
 
-    addQuiz({
-      title: quizTitle,
-      timeLimitMinutes: quizTimeLimit,
-      negativeMarking: negativeMarking,
-      competitionMode: competitionMode,
-    }, selectedQuestionIds);
-    setQuizTitle('');
-    setSelectedQuestionIds([]);
-    setQuizTimeLimit(30);
-    setNegativeMarking(false);
-    setCompetitionMode(false);
-  };
-
-  const handleToggleQuestionSelection = (questionId: string) => {
-    setSelectedQuestionIds((prev) =>
-      prev.includes(questionId)
-        ? prev.filter((id) => id !== questionId)
-        : [...prev, questionId]
-    );
-  };
+  // handleToggleQuestionSelection logic is no longer needed for QuizCreator
+  // const handleToggleQuestionSelection = (questionId: string) => { ... };
 
   const handleGenerateAIQuestions = () => {
     if (!aiCoursePaperName) {
@@ -157,18 +137,19 @@ const TeacherDashboard = () => {
       case 'create-quiz':
         return (
           <QuizCreator
-            quizTitle={quizTitle}
-            setQuizTitle={setQuizTitle}
-            quizTimeLimit={quizTimeLimit}
-            setQuizTimeLimit={setQuizTimeLimit}
-            negativeMarking={negativeMarking}
-            setNegativeMarking={setNegativeMarking}
-            competitionMode={competitionMode}
-            setCompetitionMode={setCompetitionMode}
-            questions={questions}
-            selectedQuestionIds={selectedQuestionIds}
-            handleToggleQuestionSelection={handleToggleQuestionSelection}
-            handleAddQuiz={handleAddQuiz}
+            // Props for QuizCreator are now managed internally
+            // quizTitle={quizTitle}
+            // setQuizTitle={setQuizTitle}
+            // quizTimeLimit={quizTimeLimit}
+            // setQuizTimeLimit={setQuizTimeLimit}
+            // negativeMarking={negativeMarking}
+            // setNegativeMarking={setNegativeMarking}
+            // competitionMode={competitionMode}
+            // setCompetitionMode={setCompetitionMode}
+            // questions={questions} // No longer needed for QuizCreator
+            // selectedQuestionIds={selectedQuestionIds} // No longer needed for QuizCreator
+            // handleToggleQuestionSelection={handleToggleQuestionSelection} // No longer needed for QuizCreator
+            // handleAddQuiz={handleAddQuiz} // No longer needed for QuizCreator
           />
         );
       case 'available-quizzes':

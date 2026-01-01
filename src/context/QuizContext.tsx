@@ -37,7 +37,7 @@ interface QuizContextType {
   questions: Question[];
   quizzes: Quiz[];
   quizAttempts: QuizAttempt[];
-  addQuestion: (question: Omit<Question, 'id'>) => void;
+  addQuestion: (question: Omit<Question, 'id'>) => string; // Changed return type to string
   addQuiz: (quiz: Omit<Quiz, 'id' | 'questionIds'>, questionIds: string[]) => void;
   submitQuizAttempt: (attempt: Omit<QuizAttempt, 'id' | 'timestamp'>) => void;
   getQuestionsForQuiz: (quizId: string) => Question[];
@@ -86,10 +86,11 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
     localStorage.setItem('quiz_attempts', JSON.stringify(quizAttempts));
   }, [quizAttempts]);
 
-  const addQuestion = (question: Omit<Question, 'id'>) => {
+  const addQuestion = (question: Omit<Question, 'id'>): string => {
     const newQuestion: Question = { ...question, id: `q-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` };
     setQuestions((prev) => [...prev, newQuestion]);
     toast.success("Question added successfully!");
+    return newQuestion.id; // Return the ID
   };
 
   const addQuiz = (quiz: Omit<Quiz, 'id' | 'questionIds'>, questionIds: string[]) => {
