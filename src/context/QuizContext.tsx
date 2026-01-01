@@ -10,12 +10,15 @@ export interface Question {
   questionText: string;
   options: string[];
   correctAnswer: string;
+  marks: number; // New field for question marks
 }
 
 export interface Quiz {
   id: string;
   title: string;
   questionIds: string[]; // IDs of questions belonging to this quiz
+  timeLimitMinutes: number; // New field for quiz time limit
+  negativeMarking: boolean; // New field for negative marking
 }
 
 export interface QuizAttempt {
@@ -37,7 +40,7 @@ interface QuizContextType {
   submitQuizAttempt: (attempt: Omit<QuizAttempt, 'id' | 'timestamp'>) => void;
   getQuestionsForQuiz: (quizId: string) => Question[];
   getQuizById: (quizId: string) => Quiz | undefined;
-  generateAIQuestions: (coursePaperName: string) => Question[];
+  generateAIQuestions: (coursePaperName: string, difficulty: 'Easy' | 'Medium' | 'Hard', numQuestions: number) => Question[];
 }
 
 const QuizContext = createContext<QuizContextType | undefined>(undefined);
@@ -110,32 +113,20 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
   };
 
   // Mock AI Question Generation
-  const generateAIQuestions = (coursePaperName: string): Question[] => {
-    const generatedQuestions: Question[] = [
-      {
-        id: `ai-q-${Date.now()}-1`,
+  const generateAIQuestions = (coursePaperName: string, difficulty: 'Easy' | 'Medium' | 'Hard', numQuestions: number): Question[] => {
+    const generated: Question[] = [];
+    for (let i = 0; i < numQuestions; i++) {
+      generated.push({
+        id: `ai-q-${Date.now()}-${i}`,
         quizId: 'ai-generated', // A placeholder quizId for now
-        questionText: `According to the paper "${coursePaperName}", what is the primary hypothesis discussed?`,
-        options: ['Hypothesis A', 'Hypothesis B', 'Hypothesis C', 'Hypothesis D'],
-        correctAnswer: 'Hypothesis A',
-      },
-      {
-        id: `ai-q-${Date.now()}-2`,
-        quizId: 'ai-generated',
-        questionText: `Which methodology was predominantly used in the study described in "${coursePaperName}"?`,
-        options: ['Qualitative Analysis', 'Quantitative Analysis', 'Mixed Methods', 'Case Study'],
-        correctAnswer: 'Quantitative Analysis',
-      },
-      {
-        id: `ai-q-${Date.now()}-3`,
-        quizId: 'ai-generated',
-        questionText: `What was a key finding highlighted in the conclusion of "${coursePaperName}"?`,
-        options: ['Finding X', 'Finding Y', 'Finding Z', 'Finding W'],
-        correctAnswer: 'Finding X',
-      },
-    ];
-    toast.info(`Mock AI generated questions for "${coursePaperName}".`);
-    return generatedQuestions;
+        questionText: `[${difficulty}] According to "${coursePaperName}", what is the key concept related to topic ${i + 1}?`,
+        options: [`Option A for ${i + 1}`, `Option B for ${i + 1}`, `Option C for ${i + 1}`, `Option D for ${i + 1}`],
+        correctAnswer: `Option A for ${i + 1}`,
+        marks: difficulty === 'Easy' ? 1 : (difficulty === 'Medium' ? 2 : 3),
+      });
+    }
+    toast.info(`Mock AI generated ${numQuestions} questions for "${coursePaperName}" (${difficulty}).`);
+    return generated;
   };
 
   return (
