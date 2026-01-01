@@ -8,11 +8,11 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/componen
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
-import { ListChecks, PlusCircle, Trash2, Eye, Save, Brain } from 'lucide-react'; // Import Brain icon
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ListChecks, PlusCircle, Trash2, Eye, Save, Brain } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { useQuiz } from '@/context/QuizContext'; // Import useQuiz
+import { useQuiz } from '@/context/QuizContext';
 
 // Define a type for questions in local draft state
 interface LocalQuestion {
@@ -38,7 +38,7 @@ interface StoredQuiz {
   timeLimitMinutes: number;
   negativeMarking: boolean;
   competitionMode: boolean;
-  _questionsData: { // Store actual question data for easy retrieval in preview
+  _questionsData: {
     id: string;
     quizId: string;
     questionText: string;
@@ -50,13 +50,13 @@ interface StoredQuiz {
 
 const QuizCreator = () => {
   const navigate = useNavigate();
-  const { generateAIQuestions } = useQuiz(); // Use the generateAIQuestions from context
+  const { generateAIQuestions } = useQuiz();
 
   // Consolidated quiz data state
   const [quizData, setQuizData] = useState<LocalQuizData>({
     quizTitle: '',
     totalQuestions: 0,
-    optionsPerQuestion: 0,
+    optionsPerQuestion: 4, // Default to 4 options as requested
     questions: [],
   });
 
@@ -319,7 +319,7 @@ const QuizCreator = () => {
     setQuizData({
       quizTitle: '',
       totalQuestions: 0,
-      optionsPerQuestion: 0,
+      optionsPerQuestion: 4, // Reset to default 4 options
       questions: [],
     });
     setQuizTimeLimit(30);
@@ -351,61 +351,61 @@ const QuizCreator = () => {
               />
             </div>
             <div>
-              <Label htmlFor="quizTimeLimit">Time Limit (minutes)</Label>
+              <Label htmlFor="totalQuestions">Total Questions in Quiz</Label>
               <Input
-                id="quizTimeLimit"
+                id="totalQuestions"
                 type="number"
                 min="1"
-                value={quizTimeLimit}
-                onChange={(e) => setQuizTimeLimit(parseInt(e.target.value) || 1)}
+                value={quizData.totalQuestions}
+                onChange={(e) => handleUpdateQuizDetails('totalQuestions', parseInt(e.target.value) || 1)}
                 className="mt-1"
               />
             </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="negativeMarking">Enable Negative Marking</Label>
-              <Switch
-                id="negativeMarking"
-                checked={negativeMarking}
-                onCheckedChange={setNegativeMarking}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="competitionMode">Enable Competition Mode</Label>
-              <Switch
-                id="competitionMode"
-                checked={competitionMode}
-                onCheckedChange={setCompetitionMode}
+            <div className="mt-3">
+              <Label htmlFor="optionsPerQuestion">Options per Question (MCQ)</Label>
+              <Input
+                id="optionsPerQuestion"
+                type="number"
+                min="2"
+                max="6"
+                value={quizData.optionsPerQuestion}
+                onChange={(e) => handleUpdateQuizDetails('optionsPerQuestion', parseInt(e.target.value) || 4)}
+                className="mt-1"
               />
             </div>
             <div className="border-t pt-4 mt-4">
-              <h3 className="text-lg font-semibold mb-2">Quiz Structure</h3>
+              <h3 className="text-lg font-semibold mb-2">Additional Quiz Settings</h3>
               <div>
-                <Label htmlFor="totalQuestions">Total Questions in Quiz</Label>
+                <Label htmlFor="quizTimeLimit">Time Limit (minutes)</Label>
                 <Input
-                  id="totalQuestions"
+                  id="quizTimeLimit"
                   type="number"
                   min="1"
-                  value={quizData.totalQuestions}
-                  onChange={(e) => handleUpdateQuizDetails('totalQuestions', parseInt(e.target.value) || 1)}
+                  value={quizTimeLimit}
+                  onChange={(e) => setQuizTimeLimit(parseInt(e.target.value) || 1)}
                   className="mt-1"
                 />
               </div>
-              <div className="mt-3">
-                <Label htmlFor="optionsPerQuestion">Options per Question (MCQ)</Label>
-                <Input
-                  id="optionsPerQuestion"
-                  type="number"
-                  min="2"
-                  max="6"
-                  value={quizData.optionsPerQuestion}
-                  onChange={(e) => handleUpdateQuizDetails('optionsPerQuestion', parseInt(e.target.value) || 4)}
-                  className="mt-1"
+              <div className="flex items-center justify-between mt-3">
+                <Label htmlFor="negativeMarking">Enable Negative Marking</Label>
+                <Switch
+                  id="negativeMarking"
+                  checked={negativeMarking}
+                  onCheckedChange={setNegativeMarking}
                 />
               </div>
-              <Button onClick={handleInitializeQuizStructure} className="w-full mt-4 bg-blue-600 hover:bg-blue-700">
-                Initialize Quiz Structure
-              </Button>
+              <div className="flex items-center justify-between mt-3">
+                <Label htmlFor="competitionMode">Enable Competition Mode</Label>
+                <Switch
+                  id="competitionMode"
+                  checked={competitionMode}
+                  onCheckedChange={setCompetitionMode}
+                />
+              </div>
             </div>
+            <Button onClick={handleInitializeQuizStructure} className="w-full mt-4 bg-blue-600 hover:bg-blue-700">
+              Initialize Quiz Structure
+            </Button>
           </>
         ) : (
           <>
