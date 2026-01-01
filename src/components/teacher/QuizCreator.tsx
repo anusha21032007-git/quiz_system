@@ -20,7 +20,7 @@ interface LocalQuestion {
   options: string[];
   correctAnswerIndex: number | null; // Index of the correct option, or null if none selected
   marks: number;
-  timeLimitMinutes: number; // Added timeLimitMinutes for individual questions
+  timeLimitMinutes: number | ''; // Allow timeLimitMinutes to be an empty string
 }
 
 // Define a type for the entire quiz data managed locally
@@ -79,7 +79,10 @@ const QuizCreator = () => {
 
   // Effect to calculate total quiz time whenever questions change
   useEffect(() => {
-    const sumOfTimes = quizData.questions.reduce((sum, q) => sum + q.timeLimitMinutes, 0);
+    const sumOfTimes = quizData.questions.reduce((sum, q) => {
+      // Only sum if timeLimitMinutes is a valid number
+      return sum + (typeof q.timeLimitMinutes === 'number' && q.timeLimitMinutes > 0 ? q.timeLimitMinutes : 0);
+    }, 0);
     setTotalCalculatedQuizTime(sumOfTimes);
   }, [quizData.questions]);
 
@@ -115,8 +118,9 @@ const QuizCreator = () => {
         toast.error(`Question ${index + 1}: Marks must be at least 1.`);
         return false;
       }
-      if (q.timeLimitMinutes <= 0) { // New validation for individual question time
-        toast.error(`Question ${index + 1}: Time limit must be at least 1 minute.`);
+      // New validation for individual question time: check for empty string OR non-positive number
+      if (q.timeLimitMinutes === '' || (typeof q.timeLimitMinutes === 'number' && q.timeLimitMinutes <= 0)) {
+        toast.error(`Question ${index + 1}: Time limit must be a positive number.`);
         return false;
       }
     }
@@ -197,7 +201,13 @@ const QuizCreator = () => {
   ) => {
     setQuizData((prev) => {
       const newQuestions = [...prev.questions];
-      newQuestions[questionIndex] = { ...newQuestions[questionIndex], [field]: value };
+      if (field === 'marks' || field === 'timeLimitMinutes') {
+        // If value is empty string, store as empty string. Otherwise, parse to int.
+        const parsedValue = value === '' ? '' : parseInt(value as string);
+        newQuestions[questionIndex] = { ...newQuestions[questionIndex], [field]: parsedValue };
+      } else {
+        newQuestions[questionIndex] = { ...newQuestions[questionIndex], [field]: value };
+      }
       return { ...prev, questions: newQuestions };
     });
   };
@@ -274,7 +284,7 @@ const QuizCreator = () => {
         options: q.options,
         correctAnswer: q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : '',
         marks: q.marks,
-        timeLimitMinutes: q.timeLimitMinutes, // Include timeLimitMinutes
+        timeLimitMinutes: typeof q.timeLimitMinutes === 'number' ? q.timeLimitMinutes : 1, // Ensure it's a number for output
       };
     });
 
@@ -548,7 +558,7 @@ const QuizCreator = () => {
                           type="number"
                           min="1"
                           value={q.timeLimitMinutes}
-                          onChange={(e) => handleUpdateDraftQuestion(index, 'timeLimitMinutes', parseInt(e.target.value) || 1)}
+                          onChange={(e) => handleUpdateDraftQuestion(index, 'timeLimitMinutes', e.target.value)}
                           className="mt-1"
                         />
                       </div>
