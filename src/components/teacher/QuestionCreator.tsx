@@ -186,6 +186,18 @@ const QuestionCreator = () => {
                     className="mt-1"
                   />
                 </div>
+                {/* Moved Marks input here */}
+                <div>
+                  <Label htmlFor={`questionMarks-${index}`}>Marks for this Question</Label>
+                  <Input
+                    id={`questionMarks-${index}`}
+                    type="number"
+                    min="1"
+                    value={q.marks}
+                    onChange={(e) => handleUpdateQuestion(index, 'marks', parseInt(e.target.value) || 1)}
+                    className="mt-1"
+                  />
+                </div>
                 {q.options.map((option, optIndex) => (
                   <div key={optIndex}>
                     <Label htmlFor={`option-${index}-${optIndex}`}>Option {optIndex + 1}</Label>
@@ -212,17 +224,6 @@ const QuestionCreator = () => {
                       </div>
                     ))}
                   </RadioGroup>
-                </div>
-                <div>
-                  <Label htmlFor={`questionMarks-${index}`}>Marks for this Question</Label>
-                  <Input
-                    id={`questionMarks-${index}`}
-                    type="number"
-                    min="1"
-                    value={q.marks}
-                    onChange={(e) => handleUpdateQuestion(index, 'marks', parseInt(e.target.value) || 1)}
-                    className="mt-1"
-                  />
                 </div>
               </div>
             </Card>
