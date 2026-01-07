@@ -6,8 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ListChecks, PlusCircle, Trash2, Eye, Save, Brain } from 'lucide-react';
 import { toast } from 'sonner';
@@ -19,7 +17,7 @@ interface LocalQuestion {
   questionText: string;
   options: string[];
   correctAnswerIndex: number | null; // Index of the correct option, or null if none selected
-  marks: number;
+  marks: number | '';
   timeLimitMinutes: number | ''; // Allow timeLimitMinutes to be an empty string
 }
 
@@ -27,7 +25,7 @@ interface LocalQuestion {
 interface LocalQuizData {
   quizTitle: string;
   courseName: string; // ADDED
-  totalQuestions: number;
+  totalQuestions: number | ''; // Allow empty string for input flexibility
   optionsPerQuestion: number;
   questions: LocalQuestion[];
 }
@@ -40,6 +38,7 @@ interface StoredQuiz {
   questionIds: string[];
   timeLimitMinutes: number;
   negativeMarking: boolean;
+  negativeMarks: string | number; // Added negativeMarks to stored quiz
   competitionMode: boolean;
   _questionsData: {
     id: string;
@@ -60,37 +59,43 @@ const QuizCreator = () => {
   const [quizData, setQuizData] = useState<LocalQuizData>({
     quizTitle: '',
     courseName: '', // Initialize courseName
-    totalQuestions: 1, // Start with 1 question by default
+    totalQuestions: 0, // Start with 0 as requested
     optionsPerQuestion: 4, // Default to 4 options as requested
-    questions: [{ questionText: '', options: Array(4).fill(''), correctAnswerIndex: null, marks: 1, timeLimitMinutes: 1 }],
+    questions: [], // Start with empty list if 0 questions
   });
 
   // Other quiz details not explicitly part of the 'Quiz' structure provided by user, but still needed
   const [negativeMarking, setNegativeMarking] = useState<boolean>(false);
+  const [negativeMarks, setNegativeMarks] = useState<string | number>(''); // State for negative marks value
   const [competitionMode, setCompetitionMode] = useState<boolean>(false);
   const [defaultTimePerQuestion, setDefaultTimePerQuestion] = useState<number | null>(null); // New state for optional default time
+  const [enableTimePerQuestion, setEnableTimePerQuestion] = useState<boolean>(false); // Toggle for time per question
   const [totalCalculatedQuizTime, setTotalCalculatedQuizTime] = useState<number>(0); // New state for total quiz time
 
   // AI Question Generation State (now local to QuizCreator)
   const [aiCoursePaperName, setAiCoursePaperName] = useState('');
   const [aiDifficulty, setAiDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Easy');
 
+  /* New state for wizard step */
+  const [step, setStep] = useState<number>(1);
+
   // Effect to synchronize quizData.questions with totalQuestions and optionsPerQuestion
   useEffect(() => {
     setQuizData((prev) => {
       const newQuestions = [...prev.questions];
+      const targetCount = prev.totalQuestions === '' ? 0 : prev.totalQuestions;
 
       // Adjust number of questions
-      while (newQuestions.length < prev.totalQuestions) {
+      while (newQuestions.length < targetCount) {
         newQuestions.push({
           questionText: '',
           options: Array(prev.optionsPerQuestion).fill(''),
           correctAnswerIndex: null,
-          marks: 1,
+          marks: 0,
           timeLimitMinutes: defaultTimePerQuestion !== null ? defaultTimePerQuestion : 1,
         });
       }
-      const slicedQuestions = newQuestions.slice(0, prev.totalQuestions);
+      const slicedQuestions = newQuestions.slice(0, targetCount);
 
       // Adjust options count for all questions
       const updatedQuestions = slicedQuestions.map(q => {
@@ -130,7 +135,7 @@ const QuizCreator = () => {
   }, [quizData.questions]);
 
   // Calculate total marks dynamically
-  const totalQuizMarks = quizData.questions.reduce((sum, q) => sum + q.marks, 0);
+  const totalQuizMarks = quizData.questions.reduce((sum, q) => sum + (typeof q.marks === 'number' ? q.marks : 0), 0);
 
   // Helper validation function
   const validateQuizDraft = (): boolean => {
@@ -142,12 +147,17 @@ const QuizCreator = () => {
       toast.error("Please provide a course name.");
       return false;
     }
-    if (totalCalculatedQuizTime <= 0) {
+    if (enableTimePerQuestion && totalCalculatedQuizTime <= 0) {
       toast.error("Total quiz time must be at least 1 minute. Please ensure all questions have a valid time limit.");
       return false;
     }
     if (quizData.questions.length === 0) {
       toast.error("Please add at least one question to the quiz.");
+      return false;
+    }
+    // Check global negative marks setting
+    if (negativeMarking && (negativeMarks === '' || Number(negativeMarks) < 0)) {
+      toast.error("Please enter a valid value for negative marks.");
       return false;
     }
 
@@ -164,13 +174,13 @@ const QuizCreator = () => {
         toast.error(`Question ${index + 1}: Please select a correct answer.`);
         return false;
       }
-      if (q.marks <= 0) {
-        toast.error(`Question ${index + 1}: Marks must be at least 1.`);
+      if (q.marks === '' || q.marks < 1 || q.marks > 10) {
+        toast.error(`Question ${index + 1}: Please enter marks (1 to 10)`);
         return false;
       }
       // New validation for individual question time: check for empty string OR non-positive number
-      if (q.timeLimitMinutes === '' || (typeof q.timeLimitMinutes === 'number' && q.timeLimitMinutes <= 0)) {
-        toast.error(`Question ${index + 1}: Time limit must be a positive number.`);
+      if (enableTimePerQuestion && (q.timeLimitMinutes === '' || (typeof q.timeLimitMinutes === 'number' && q.timeLimitMinutes <= 0))) {
+        toast.error(`Question ${index + 1}: Please enter time per question`);
         return false;
       }
     }
@@ -180,7 +190,7 @@ const QuizCreator = () => {
   const handleAddQuestionToDraft = () => {
     setQuizData((prev) => ({
       ...prev,
-      totalQuestions: prev.totalQuestions + 1,
+      totalQuestions: (prev.totalQuestions === '' ? 0 : prev.totalQuestions) + 1,
     }));
     toast.info("New question block added.");
   };
@@ -216,7 +226,7 @@ const QuizCreator = () => {
         const parsedValue = value === '' ? '' : parseInt(value as string);
         newQuestions[questionIndex] = { ...newQuestions[questionIndex], [field]: parsedValue };
       } else {
-        newQuestions[questionIndex] = { ...newQuestions[questionIndex], [field]: value };
+        newQuestions[questionIndex] = { ...newQuestions[questionIndex], [field]: value as string };
       }
       return { ...prev, questions: newQuestions };
     });
@@ -258,7 +268,7 @@ const QuizCreator = () => {
     const generatedQuestions = generateAIQuestions(
       aiCoursePaperName,
       aiDifficulty,
-      quizData.totalQuestions, // Use totalQuestions from quiz setup
+      quizData.totalQuestions === '' ? 0 : quizData.totalQuestions, // Use totalQuestions from quiz setup
       quizData.optionsPerQuestion // Use optionsPerQuestion from quiz setup
     );
 
@@ -267,7 +277,7 @@ const QuizCreator = () => {
       questionText: q.questionText,
       options: q.options,
       correctAnswerIndex: q.options.indexOf(q.correctAnswer), // Find index of correct answer
-      marks: 1, // Default marks, as per requirement for manual input
+      marks: 0, // Default marks 0, as per requirement
       timeLimitMinutes: defaultTimePerQuestion !== null ? defaultTimePerQuestion : 1, // Use default or 1
     }));
 
@@ -295,7 +305,7 @@ const QuizCreator = () => {
         questionText: q.questionText,
         options: q.options,
         correctAnswer: q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : '',
-        marks: q.marks,
+        marks: typeof q.marks === 'number' ? q.marks : 1,
         timeLimitMinutes: typeof q.timeLimitMinutes === 'number' ? q.timeLimitMinutes : 1, // Ensure it's a number for output
       };
     });
@@ -307,6 +317,7 @@ const QuizCreator = () => {
       questionIds: questionsForOutput.map(q => q.id),
       timeLimitMinutes: totalCalculatedQuizTime, // Use the calculated total time
       negativeMarking: negativeMarking,
+      negativeMarks: negativeMarking ? negativeMarks : 0, // Store negative marks if enabled
       competitionMode: competitionMode,
       _questionsData: questionsForOutput, // Include full question data for easy retrieval
     };
@@ -327,10 +338,10 @@ const QuizCreator = () => {
       try {
         const existingSavedQuizzesString = sessionStorage.getItem('saved_quizzes_frontend_only');
         const existingSavedQuizzes: StoredQuiz[] = existingSavedQuizzesString ? JSON.parse(existingSavedQuizzesString) : [];
-        
+
         existingSavedQuizzes.push(finalQuiz);
         sessionStorage.setItem('saved_quizzes_frontend_only', JSON.stringify(existingSavedQuizzes));
-        
+
         toast.success("Quiz saved to session storage (frontend only)!");
         console.log("Saved Quizzes in Session Storage:", existingSavedQuizzes);
         resetForm();
@@ -359,9 +370,9 @@ const QuizCreator = () => {
     setQuizData({
       quizTitle: '',
       courseName: '',
-      totalQuestions: 1,
+      totalQuestions: 0,
       optionsPerQuestion: 4,
-      questions: [{ questionText: '', options: Array(4).fill(''), correctAnswerIndex: null, marks: 1, timeLimitMinutes: 1 }],
+      questions: [],
     });
     setNegativeMarking(false);
     setCompetitionMode(false);
@@ -369,6 +380,24 @@ const QuizCreator = () => {
     setTotalCalculatedQuizTime(0);
     setAiCoursePaperName('');
     setAiDifficulty('Easy');
+    setStep(1); // Reset step to 1
+  };
+
+  const handleProceed = () => {
+    if (!quizData.totalQuestions || quizData.totalQuestions <= 0) {
+      toast.error("Please enter number of questions");
+      return;
+    }
+    if (quizData.optionsPerQuestion === 0) {
+      toast.error("Please select MCQ options (1 to 6)");
+      return;
+    }
+    // Optional: Validate Course Name too if required, but prompt specifically asked for Questions
+    if (!quizData.quizTitle.trim()) {
+      toast.error("Please enter Course / Paper Name");
+      return;
+    }
+    setStep(2);
   };
 
   return (
@@ -376,16 +405,21 @@ const QuizCreator = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-2xl">
           <ListChecks className="h-6 w-6" /> Generate New Quiz
+          {step === 2 && <span className="text-sm font-normal text-muted-foreground ml-2">(Step 2: Manage Questions)</span>}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <Label htmlFor="quizTitle">Quiz Title</Label>
+          <Label htmlFor="quizTitle">Course / Paper Name</Label>
           <Input
             id="quizTitle"
-            placeholder="e.g., 'Midterm Exam - Chapter 1'"
+            placeholder="e.g., 'Introduction to Quantum Physics'"
             value={quizData.quizTitle}
-            onChange={(e) => handleUpdateQuizDetails('quizTitle', e.target.value)}
+            disabled={step === 2} // Lock
+            onChange={(e) => {
+              handleUpdateQuizDetails('quizTitle', e.target.value);
+              setAiCoursePaperName(e.target.value);
+            }}
             className="mt-1"
           />
         </div>
@@ -404,9 +438,13 @@ const QuizCreator = () => {
           <Input
             id="totalQuestions"
             type="number"
-            min="1"
+            min="0"
             value={quizData.totalQuestions}
-            onChange={(e) => handleUpdateQuizDetails('totalQuestions', parseInt(e.target.value) || 1)}
+            disabled={step === 2} // Lock
+            onChange={(e) => {
+              const val = e.target.value;
+              handleUpdateQuizDetails('totalQuestions', val === '' ? '' : parseInt(val));
+            }}
             className="mt-1"
           />
         </div>
@@ -415,188 +453,218 @@ const QuizCreator = () => {
           <Input
             id="optionsPerQuestion"
             type="number"
-            min="2"
+            min="0"
             max="6"
             value={quizData.optionsPerQuestion}
-            onChange={(e) => handleUpdateQuizDetails('optionsPerQuestion', parseInt(e.target.value) || 4)}
+            disabled={step === 2} // Lock
+            onChange={(e) => {
+              const val = parseInt(e.target.value) || 0;
+              if (val >= 0 && val <= 6) {
+                handleUpdateQuizDetails('optionsPerQuestion', val);
+              }
+            }}
             className="mt-1"
           />
         </div>
         <div className="border-t pt-4 mt-4">
           <h3 className="text-lg font-semibold mb-2">Additional Quiz Settings</h3>
-          <div className="mt-3">
-            <Label htmlFor="defaultTimePerQuestion">Default Time per Question (minutes, optional)</Label>
-            <Input
-              id="defaultTimePerQuestion"
-              type="number"
-              min="1"
-              placeholder="e.g., 1 (will be overridden by question-specific time)"
-              value={defaultTimePerQuestion === null ? '' : defaultTimePerQuestion}
-              onChange={(e) => {
-                const value = e.target.value;
-                setDefaultTimePerQuestion(value === '' ? null : parseInt(value) || 1);
-              }}
-              className="mt-1"
+          <div className="flex items-center justify-between mt-3">
+            <Label htmlFor="enableTimePerQuestion">Enable Time per Question</Label>
+            <Switch
+              id="enableTimePerQuestion"
+              checked={enableTimePerQuestion}
+              onCheckedChange={setEnableTimePerQuestion}
+              disabled={step === 2} // Lock
             />
-            <p className="text-sm text-gray-500 mt-1">
-              This sets a default for new questions. Individual questions can override this.
-            </p>
           </div>
+          {enableTimePerQuestion && (
+            <div className="mt-3">
+              <Label htmlFor="defaultTimePerQuestion">Default Time per Question (minutes, optional)</Label>
+              <Input
+                id="defaultTimePerQuestion"
+                type="number"
+                min="1"
+                placeholder="e.g., 1 (will be overridden by question-specific time)"
+                value={defaultTimePerQuestion === null ? '' : defaultTimePerQuestion}
+                disabled={step === 2} // Lock
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setDefaultTimePerQuestion(value === '' ? null : parseInt(value) || 1);
+                }}
+                className="mt-1"
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                This sets a default for new questions. Individual questions can override this.
+              </p>
+            </div>
+          )}
           <div className="flex items-center justify-between mt-3">
             <Label htmlFor="negativeMarking">Enable Negative Marking</Label>
             <Switch
               id="negativeMarking"
               checked={negativeMarking}
               onCheckedChange={setNegativeMarking}
+              disabled={step === 2} // Lock
             />
           </div>
+          {negativeMarking && (
+            <div className="mt-2 pl-2 border-l-2 border-red-200">
+              <Label htmlFor="negativeMarks">Negative marks for wrong answer</Label>
+              <Input
+                id="negativeMarks"
+                type="number"
+                placeholder="e.g. 0.25"
+                value={negativeMarks}
+                disabled={step === 2}
+                onChange={(e) => setNegativeMarks(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          )}
           <div className="flex items-center justify-between mt-3">
             <Label htmlFor="competitionMode">Enable Competition Mode</Label>
             <Switch
               id="competitionMode"
               checked={competitionMode}
               onCheckedChange={setCompetitionMode}
+              disabled={step === 2} // Lock
             />
           </div>
         </div>
 
-        <h3 className="text-lg font-semibold mb-2">Questions for "{quizData.quizTitle || 'New Quiz'}"</h3>
-        <div className="flex justify-between items-center mb-4 p-3 border rounded-md bg-blue-50 text-blue-800 font-semibold">
-          <span>Total Questions: {quizData.questions.length}</span>
-          <span>Total Marks: {totalQuizMarks}</span>
-          <span>Total Quiz Time: {totalCalculatedQuizTime} minutes</span>
-        </div>
+        {/* Step 2 Content */}
+        {step === 2 && (
+          <>
+            <h3 className="text-lg font-semibold mb-2">Questions for "{quizData.quizTitle || 'New Quiz'}"</h3>
+            <div className="flex justify-between items-center mb-4 p-3 border rounded-md bg-blue-50 text-blue-800 font-semibold">
+              <span>Total Questions: {quizData.questions.length}</span>
+              <span>Total Marks: {totalQuizMarks}</span>
+              <span>Total Quiz Time: {totalCalculatedQuizTime} minutes</span>
+            </div>
 
-        {/* AI Question Generation Section */}
-        <div className="border-t pt-4 mt-4 space-y-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Brain className="h-5 w-5" /> Generate Questions with AI (Mock)
-          </h3>
-          <div>
-            <Label htmlFor="aiCoursePaperName">Course / Paper Name</Label>
-            <Input
-              id="aiCoursePaperName"
-              placeholder="e.g., 'Introduction to Quantum Physics'"
-              value={aiCoursePaperName}
-              onChange={(e) => setAiCoursePaperName(e.target.value)}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="aiDifficulty">Difficulty</Label>
-            <Select onValueChange={(value: 'Easy' | 'Medium' | 'Hard') => setAiDifficulty(value)} value={aiDifficulty}>
-              <SelectTrigger className="w-full mt-1">
-                <SelectValue placeholder="Select difficulty" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Easy">Easy</SelectItem>
-                <SelectItem value="Medium">Medium</SelectItem>
-                <SelectItem value="Hard">Hard</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Button onClick={handleGenerateAIQuestions} className="w-full bg-purple-600 hover:bg-purple-700">
-            Generate Questions with AI
-          </Button>
-          <p className="text-sm text-gray-500 mt-2">
-            AI will generate {quizData.totalQuestions} questions with {quizData.optionsPerQuestion} options each.
-            You will still need to manually set marks and time for each question.
-          </p>
-        </div>
+            {/* AI Question Generation Section */}
+            <div className="border-t pt-4 mt-4 space-y-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Brain className="h-5 w-5" /> Generate Questions with AI (Mock)
+              </h3>
+              <div>
+                <Label htmlFor="aiDifficulty">Difficulty</Label>
+                <Select onValueChange={(value: 'Easy' | 'Medium' | 'Hard') => setAiDifficulty(value)} value={aiDifficulty}>
+                  <SelectTrigger className="w-full mt-1">
+                    <SelectValue placeholder="Select difficulty" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Easy">Easy</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="Hard">Hard</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleGenerateAIQuestions} className="w-full bg-purple-600 hover:bg-purple-700">
+                Generate Questions with AI
+              </Button>
+              <p className="text-sm text-gray-500 mt-2">
+                AI will generate {quizData.totalQuestions} questions with {quizData.optionsPerQuestion} options each.
+                You will still need to manually set marks and time for each question.
+              </p>
+            </div>
 
-        <div className="space-y-6 max-h-96 overflow-y-auto p-3 border rounded-md bg-gray-50 mt-4">
-          {quizData.questions.length === 0 ? (
-            <p className="text-gray-500 text-center">No questions added yet. Click "Add Another Question" or "Generate Questions with AI".</p>
-          ) : (
-            quizData.questions.map((q, index) => (
-              <Card key={index} className="p-4 border rounded-md bg-white shadow-sm relative">
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="absolute top-2 right-2 h-7 w-7"
-                  onClick={() => handleDeleteQuestionFromDraft(index)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor={`q-text-${index}`}>Question {index + 1} Text</Label>
-                    <Textarea
-                      id={`q-text-${index}`}
-                      placeholder="Enter your question here..."
-                      value={q.questionText}
-                      onChange={(e) => handleUpdateDraftQuestion(index, 'questionText', e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                  {q.options.map((option, optIndex) => (
-                    <div key={optIndex}>
-                      <Label htmlFor={`q-option-${index}-${optIndex}`}>Option {optIndex + 1}</Label>
-                      <Input
-                        id={`q-option-${index}-${optIndex}`}
-                        placeholder={`Option ${optIndex + 1}`}
-                        value={option}
-                        onChange={(e) => handleUpdateDraftOption(index, optIndex, e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-                  ))}
-                  <div>
-                    <Label>Correct Answer</Label>
-                    <RadioGroup
-                      onValueChange={(value) => handleUpdateCorrectAnswerIndex(index, value)}
-                      value={q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : ''}
-                      className="flex flex-col space-y-1 mt-2"
+            <div className="space-y-6 max-h-96 overflow-y-auto p-3 border rounded-md bg-gray-50 mt-4">
+              {quizData.questions.length === 0 ? (
+                <p className="text-gray-500 text-center">No questions added yet. Click "Generate Questions with AI" to begin.</p>
+              ) : (
+                quizData.questions.map((q, index) => (
+                  <Card key={index} className="p-4 border rounded-md bg-white shadow-sm relative">
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-7 w-7"
+                      onClick={() => handleDeleteQuestionFromDraft(index)}
                     >
-                      {q.options.filter(opt => opt.trim()).map((option, optIndex) => (
-                        <div key={optIndex} className="flex items-center space-x-2">
-                          <RadioGroupItem value={option} id={`q-correct-${index}-${optIndex}`} />
-                          <Label htmlFor={`q-correct-${index}-${optIndex}`}>{option}</Label>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <div className="space-y-3">
+                      <div>
+                        <Label>Question {index + 1}</Label>
+                        <div className="p-3 bg-gray-50 border rounded-md min-h-[60px] text-sm mt-1">
+                          {q.questionText || <span className="text-gray-400 italic">Example Question Text from AI</span>}
                         </div>
-                      ))}
-                    </RadioGroup>
-                  </div>
-                  <div>
-                    <Label htmlFor={`q-marks-${index}`}>Marks</Label>
-                    <Input
-                      id={`q-marks-${index}`}
-                      type="number"
-                      min="1"
-                      value={q.marks}
-                      onChange={(e) => handleUpdateDraftQuestion(index, 'marks', parseInt(e.target.value) || 1)}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor={`q-time-${index}`}>Time for this Question (minutes)</Label>
-                    <Input
-                      id={`q-time-${index}`}
-                      type="number"
-                      min="1"
-                      value={q.timeLimitMinutes}
-                      onChange={(e) => handleUpdateDraftQuestion(index, 'timeLimitMinutes', e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-              </Card>
-            ))
-          )}
-        </div>
-        <Button onClick={handleAddQuestionToDraft} variant="outline" className="w-full mt-4">
-          <PlusCircle className="h-4 w-4 mr-2" /> Add Another Question
-        </Button>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 mt-2">
+                        {q.options.map((option, optIndex) => (
+                          <div key={optIndex} className="flex items-center gap-2 p-2 border rounded-md bg-white text-sm">
+                            <span className="font-semibold text-gray-500 w-6">{String.fromCharCode(65 + optIndex)}.</span>
+                            <span>{option || <span className="text-gray-400 italic">Option Text</span>}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div>
+                        <Label>Correct Answer</Label>
+                        <div className="p-2 mt-1 font-medium text-green-700 bg-green-50 border border-green-200 rounded-md">
+                          {q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : 'Not Set'}
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor={`q-marks-${index}`}>Marks (1-10)</Label>
+                        <Input
+                          id={`q-marks-${index}`}
+                          type="number"
+                          min="0"
+                          max="10"
+                          value={q.marks}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? '' : parseInt(e.target.value);
+                            if (val === '' || (val >= 0 && val <= 10)) {
+                              handleUpdateDraftQuestion(index, 'marks', val === '' ? '' : val);
+                            }
+                          }}
+                          className="mt-1"
+                        />
+                      </div>
+                      {enableTimePerQuestion && (
+                        <div>
+                          <Label htmlFor={`q-time-${index}`}>Time for this Question (minutes)</Label>
+                          <Input
+                            id={`q-time-${index}`}
+                            type="number"
+                            min="1"
+                            value={q.timeLimitMinutes}
+                            onChange={(e) => handleUpdateDraftQuestion(index, 'timeLimitMinutes', e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                ))
+              )}
+            </div>
+            {/* Manual 'Add Question' removed per requirement */}
+          </>
+        )}
       </CardContent>
+
       <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 mt-6">
-        <Button onClick={handlePreviewQuiz} variant="outline" className="w-full sm:w-auto">
-          <Eye className="h-4 w-4 mr-2" /> Preview Quiz
-        </Button>
-        <Button onClick={handleSaveQuizToSession} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
-          <Save className="h-4 w-4 mr-2" /> Save Quiz (Frontend Only)
-        </Button>
-        <Button onClick={handleCreateQuizAndLog} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
-          Create Quiz (Log to Console)
-        </Button>
+        {step === 1 ? (
+          <Button onClick={handleProceed} className="w-full bg-blue-600 hover:bg-blue-700">
+            Proceed
+          </Button>
+        ) : (
+          <>
+            <Button variant="outline" onClick={() => setStep(1)} className="w-[100px]">
+              Back
+            </Button>
+            <Button onClick={handlePreviewQuiz} variant="outline" className="w-full sm:w-auto">
+              <Eye className="h-4 w-4 mr-2" /> Preview Quiz
+            </Button>
+            <Button onClick={handleSaveQuizToSession} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
+              <Save className="h-4 w-4 mr-2" /> Save Quiz (Frontend Only)
+            </Button>
+            <Button onClick={handleCreateQuizAndLog} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
+              Create Quiz (Log to Console)
+            </Button>
+          </>
+        )}
       </CardFooter>
     </Card>
   );
