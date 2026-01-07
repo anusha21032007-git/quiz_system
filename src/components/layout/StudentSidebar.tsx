@@ -4,7 +4,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { PanelLeft, LayoutDashboard, BookOpen, ListChecks, Trophy, User, LogOut, BarChart, Home } from 'lucide-react';
+import { PanelLeft, LayoutDashboard, BookOpen, ListChecks, Trophy, User, LogOut, BarChart, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StudentSidebarProps {
@@ -28,17 +28,33 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile, studentName, regi
   const handleLogout = () => {
     sessionStorage.removeItem('student_name_mock');
     sessionStorage.removeItem('register_number_mock');
-    // Force reload to trigger login screen in StudentDashboard.tsx
+    // Navigate back to the student dashboard route, which now acts as the entry point
     window.location.href = '/student';
   };
 
   const renderNav = () => (
-    <nav className="flex flex-col gap-2 p-4 h-full">
-      <div className="mb-4 p-2 border-b border-gray-200 dark:border-gray-700">
-        <h3 className="text-lg font-bold truncate">{studentName || 'Student'}</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Reg No: {registerNumber || 'N/A'}</p>
+    <nav className="flex flex-col h-full">
+      
+      {/* TOP SECTION: Home Button and Student Info (Fixed) */}
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700 space-y-2">
+        <Link to="/">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="justify-start text-gray-600 hover:text-gray-800"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            <span className="sr-only">Go Home</span>
+          </Button>
+        </Link>
+        <div className="p-2">
+          <h3 className="text-lg font-bold truncate">{studentName || 'Student'}</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Reg No: {registerNumber || 'N/A'}</p>
+        </div>
       </div>
-      <div className="flex-grow space-y-1">
+
+      {/* MIDDLE SECTION: Main Navigation (Scrollable) */}
+      <div className="flex-grow overflow-y-auto p-4 space-y-1">
         {navItems.map((item) => (
           <Button
             key={item.id}
@@ -54,16 +70,9 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile, studentName, regi
           </Button>
         ))}
       </div>
-      <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700 space-y-1">
-        <Link to="/">
-          <Button 
-            variant="ghost" 
-            className="justify-start gap-3 w-full text-gray-600 hover:text-gray-800"
-          >
-            <Home className="h-5 w-5" />
-            Home
-          </Button>
-        </Link>
+
+      {/* BOTTOM SECTION: Logout (Fixed) */}
+      <div className="mt-auto p-4 border-t border-gray-200 dark:border-gray-700">
         <Button 
           variant="ghost" 
           className="justify-start gap-3 w-full text-red-500 hover:text-red-600"
