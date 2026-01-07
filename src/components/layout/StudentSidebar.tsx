@@ -4,7 +4,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { PanelLeft, LayoutDashboard, BookOpen, ListChecks, Trophy, User, LogOut, BarChart } from 'lucide-react';
+import { PanelLeft, LayoutDashboard, BookOpen, ListChecks, Trophy, User, LogOut, BarChart, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StudentSidebarProps {
@@ -54,7 +54,16 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile, studentName, regi
           </Button>
         ))}
       </div>
-      <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700">
+      <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700 space-y-1">
+        <Link to="/">
+          <Button 
+            variant="ghost" 
+            className="justify-start gap-3 w-full text-gray-600 hover:text-gray-800"
+          >
+            <Home className="h-5 w-5" />
+            Home
+          </Button>
+        </Link>
         <Button 
           variant="ghost" 
           className="justify-start gap-3 w-full text-red-500 hover:text-red-600"
