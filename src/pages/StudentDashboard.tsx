@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useIsMobile } from '@/hooks/use-mobile';
 import StudentSidebar from '@/components/layout/StudentSidebar';
 import StudentDashboardContent from '@/components/student/StudentDashboardContent';
@@ -29,6 +28,7 @@ const StudentDashboard = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
+      {/* Mobile Header */}
       <header className="flex items-center justify-between p-4 border-b bg-white shadow-sm lg:hidden">
         <StudentSidebar
           activeView={activeView}
@@ -42,27 +42,22 @@ const StudentDashboard = () => {
         </h1>
       </header>
 
-      <div className="flex flex-1">
+      {/* Desktop Layout */}
+      <div className="flex flex-1 h-screen overflow-hidden">
+        {/* Fixed Sidebar (Desktop) */}
         {!isMobile && (
-          <ResizablePanelGroup direction="horizontal" className="h-screen max-w-full"> {/* Use h-screen to fix height */}
-            <ResizablePanel defaultSize={20} minSize={15} maxSize={25}>
-              {/* Sidebar content is already set to h-full and manages its own internal scrolling if needed */}
-              <StudentSidebar activeView={activeView} setActiveView={setActiveView} isMobile={isMobile} studentName={studentName} registerNumber={registerNumber} />
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={80}>
-              <main className="flex-1 p-8 overflow-y-auto h-full"> {/* Ensure main content scrolls internally */}
-                <h1 className="text-4xl font-bold text-gray-800 mb-8 hidden lg:block">Student Dashboard</h1>
-                {renderMainContent()}
-              </main>
-            </ResizablePanel>
-          </ResizablePanelGroup>
+          <aside className="w-64 flex-shrink-0 h-full border-r bg-sidebar text-sidebar-foreground">
+            <StudentSidebar activeView={activeView} setActiveView={setActiveView} isMobile={isMobile} studentName={studentName} registerNumber={registerNumber} />
+          </aside>
         )}
-        {isMobile && (
-          <main className="flex-1 p-4 overflow-auto">
-            {renderMainContent()}
-          </main>
-        )}
+        
+        {/* Main Content Area (Scrollable) */}
+        <main className="flex-1 overflow-y-auto p-8">
+          {!isMobile && (
+            <h1 className="text-4xl font-bold text-gray-800 mb-8 hidden lg:block">Student Dashboard</h1>
+          )}
+          {renderMainContent()}
+        </main>
       </div>
     </div>
   );
