@@ -27,6 +27,7 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
               <li key={quiz.id} className="flex justify-between items-center p-3 border rounded-md bg-white shadow-sm">
                 <div>
                   <span className="font-medium">{quiz.title} ({quiz.questionIds.length} questions)</span>
+                  <p className="text-sm text-gray-700 mb-1">Course: {quiz.courseName}</p>
                   <p className="text-sm text-gray-600 flex items-center gap-1">
                     <Clock className="h-4 w-4 inline-block" /> {quiz.timeLimitMinutes} min
                     {quiz.negativeMarking && <MinusCircle className="h-4 w-4 inline-block text-red-500 ml-2" />}

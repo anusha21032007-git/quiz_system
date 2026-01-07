@@ -26,6 +26,7 @@ interface LocalQuestion {
 // Define a type for the entire quiz data managed locally
 interface LocalQuizData {
   quizTitle: string;
+  courseName: string; // ADDED
   totalQuestions: number;
   optionsPerQuestion: number;
   questions: LocalQuestion[];
@@ -35,6 +36,7 @@ interface LocalQuizData {
 interface StoredQuiz {
   id: string;
   title: string;
+  courseName: string; // ADDED
   questionIds: string[];
   timeLimitMinutes: number;
   negativeMarking: boolean;
@@ -57,6 +59,7 @@ const QuizCreator = () => {
   // Consolidated quiz data state
   const [quizData, setQuizData] = useState<LocalQuizData>({
     quizTitle: '',
+    courseName: '', // Initialize courseName
     totalQuestions: 1, // Start with 1 question by default
     optionsPerQuestion: 4, // Default to 4 options as requested
     questions: [{ questionText: '', options: Array(4).fill(''), correctAnswerIndex: null, marks: 1, timeLimitMinutes: 1 }],
@@ -133,6 +136,10 @@ const QuizCreator = () => {
   const validateQuizDraft = (): boolean => {
     if (!quizData.quizTitle.trim()) {
       toast.error("Please provide a quiz title.");
+      return false;
+    }
+    if (!quizData.courseName.trim()) {
+      toast.error("Please provide a course name.");
       return false;
     }
     if (totalCalculatedQuizTime <= 0) {
@@ -268,6 +275,7 @@ const QuizCreator = () => {
       ...prev,
       questions: newDraftQuestions,
       totalQuestions: newDraftQuestions.length, // Update totalQuestions to match generated count
+      courseName: prev.courseName || aiCoursePaperName, // Optionally set course name if empty
     }));
     toast.success("AI generated questions loaded into draft. Please review and set marks.");
   };
@@ -295,6 +303,7 @@ const QuizCreator = () => {
     return {
       id: quizId,
       title: quizData.quizTitle,
+      courseName: quizData.courseName, // ADDED
       questionIds: questionsForOutput.map(q => q.id),
       timeLimitMinutes: totalCalculatedQuizTime, // Use the calculated total time
       negativeMarking: negativeMarking,
@@ -349,6 +358,7 @@ const QuizCreator = () => {
   const resetForm = () => {
     setQuizData({
       quizTitle: '',
+      courseName: '',
       totalQuestions: 1,
       optionsPerQuestion: 4,
       questions: [{ questionText: '', options: Array(4).fill(''), correctAnswerIndex: null, marks: 1, timeLimitMinutes: 1 }],
@@ -376,6 +386,16 @@ const QuizCreator = () => {
             placeholder="e.g., 'Midterm Exam - Chapter 1'"
             value={quizData.quizTitle}
             onChange={(e) => handleUpdateQuizDetails('quizTitle', e.target.value)}
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <Label htmlFor="courseName">Course Name</Label>
+          <Input
+            id="courseName"
+            placeholder="e.g., 'CS 101: Introduction to Programming'"
+            value={quizData.courseName}
+            onChange={(e) => handleUpdateQuizDetails('courseName', e.target.value)}
             className="mt-1"
           />
         </div>

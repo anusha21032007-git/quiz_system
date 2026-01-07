@@ -17,6 +17,7 @@ export interface Question {
 export interface Quiz {
   id: string;
   title: string;
+  courseName: string; // NEW FIELD
   questionIds: string[]; // IDs of questions belonging to this quiz
   timeLimitMinutes: number; // New field for quiz time limit
   negativeMarking: boolean; // New field for negative marking
