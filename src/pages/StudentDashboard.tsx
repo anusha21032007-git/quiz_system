@@ -44,19 +44,14 @@ const StudentDashboard = () => {
 
       <div className="flex flex-1">
         {!isMobile && (
-          <ResizablePanelGroup direction="horizontal" className="min-h-screen max-w-full">
+          <ResizablePanelGroup direction="horizontal" className="h-screen max-w-full"> {/* Use h-screen to fix height */}
             <ResizablePanel defaultSize={20} minSize={15} maxSize={25}>
-              <StudentSidebar
-                activeView={activeView}
-                setActiveView={setActiveView}
-                isMobile={isMobile}
-                studentName={studentName}
-                registerNumber={registerNumber}
-              />
+              {/* Sidebar content is already set to h-full and manages its own internal scrolling if needed */}
+              <StudentSidebar activeView={activeView} setActiveView={setActiveView} isMobile={isMobile} studentName={studentName} registerNumber={registerNumber} />
             </ResizablePanel>
             <ResizableHandle withHandle />
             <ResizablePanel defaultSize={80}>
-              <main className="flex-1 p-8 overflow-auto">
+              <main className="flex-1 p-8 overflow-y-auto h-full"> {/* Ensure main content scrolls internally */}
                 <h1 className="text-4xl font-bold text-gray-800 mb-8 hidden lg:block">Student Dashboard</h1>
                 {renderMainContent()}
               </main>
