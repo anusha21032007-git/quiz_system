@@ -5,7 +5,6 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuiz, Question as LocalQuestionType } from '@/context/QuizContext';
 import { useQuestionsByQuizId } from '@/integrations/supabase/quizzes';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -15,7 +14,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import QuizHeader from '@/components/quiz/QuizHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Input } from '@/components/ui/input'; // Ensure Input is imported
+import { Input } from '@/components/ui/input';
 
 // Map SupabaseQuestion to LocalQuestionType for internal use
 const mapSupabaseQuestionToLocal = (sQuestion: any): LocalQuestionType => ({
@@ -57,10 +56,6 @@ const QuizPage = () => {
   // Initialize quiz state and handle missing quiz/questions
   useEffect(() => {
     if (!quizId || !quiz) {
-      // Wait for quiz data to load if necessary, but if quiz is undefined, navigate away.
-      // Note: getQuizById relies on the context's useQuizzes hook, which is asynchronous.
-      // We assume the quiz list is loaded before navigating here, or we handle the loading state.
-      // Since we are using react-query in context, we rely on the context to provide the quiz object.
       return;
     }
     
