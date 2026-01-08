@@ -28,7 +28,6 @@ interface PreviewQuiz {
   questionIds: string[];
   timeLimitMinutes: number;
   negativeMarking: boolean;
-  competitionMode: boolean;
   _questionsData: PreviewQuestion[];
 }
 

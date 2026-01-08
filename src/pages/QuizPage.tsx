@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuiz, Question } from '@/context/QuizContext';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -239,9 +240,7 @@ const QuizPage = () => {
                 <span className="font-semibold">Wrong Answers:</span> {totalWrongAnswers}
               </div>
             </div>
-            {quiz.competitionMode && (
-              <p className="text-xl text-gray-700">Time Taken: <span className="font-semibold">{formatTime(timeTaken)}</span></p>
-            )}
+            <p className="text-xl text-gray-700">Time Taken: <span className="font-semibold">{formatTime(timeTaken)}</span></p>
             <div className="mt-6">
               <h3 className="text-xl font-semibold mb-3">Review Your Answers:</h3>
               <div className="space-y-6 max-h-80 overflow-y-auto p-4 border rounded-md bg-gray-50">

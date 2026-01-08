@@ -19,20 +19,20 @@ const UsersList = () => {
     );
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6 animate-in fade-in duration-500 pb-10">
             <Card className="shadow-lg border-blue-200">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <UsersIcon className="h-6 w-6 text-blue-600" />
-                        Demo Users
+                        Users
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <p className="text-sm text-gray-600 mb-4">
-                        A total of {demoUsers.length} auto-generated demo users for testing and demonstration purposes.
+                        A total of {demoUsers.length} auto-generated users for testing and demonstration purposes.
                     </p>
                     <div className="border rounded-md overflow-hidden bg-white">
-                        <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
+                        <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
                             <table className="w-full">
                                 <thead className="bg-gray-50 border-b sticky top-0 z-10">
                                     <tr>

@@ -21,7 +21,6 @@ export interface Quiz {
   timeLimitMinutes: number; // New field for quiz time limit
   negativeMarking: boolean; // New field for negative marking
   negativeMarks?: string | number; // Added negative marks field
-  competitionMode: boolean; // New field for competition mode
 }
 
 export interface QuizAttempt {

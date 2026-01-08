@@ -153,13 +153,33 @@ const QuestionCreator = () => {
     }
   };
 
+  const logQuestionAction = (questionSetId: string, totalQuestions: number, action: 'Completed' | 'Deleted') => {
+    const historyJson = localStorage.getItem('questionActionHistory');
+    const history = historyJson ? JSON.parse(historyJson) : [];
+    const newEntry = {
+      questionSetId,
+      totalQuestions,
+      action,
+      timestamp: Date.now()
+    };
+    localStorage.setItem('questionActionHistory', JSON.stringify([newEntry, ...history]));
+  };
+
   const handleCompletePoll = (pollId: string) => {
+    const poll = polls.find(p => p.pollId === pollId);
+    if (poll) {
+      logQuestionAction(pollId, poll.numberOfQuestions, 'Completed');
+    }
     const updated = polls.map(p => p.pollId === pollId ? { ...p, status: 'completed' as const } : p);
     setPolls(updated);
     localStorage.setItem('polls', JSON.stringify(updated));
   };
 
   const handleDeletePoll = (pollId: string) => {
+    const poll = polls.find(p => p.pollId === pollId);
+    if (poll) {
+      logQuestionAction(pollId, poll.numberOfQuestions, 'Deleted');
+    }
     const updated = polls.filter(p => p.pollId !== pollId);
     setPolls(updated);
     localStorage.setItem('polls', JSON.stringify(updated));
