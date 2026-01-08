@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { PanelLeft, LayoutDashboard, BookOpen, ListChecks, Trophy, User, LogOut, BarChart, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'; // Import Avatar components
 
 interface StudentSidebarProps {
   activeView: string;
@@ -32,11 +33,15 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile, studentName, regi
     window.location.href = '/student';
   };
 
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+  };
+
   const renderNav = () => (
     <nav className="flex flex-col h-full">
       
-      {/* TOP SECTION: Home Button and Student Info (Fixed) */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700 space-y-2">
+      {/* TOP SECTION: Profile and Home Button (Fixed) */}
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700 space-y-3">
         <Link to="/">
           <Button 
             variant="ghost" 
@@ -47,9 +52,16 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile, studentName, regi
             <span className="sr-only">Go Home</span>
           </Button>
         </Link>
-        <div className="p-2">
-          <h3 className="text-lg font-bold truncate">{studentName || 'Student'}</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Reg No: {registerNumber || 'N/A'}</p>
+        <div className="flex items-center gap-3 p-2">
+          <Avatar className="h-10 w-10 border-2 border-primary">
+            <AvatarFallback className="bg-primary text-primary-foreground font-bold text-lg">
+              {getInitials(studentName)}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h3 className="text-lg font-bold truncate">{studentName || 'Student'}</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Reg No: {registerNumber || 'N/A'}</p>
+          </div>
         </div>
       </div>
 

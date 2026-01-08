@@ -6,8 +6,8 @@ import DashboardWelcome from './DashboardWelcome';
 import OverviewCards from './OverviewCards';
 import MyCourses from './MyCourses';
 import PerformanceOverview from './PerformanceOverview';
-import RecentActivity from './RecentActivity';
-import ScheduledQuizzesSection from './ScheduledQuizzesSection'; // Import the new component
+import RecentActivitySection from './RecentActivitySection'; // NEW Component
+import ScheduledQuizzesSection from './ScheduledQuizzesSection'; 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -85,16 +85,17 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
       {/* Main Content Grid: Left column (2/3) and Right column (1/3) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
+        {/* Right Column (1/3 width on large screens) - Scheduled Quizzes at the top right */}
+        <div className="lg:col-span-1 space-y-8 order-first lg:order-last">
+          <ScheduledQuizzesSection studentName={studentName} />
+          {/* Performance Overview is moved to the main column */}
+        </div>
+
         {/* Left Column (2/3 width on large screens) - Main content flow */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-8 order-last lg:order-first">
+          <RecentActivitySection studentAttempts={studentAttempts} />
           <MyCourses courses={MOCK_COURSES} />
           <PerformanceOverview recentAttempts={studentAttempts} />
-          <RecentActivity recentAttempts={studentAttempts} />
-        </div>
-        
-        {/* Right Column (1/3 width on large screens) - Scheduled Quizzes at the top right */}
-        <div className="lg:col-span-1 space-y-8">
-          <ScheduledQuizzesSection studentName={studentName} />
         </div>
       </div>
     </div>
@@ -110,7 +111,7 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
   const renderQuizzes = () => (
     <div className="space-y-8">
       <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2"><ListChecks className="h-7 w-7 text-blue-600" /> Scheduled Quizzes</h2>
-      <ScheduledQuizzesSection studentName={studentName} /> {/* Replaced AvailableQuizzesSection */}
+      <ScheduledQuizzesSection studentName={studentName} />
     </div>
   );
 
@@ -118,7 +119,7 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
     <div className="space-y-8">
       <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2"><BarChart className="h-7 w-7 text-purple-600" /> My Results & Performance</h2>
       <PerformanceOverview recentAttempts={studentAttempts} />
-      <RecentActivity recentAttempts={studentAttempts} />
+      <RecentActivitySection studentAttempts={studentAttempts} />
     </div>
   );
 

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { ListChecks, CheckCircle, TrendingUp, Award } from 'lucide-react';
+import { ListChecks, CheckCircle, TrendingUp, Award, DollarSign } from 'lucide-react'; // Added DollarSign icon
 
 interface OverviewCardsProps {
   totalQuizzesAttempted: number;
@@ -32,10 +32,10 @@ const OverviewCards = ({ totalQuizzesAttempted, quizzesPassed, averageScore, cur
       description: "Your overall performance.",
     },
     {
-      title: "Current Rank",
-      value: currentRank === 0 ? 'N/A' : `#${currentRank}`,
-      icon: Award,
-      description: "Your standing among peers.",
+      title: "Credits Earned",
+      value: 12, // Mock value
+      icon: DollarSign,
+      description: "Total academic credits earned.",
     },
   ];
 
