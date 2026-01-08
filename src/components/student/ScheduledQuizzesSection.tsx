@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, ListChecks, CheckCircle, XCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useQuestionCount } from '@/integrations/supabase/quizzes'; // Import the new hook
 
 interface ScheduledQuizzesSectionProps {
   studentName: string;
@@ -20,8 +21,22 @@ type QuizStatus = 'Upcoming' | 'Live' | 'Expired' | 'Completed';
 const createDateTime = (dateStr: string, timeStr: string): Date => {
   // Assumes dateStr is YYYY-MM-DD and timeStr is HH:MM
   // We use local time zone interpretation for simplicity in a mock environment
-  return new Date(`${dateStr}T${timeStr}:00`);
+  return new Date(dateStr + 'T' + timeStr + ':00');
 };
+
+// Component to display question count asynchronously
+const QuestionCountDisplay = ({ quizId }: { quizId: string }) => {
+  const { data: count, isLoading } = useQuestionCount(quizId);
+
+  if (isLoading) {
+    return <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />;
+  }
+  if (count === undefined || count === null) {
+    return <span>N/A</span>;
+  }
+  return <span>{count} Qs</span>;
+};
+
 
 const ScheduledQuizzesSection = ({ studentName }: ScheduledQuizzesSectionProps) => {
   const { quizzes, quizAttempts, isQuizzesLoading } = useQuiz();
@@ -35,10 +50,7 @@ const ScheduledQuizzesSection = ({ studentName }: ScheduledQuizzesSectionProps) 
       .map((quiz) => {
         const startTime = createDateTime(quiz.scheduledDate, quiz.startTime);
         const endTime = createDateTime(quiz.scheduledDate, quiz.endTime);
-        // Note: totalMarks and question count are not easily available here without extra queries.
-        // We will use a placeholder for question count.
-        const totalQuestionsPlaceholder = 'N/A'; 
-
+        
         // 1. Check Completion Status
         const isCompleted = quizAttempts.some(
           (attempt) => attempt.quizId === quiz.id && attempt.studentName === studentName
@@ -65,7 +77,6 @@ const ScheduledQuizzesSection = ({ studentName }: ScheduledQuizzesSectionProps) 
           ...quiz,
           startTime,
           endTime,
-          totalQuestions: totalQuestionsPlaceholder,
           status,
           statusColor,
           isCompleted,
@@ -219,7 +230,7 @@ const ScheduledQuizzesSection = ({ studentName }: ScheduledQuizzesSectionProps) 
                     </span>
                     <span className="flex items-center gap-1">
                       <ListChecks className="h-4 w-4 text-indigo-500" />
-                      {quiz.timeLimitMinutes} min ({quiz.totalQuestions} Qs)
+                      {quiz.timeLimitMinutes} min (<QuestionCountDisplay quizId={quiz.id} />)
                     </span>
                   </div>
                 </div>

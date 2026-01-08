@@ -74,6 +74,27 @@ export const useQuestionsByQuizId = (quizId: string) => {
   });
 };
 
+// Fetch question count for a specific quiz
+export const useQuestionCount = (quizId: string) => {
+  return useQuery<number, Error>({
+    queryKey: ["questionCount", quizId],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("questions")
+        .select("id", { count: 'exact', head: true })
+        .eq("quiz_id", quizId);
+
+      if (error) {
+        console.error("Error fetching question count for quiz " + quizId + ":", error);
+        throw new Error(error.message);
+      }
+      return count || 0;
+    },
+    enabled: !!quizId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
+
 // --- Mutation Hooks (Teacher Actions) ---
 
 interface QuizInsertData extends Omit<SupabaseQuiz, 'id' | 'teacher_id' | 'created_at'> {}
