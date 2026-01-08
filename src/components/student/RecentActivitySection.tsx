@@ -4,8 +4,10 @@ import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Clock, List, ArrowRight, CheckCircle } from 'lucide-react';
+import { Clock, List, ArrowRight, CheckCircle, TrendingUp } from 'lucide-react';
 import { QuizAttempt, useQuiz } from '@/context/QuizContext';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface RecentActivitySectionProps {
   studentAttempts: QuizAttempt[];
@@ -20,7 +22,7 @@ const RecentActivitySection = ({ studentAttempts }: RecentActivitySectionProps) 
 
   if (!mostRecentAttempt) {
     return (
-      <Card className="shadow-lg border-l-4 border-blue-500">
+      <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-2xl">
             <List className="h-6 w-6 text-blue-500" /> Recent Activity
@@ -46,24 +48,35 @@ const RecentActivitySection = ({ studentAttempts }: RecentActivitySectionProps) 
   };
 
   return (
-    <Card className="shadow-lg border-l-4 border-blue-600">
+    <Card className="shadow-lg">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-2xl">
           <List className="h-6 w-6 text-blue-600" /> Recent Activity
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-gray-600 font-medium">Last Quiz Attempt</p>
+        <div className="p-4 bg-gray-50 border rounded-lg">
+          <div className="flex justify-between items-start mb-2">
+            <p className="text-sm text-gray-600 font-medium">Last Quiz Attempt</p>
+            <Badge variant={isPassed ? 'default' : 'destructive'} className={cn(isPassed ? 'bg-green-500' : 'bg-red-500')}>
+                {isPassed ? 'Passed' : 'Failed'}
+            </Badge>
+          </div>
+          
           <h3 className="text-xl font-bold text-gray-800 mt-1">{quizTitle}</h3>
           <p className="text-sm text-gray-700 mb-3">Course: {courseName}</p>
           
-          <div className="flex justify-between items-center text-sm text-gray-700">
+          <p className="text-sm text-gray-500 italic mb-3">
+            {/* Mock Description */}
+            This quiz covered fundamental concepts of {courseName}. Review your performance to identify areas for improvement.
+          </p>
+
+          <div className="flex justify-between items-center text-sm text-gray-700 border-t pt-3">
             <span className="flex items-center gap-1">
               <Clock className="h-4 w-4" /> Time Taken: {formatTimeTaken(mostRecentAttempt.timeTakenSeconds)}
             </span>
-            <span className="font-semibold text-lg">
-              Score: {mostRecentAttempt.score.toFixed(1)} / {mostRecentAttempt.totalQuestions}
+            <span className="font-semibold text-lg flex items-center gap-1">
+              <TrendingUp className="h-4 w-4 text-blue-600" /> Score: {mostRecentAttempt.score.toFixed(1)} / {mostRecentAttempt.totalQuestions}
             </span>
           </div>
         </div>

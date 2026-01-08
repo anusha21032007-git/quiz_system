@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import StudentSidebar from '@/components/layout/StudentSidebar';
 import StudentDashboardContent from '@/components/student/StudentDashboardContent';
+import SchedulePanel from '@/components/student/SchedulePanel'; // New component for the right panel
 import { LayoutDashboard } from 'lucide-react';
 
 // Define mock defaults since login is bypassed
@@ -42,22 +43,30 @@ const StudentDashboard = () => {
         </h1>
       </header>
 
-      {/* Desktop Layout */}
+      {/* Desktop 3-Column Layout */}
       <div className="flex flex-1 h-screen overflow-hidden">
-        {/* Fixed Sidebar (Desktop) */}
+        
+        {/* 1. Left Panel (Sidebar) - Fixed Width */}
         {!isMobile && (
           <aside className="w-64 flex-shrink-0 h-full border-r bg-sidebar text-sidebar-foreground">
             <StudentSidebar activeView={activeView} setActiveView={setActiveView} isMobile={isMobile} studentName={studentName} registerNumber={registerNumber} />
           </aside>
         )}
         
-        {/* Main Content Area (Scrollable) */}
+        {/* 2. Center Panel (Main Content) - Flexible Width */}
         <main className="flex-1 overflow-y-auto p-8">
           {!isMobile && (
             <h1 className="text-4xl font-bold text-gray-800 mb-8 hidden lg:block">Student Dashboard</h1>
           )}
           {renderMainContent()}
         </main>
+
+        {/* 3. Right Panel (Schedule) - Fixed Width, only visible on desktop and when viewing dashboard */}
+        {!isMobile && activeView === 'dashboard' && (
+          <aside className="w-80 flex-shrink-0 h-full border-l bg-white overflow-y-auto">
+            <SchedulePanel studentName={studentName} />
+          </aside>
+        )}
       </div>
     </div>
   );

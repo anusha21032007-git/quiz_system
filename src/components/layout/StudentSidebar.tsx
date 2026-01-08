@@ -65,7 +65,15 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile, studentName, regi
           </div>
         </div>
         
-        {/* Scheduled Quiz Alert removed from here */}
+        {/* View Profile Button */}
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full justify-center"
+          onClick={() => setActiveView('profile')}
+        >
+          View Profile
+        </Button>
       </div>
 
       {/* MIDDLE SECTION: Main Navigation (Scrollable) */}
