@@ -8,6 +8,7 @@ import MyCourses from './MyCourses';
 import PerformanceOverview from './PerformanceOverview';
 import RecentActivitySection from './RecentActivitySection';
 import ScheduledQuizzesSection from './ScheduledQuizzesSection'; 
+import ScheduledQuizAlert from './ScheduledQuizAlert'; // Import the alert component
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -76,6 +77,9 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
     <div className="space-y-8">
       <DashboardWelcome studentName={studentName} registerNumber={registerNumber} />
       
+      {/* Scheduled Quiz Alert placed here for high visibility */}
+      <ScheduledQuizAlert studentName={studentName} />
+
       <OverviewCards
         totalQuizzesAttempted={totalQuizzesAttempted}
         quizzesPassed={quizzesPassed}
@@ -83,7 +87,7 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
         currentRank={currentRank}
       />
       
-      {/* Center Panel Content Flow */}
+      {/* Main Content Grid: Now a single column layout */}
       <div className="space-y-8">
         <RecentActivitySection studentAttempts={studentAttempts} />
         <MyCourses courses={MOCK_COURSES} />
