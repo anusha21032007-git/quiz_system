@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import StudentSidebar from '@/components/layout/StudentSidebar';
 import StudentDashboardContent from '@/components/student/StudentDashboardContent';
+import StudentProfileHeader from '@/components/student/StudentProfileHeader'; // Import new component
 import { LayoutDashboard } from 'lucide-react';
 
 // Define mock defaults since login is bypassed
@@ -54,7 +55,10 @@ const StudentDashboard = () => {
         {/* Main Content Area (Scrollable) */}
         <main className="flex-1 overflow-y-auto p-8">
           {!isMobile && (
-            <h1 className="text-4xl font-bold text-gray-800 mb-8 hidden lg:block">Student Dashboard</h1>
+            <div className="flex justify-between items-center mb-8 hidden lg:flex">
+              <h1 className="text-4xl font-bold text-gray-800">Student Dashboard</h1>
+              <StudentProfileHeader studentName={studentName} registerNumber={registerNumber} />
+            </div>
           )}
           {renderMainContent()}
         </main>
