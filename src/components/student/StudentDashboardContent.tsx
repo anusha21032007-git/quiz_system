@@ -75,6 +75,7 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
 
   const renderDashboard = () => (
     <div className="space-y-8">
+      {/* DashboardWelcome is now the first content block after the main header */}
       <DashboardWelcome studentName={studentName} registerNumber={registerNumber} />
       
       {/* Scheduled Quiz Alert placed here for high visibility */}
@@ -89,7 +90,6 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
       
       {/* Main Content Grid: Now a single column layout */}
       <div className="space-y-8">
-        {/* Removed RecentActivitySection */}
         <MyCourses courses={MOCK_COURSES} />
         <PerformanceOverview recentAttempts={studentAttempts} />
       </div>
@@ -130,24 +130,23 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
     </div>
   );
 
-  const renderProfile = () => (
-    <Card className="shadow-lg max-w-lg mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-2xl"><User className="h-6 w-6" /> Student Profile</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="p-4 border rounded-md bg-gray-50">
-          <p className="text-sm text-gray-500">Name</p>
-          <p className="text-xl font-semibold">{studentName}</p>
-        </div>
-        <div className="p-4 border rounded-md bg-gray-50">
-          <p className="text-sm text-gray-500">Register Number</p>
-          <p className="text-xl font-semibold">{registerNumber}</p>
-        </div>
-        <p className="text-sm text-gray-500">Note: Profile details are managed by the Admin.</p>
-      </CardContent>
-    </Card>
-  );
+  // Removed renderProfile since the functionality is now in the header popover.
+  // If the user navigates to 'profile', we will redirect them to the dashboard view.
+  const renderProfile = () => {
+    // Since 'profile' is removed from the sidebar, this case should ideally not be hit.
+    // If it is hit (e.g., via direct URL manipulation), we can render a simple profile card or redirect.
+    return (
+      <Card className="shadow-lg max-w-lg mx-auto">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-2xl"><User className="h-6 w-6" /> Student Profile</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-gray-600">Your profile details are available by clicking your name in the top right corner.</p>
+        </CardContent>
+      </Card>
+    );
+  };
+
 
   switch (activeView) {
     case 'dashboard':
@@ -161,6 +160,7 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
     case 'leaderboard':
       return renderLeaderboard();
     case 'profile':
+      // Fallback for 'profile' view, although removed from navigation
       return renderProfile();
     default:
       return renderDashboard();

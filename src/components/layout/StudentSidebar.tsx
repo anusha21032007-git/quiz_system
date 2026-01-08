@@ -24,7 +24,7 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile, studentName, regi
     { id: 'quizzes', label: 'Quizzes', icon: ListChecks },
     { id: 'my-results', label: 'My Results', icon: BarChart },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
-    { id: 'profile', label: 'Profile', icon: User },
+    // Removed 'profile' item
   ];
 
   const handleLogout = () => {
