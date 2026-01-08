@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { PanelLeft, LayoutDashboard, BookOpen, ListChecks, Trophy, User, LogOut, BarChart, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'; // Import Avatar components
+import ScheduledQuizAlert from '@/components/student/ScheduledQuizAlert'; // Import the new alert
 
 interface StudentSidebarProps {
   activeView: string;
@@ -63,6 +64,9 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile, studentName, regi
             <p className="text-sm text-gray-500 dark:text-gray-400">Reg No: {registerNumber || 'N/A'}</p>
           </div>
         </div>
+        
+        {/* Scheduled Quiz Alert */}
+        <ScheduledQuizAlert studentName={studentName} />
       </div>
 
       {/* MIDDLE SECTION: Main Navigation (Scrollable) */}

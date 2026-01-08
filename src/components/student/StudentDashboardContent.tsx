@@ -88,7 +88,6 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
         {/* Right Column (1/3 width on large screens) - Scheduled Quizzes at the top right */}
         <div className="lg:col-span-1 space-y-8 order-first lg:order-last">
           <ScheduledQuizzesSection studentName={studentName} />
-          {/* Performance Overview is moved to the main column */}
         </div>
 
         {/* Left Column (2/3 width on large screens) - Main content flow */}
