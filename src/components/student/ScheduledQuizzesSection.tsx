@@ -20,7 +20,7 @@ type QuizStatus = 'Upcoming' | 'Live' | 'Expired' | 'Completed';
 const createDateTime = (dateStr: string, timeStr: string): Date => {
   // Assumes dateStr is YYYY-MM-DD and timeStr is HH:MM
   // We use local time zone interpretation for simplicity in a mock environment
-  return new Date(\`\${dateStr}T\${timeStr}:00\`);
+  return new Date(`${dateStr}T${timeStr}:00`);
 };
 
 const ScheduledQuizzesSection = ({ studentName }: ScheduledQuizzesSectionProps) => {
@@ -94,7 +94,7 @@ const ScheduledQuizzesSection = ({ studentName }: ScheduledQuizzesSectionProps) 
     }
 
     // If live and not completed, navigate to quiz page
-    navigate(\`/quiz/\${quiz.id}\`, { state: { studentName } });
+    navigate(`/quiz/${quiz.id}`, { state: { studentName } });
   };
 
   const getButton = (quiz: typeof scheduledQuizzes[0]) => {
@@ -123,7 +123,7 @@ const ScheduledQuizzesSection = ({ studentName }: ScheduledQuizzesSectionProps) 
           .filter(a => a.quizId === quiz.id && a.studentName === studentName)
           .sort((a, b) => b.timestamp - a.timestamp)[0];
         
-        const scoreDisplay = latestAttempt ? \`\${latestAttempt.score.toFixed(1)}/\${latestAttempt.totalQuestions}\` : 'N/A';
+        const scoreDisplay = latestAttempt ? `${latestAttempt.score.toFixed(1)}/${latestAttempt.totalQuestions}` : 'N/A';
 
         return (
           <Link to="/leaderboard">

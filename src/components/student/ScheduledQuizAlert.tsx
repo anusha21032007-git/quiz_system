@@ -13,7 +13,7 @@ interface ScheduledQuizAlertProps {
 
 // Utility function to combine date and time strings into a Date object
 const createDateTime = (dateStr: string, timeStr: string): Date => {
-  return new Date(\`\${dateStr}T\${timeStr}:00\`);
+  return new Date(`${dateStr}T${timeStr}:00`);
 };
 
 const ScheduledQuizAlert = ({ studentName }: ScheduledQuizAlertProps) => {
@@ -59,7 +59,7 @@ const ScheduledQuizAlert = ({ studentName }: ScheduledQuizAlertProps) => {
 
     let status: 'Upcoming' | 'Live' | 'Expired' = 'Upcoming';
     let color = 'text-blue-600';
-    let description = \`Time: \${quiz.startTime} - \${quiz.endTime}\`;
+    let description = `Time: ${quiz.startTime} - ${quiz.endTime}`;
     let Icon = Clock;
     let isLive = false;
 
