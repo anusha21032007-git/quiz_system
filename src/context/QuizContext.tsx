@@ -22,6 +22,10 @@ export interface Quiz {
   timeLimitMinutes: number; // New field for quiz time limit
   negativeMarking: boolean; // New field for negative marking
   competitionMode: boolean; // New field for competition mode
+  // NEW SCHEDULING FIELDS
+  scheduledDate: string; // YYYY-MM-DD
+  startTime: string;     // HH:MM (24h format)
+  endTime: string;       // HH:MM (24h format)
 }
 
 export interface QuizAttempt {

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ListChecks, PlusCircle, Trash2, Eye, Save, Brain } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { useQuiz } from '@/context/QuizContext';
+import { useQuiz, Quiz } from '@/context/QuizContext'; // Import Quiz type and useQuiz
 
 // Define a type for questions in local draft state
 interface LocalQuestion {
@@ -28,6 +28,10 @@ interface LocalQuizData {
   totalQuestions: number | ''; // Allow empty string for input flexibility
   optionsPerQuestion: number;
   questions: LocalQuestion[];
+  // NEW SCHEDULING FIELDS
+  scheduledDate: string; // YYYY-MM-DD
+  startTime: string;     // HH:MM
+  endTime: string;       // HH:MM
 }
 
 // Define the structure for a quiz stored in session storage (compatible with QuizContext types for preview)
@@ -38,8 +42,11 @@ interface StoredQuiz {
   questionIds: string[];
   timeLimitMinutes: number;
   negativeMarking: boolean;
-  negativeMarks: string | number; // Added negativeMarks to stored quiz
+  negativeMarks: string | number; // Store negative marks if enabled
   competitionMode: boolean;
+  scheduledDate: string; // ADDED
+  startTime: string;     // ADDED
+  endTime: string;       // ADDED
   _questionsData: {
     id: string;
     quizId: string;
@@ -53,7 +60,7 @@ interface StoredQuiz {
 
 const QuizCreator = () => {
   const navigate = useNavigate();
-  const { generateAIQuestions } = useQuiz();
+  const { generateAIQuestions, addQuestion, addQuiz } = useQuiz(); // Destructure addQuestion and addQuiz
 
   // Consolidated quiz data state
   const [quizData, setQuizData] = useState<LocalQuizData>({
@@ -62,6 +69,9 @@ const QuizCreator = () => {
     totalQuestions: 0, // Start with 0 as requested
     optionsPerQuestion: 4, // Default to 4 options as requested
     questions: [], // Start with empty list if 0 questions
+    scheduledDate: '',
+    startTime: '',
+    endTime: '',
   });
 
   // Other quiz details not explicitly part of the 'Quiz' structure provided by user, but still needed
@@ -147,6 +157,14 @@ const QuizCreator = () => {
       toast.error("Please provide a course name.");
       return false;
     }
+    if (!quizData.scheduledDate || !quizData.startTime || !quizData.endTime) {
+      toast.error("Please set the scheduled date, start time, and end time.");
+      return false;
+    }
+    if (new Date(`${quizData.scheduledDate}T${quizData.startTime}`) >= new Date(`${quizData.scheduledDate}T${quizData.endTime}`)) {
+      toast.error("Start time must be before end time.");
+      return false;
+    }
     if (enableTimePerQuestion && totalCalculatedQuizTime <= 0) {
       toast.error("Total quiz time must be at least 1 minute. Please ensure all questions have a valid time limit.");
       return false;
@@ -187,14 +205,6 @@ const QuizCreator = () => {
     return true;
   };
 
-  const handleAddQuestionToDraft = () => {
-    setQuizData((prev) => ({
-      ...prev,
-      totalQuestions: (prev.totalQuestions === '' ? 0 : prev.totalQuestions) + 1,
-    }));
-    toast.info("New question block added.");
-  };
-
   const handleDeleteQuestionFromDraft = (questionIndex: number) => {
     setQuizData((prev) => {
       const filteredQuestions = prev.questions.filter((_, idx) => idx !== questionIndex);
@@ -232,33 +242,6 @@ const QuizCreator = () => {
     });
   };
 
-  const handleUpdateDraftOption = (
-    questionIndex: number,
-    optionIndex: number,
-    value: string
-  ) => {
-    setQuizData((prev) => {
-      const newQuestions = [...prev.questions];
-      const newOptions = [...newQuestions[questionIndex].options];
-      newOptions[optionIndex] = value;
-      newQuestions[questionIndex] = { ...newQuestions[questionIndex], options: newOptions };
-      return { ...prev, questions: newQuestions };
-    });
-  };
-
-  const handleUpdateCorrectAnswerIndex = (
-    questionIndex: number,
-    selectedOptionValue: string // The string value of the selected option
-  ) => {
-    setQuizData((prev) => {
-      const newQuestions = [...prev.questions];
-      const question = newQuestions[questionIndex];
-      const newCorrectAnswerIndex = question.options.indexOf(selectedOptionValue);
-      newQuestions[questionIndex] = { ...question, correctAnswerIndex: newCorrectAnswerIndex };
-      return { ...prev, questions: newQuestions };
-    });
-  };
-
   const handleGenerateAIQuestions = () => {
     if (!aiCoursePaperName.trim()) {
       toast.error("Please enter a course/paper name for AI generation.");
@@ -290,7 +273,7 @@ const QuizCreator = () => {
     toast.success("AI generated questions loaded into draft. Please review and set marks.");
   };
 
-  // Helper to prepare quiz data for storage/logging
+  // Helper to prepare quiz data for storage/logging/context
   const prepareQuizForOutput = (isForPreview: boolean = false): StoredQuiz | null => {
     if (!validateQuizDraft()) {
       return null;
@@ -313,42 +296,54 @@ const QuizCreator = () => {
     return {
       id: quizId,
       title: quizData.quizTitle,
-      courseName: quizData.courseName, // ADDED
+      courseName: quizData.courseName,
       questionIds: questionsForOutput.map(q => q.id),
-      timeLimitMinutes: totalCalculatedQuizTime, // Use the calculated total time
+      timeLimitMinutes: totalCalculatedQuizTime,
       negativeMarking: negativeMarking,
-      negativeMarks: negativeMarking ? negativeMarks : 0, // Store negative marks if enabled
+      negativeMarks: negativeMarking ? negativeMarks : 0,
       competitionMode: competitionMode,
+      scheduledDate: quizData.scheduledDate,
+      startTime: quizData.startTime,
+      endTime: quizData.endTime,
       _questionsData: questionsForOutput, // Include full question data for easy retrieval
     };
   };
 
-  const handleCreateQuizAndLog = () => {
-    const finalQuiz = prepareQuizForOutput();
-    if (finalQuiz) {
-      console.log("Quiz Data (Logged to Console):", finalQuiz);
-      toast.success("Quiz data logged to console (not persisted).");
+  const handleCreateQuiz = () => {
+    const finalQuizData = prepareQuizForOutput();
+    if (finalQuizData) {
+      
+      // 1. Add questions to the global pool and collect real IDs
+      const questionIds: string[] = [];
+      finalQuizData._questionsData.forEach(q => {
+          const newId = addQuestion({
+              quizId: finalQuizData.id, // Use the generated quiz ID
+              questionText: q.questionText,
+              options: q.options,
+              correctAnswer: q.correctAnswer,
+              marks: q.marks,
+              timeLimitMinutes: q.timeLimitMinutes,
+          });
+          questionIds.push(newId);
+      });
+
+      // 2. Prepare data for QuizContext's addQuiz (which expects Omit<Quiz, 'id' | 'questionIds'>)
+      const quizToAdd: Omit<Quiz, 'id' | 'questionIds'> = {
+        title: finalQuizData.title,
+        courseName: finalQuizData.courseName,
+        timeLimitMinutes: finalQuizData.timeLimitMinutes,
+        negativeMarking: finalQuizData.negativeMarking,
+        competitionMode: finalQuizData.competitionMode,
+        scheduledDate: finalQuizData.scheduledDate,
+        startTime: finalQuizData.startTime,
+        endTime: finalQuizData.endTime,
+      };
+
+      // 3. Add the quiz to the global pool using the collected IDs
+      addQuiz(quizToAdd, questionIds);
+
+      toast.success("Quiz created and scheduled successfully!");
       resetForm();
-    }
-  };
-
-  const handleSaveQuizToSession = () => {
-    const finalQuiz = prepareQuizForOutput();
-    if (finalQuiz) {
-      try {
-        const existingSavedQuizzesString = sessionStorage.getItem('saved_quizzes_frontend_only');
-        const existingSavedQuizzes: StoredQuiz[] = existingSavedQuizzesString ? JSON.parse(existingSavedQuizzesString) : [];
-
-        existingSavedQuizzes.push(finalQuiz);
-        sessionStorage.setItem('saved_quizzes_frontend_only', JSON.stringify(existingSavedQuizzes));
-
-        toast.success("Quiz saved to session storage (frontend only)!");
-        console.log("Saved Quizzes in Session Storage:", existingSavedQuizzes);
-        resetForm();
-      } catch (error) {
-        console.error("Failed to save quiz to session storage:", error);
-        toast.error("Failed to save quiz. Please try again.");
-      }
     }
   };
 
@@ -356,6 +351,7 @@ const QuizCreator = () => {
     const quizToPreview = prepareQuizForOutput(true);
     if (quizToPreview) {
       try {
+        // We use the StoredQuiz structure for preview, which includes question data
         sessionStorage.setItem('preview_quiz_data', JSON.stringify(quizToPreview));
         toast.info("Loading quiz preview...");
         navigate(`/quiz-preview/${quizToPreview.id}`);
@@ -373,8 +369,12 @@ const QuizCreator = () => {
       totalQuestions: 0,
       optionsPerQuestion: 4,
       questions: [],
+      scheduledDate: '',
+      startTime: '',
+      endTime: '',
     });
     setNegativeMarking(false);
+    setNegativeMarks('');
     setCompetitionMode(false);
     setDefaultTimePerQuestion(null);
     setTotalCalculatedQuizTime(0);
@@ -384,6 +384,10 @@ const QuizCreator = () => {
   };
 
   const handleProceed = () => {
+    if (!quizData.quizTitle.trim()) {
+      toast.error("Please enter Course / Paper Name");
+      return;
+    }
     if (!quizData.totalQuestions || quizData.totalQuestions <= 0) {
       toast.error("Please enter number of questions");
       return;
@@ -392,9 +396,8 @@ const QuizCreator = () => {
       toast.error("Please select MCQ options (1 to 6)");
       return;
     }
-    // Optional: Validate Course Name too if required, but prompt specifically asked for Questions
-    if (!quizData.quizTitle.trim()) {
-      toast.error("Please enter Course / Paper Name");
+    if (!quizData.scheduledDate || !quizData.startTime || !quizData.endTime) {
+      toast.error("Please set the scheduled date, start time, and end time.");
       return;
     }
     setStep(2);
@@ -424,48 +427,94 @@ const QuizCreator = () => {
           />
         </div>
         <div>
-          <Label htmlFor="courseName">Course Name</Label>
+          <Label htmlFor="courseName">Course Name (for Student Dashboard)</Label>
           <Input
             id="courseName"
             placeholder="e.g., 'CS 101: Introduction to Programming'"
             value={quizData.courseName}
+            disabled={step === 2} // Lock
             onChange={(e) => handleUpdateQuizDetails('courseName', e.target.value)}
             className="mt-1"
           />
         </div>
-        <div>
-          <Label htmlFor="totalQuestions">Total Questions in Quiz</Label>
-          <Input
-            id="totalQuestions"
-            type="number"
-            min="0"
-            value={quizData.totalQuestions}
-            disabled={step === 2} // Lock
-            onChange={(e) => {
-              const val = e.target.value;
-              handleUpdateQuizDetails('totalQuestions', val === '' ? '' : parseInt(val));
-            }}
-            className="mt-1"
-          />
+        
+        {/* Scheduling Inputs */}
+        <div className="border-t pt-4 mt-4">
+          <h3 className="text-lg font-semibold mb-2">Quiz Scheduling</h3>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div>
+              <Label htmlFor="scheduledDate">Date</Label>
+              <Input
+                id="scheduledDate"
+                type="date"
+                value={quizData.scheduledDate}
+                disabled={step === 2}
+                onChange={(e) => handleUpdateQuizDetails('scheduledDate', e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="startTime">Start Time</Label>
+              <Input
+                id="startTime"
+                type="time"
+                value={quizData.startTime}
+                disabled={step === 2}
+                onChange={(e) => handleUpdateQuizDetails('startTime', e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="endTime">End Time</Label>
+              <Input
+                id="endTime"
+                type="time"
+                value={quizData.endTime}
+                disabled={step === 2}
+                onChange={(e) => handleUpdateQuizDetails('endTime', e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
         </div>
-        <div className="mt-3">
-          <Label htmlFor="optionsPerQuestion">Options per Question (MCQ)</Label>
-          <Input
-            id="optionsPerQuestion"
-            type="number"
-            min="0"
-            max="6"
-            value={quizData.optionsPerQuestion}
-            disabled={step === 2} // Lock
-            onChange={(e) => {
-              const val = parseInt(e.target.value) || 0;
-              if (val >= 0 && val <= 6) {
-                handleUpdateQuizDetails('optionsPerQuestion', val);
-              }
-            }}
-            className="mt-1"
-          />
+
+        {/* Question Count and Options */}
+        <div className="grid gap-4 md:grid-cols-2 border-t pt-4 mt-4">
+          <div>
+            <Label htmlFor="totalQuestions">Total Questions in Quiz</Label>
+            <Input
+              id="totalQuestions"
+              type="number"
+              min="0"
+              value={quizData.totalQuestions}
+              disabled={step === 2} // Lock
+              onChange={(e) => {
+                const val = e.target.value;
+                handleUpdateQuizDetails('totalQuestions', val === '' ? '' : parseInt(val));
+              }}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="optionsPerQuestion">Options per Question (MCQ)</Label>
+            <Input
+              id="optionsPerQuestion"
+              type="number"
+              min="0"
+              max="6"
+              value={quizData.optionsPerQuestion}
+              disabled={step === 2} // Lock
+              onChange={(e) => {
+                const val = parseInt(e.target.value) || 0;
+                if (val >= 0 && val <= 6) {
+                  handleUpdateQuizDetails('optionsPerQuestion', val);
+                }
+              }}
+              className="mt-1"
+            />
+          </div>
         </div>
+        
         <div className="border-t pt-4 mt-4">
           <h3 className="text-lg font-semibold mb-2">Additional Quiz Settings</h3>
           <div className="flex items-center justify-between mt-3">
@@ -639,7 +688,6 @@ const QuizCreator = () => {
                 ))
               )}
             </div>
-            {/* Manual 'Add Question' removed per requirement */}
           </>
         )}
       </CardContent>
@@ -657,11 +705,8 @@ const QuizCreator = () => {
             <Button onClick={handlePreviewQuiz} variant="outline" className="w-full sm:w-auto">
               <Eye className="h-4 w-4 mr-2" /> Preview Quiz
             </Button>
-            <Button onClick={handleSaveQuizToSession} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
-              <Save className="h-4 w-4 mr-2" /> Save Quiz (Frontend Only)
-            </Button>
-            <Button onClick={handleCreateQuizAndLog} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
-              Create Quiz (Log to Console)
+            <Button onClick={handleCreateQuiz} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
+              <Save className="h-4 w-4 mr-2" /> Create & Schedule Quiz
             </Button>
           </>
         )}

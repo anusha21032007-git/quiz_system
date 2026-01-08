@@ -7,7 +7,7 @@ import OverviewCards from './OverviewCards';
 import MyCourses from './MyCourses';
 import PerformanceOverview from './PerformanceOverview';
 import RecentActivity from './RecentActivity';
-import AvailableQuizzesSection from './AvailableQuizzesSection';
+import ScheduledQuizzesSection from './ScheduledQuizzesSection'; // Import the new component
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -82,7 +82,7 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
         currentRank={currentRank}
       />
       <MyCourses courses={MOCK_COURSES} />
-      <AvailableQuizzesSection studentName={studentName} />
+      <ScheduledQuizzesSection studentName={studentName} /> {/* Replaced AvailableQuizzesSection */}
       <PerformanceOverview recentAttempts={studentAttempts} />
       <RecentActivity recentAttempts={studentAttempts} />
       {/* Achievements section omitted for brevity */}
@@ -98,8 +98,8 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
 
   const renderQuizzes = () => (
     <div className="space-y-8">
-      <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2"><ListChecks className="h-7 w-7 text-blue-600" /> Available Quizzes</h2>
-      <AvailableQuizzesSection studentName={studentName} />
+      <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2"><ListChecks className="h-7 w-7 text-blue-600" /> Scheduled Quizzes</h2>
+      <ScheduledQuizzesSection studentName={studentName} /> {/* Replaced AvailableQuizzesSection */}
     </div>
   );
 
