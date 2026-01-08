@@ -39,7 +39,7 @@ const StudentDashboard = () => {
           registerNumber={registerNumber}
         />
         <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-          <LayoutDashboard className="h-6 w-6" /> Dashboard
+          <LayoutDashboard className="h-6 w-6" /> Student Academic Portal
         </h1>
       </header>
 
@@ -56,7 +56,7 @@ const StudentDashboard = () => {
         <main className="flex-1 overflow-y-auto p-8">
           {!isMobile && (
             <div className="flex justify-between items-center mb-8 hidden lg:flex">
-              <h1 className="text-4xl font-bold text-gray-800">Student Dashboard</h1>
+              <h1 className="text-4xl font-bold text-gray-800">Student Academic Portal</h1>
               <StudentProfileHeader studentName={studentName} registerNumber={registerNumber} />
             </div>
           )}
