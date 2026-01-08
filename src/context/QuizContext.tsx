@@ -21,13 +21,14 @@ export interface Question extends Omit<SupabaseQuestion, 'teacher_id' | 'created
   quizId: string;
 }
 
-export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | 'course_name' | 'time_limit_minutes' | 'scheduled_date' | 'start_time' | 'end_time' | 'negative_marks_value'> {
+export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | 'course_name' | 'time_limit_minutes' | 'scheduled_date' | 'start_time' | 'end_time' | 'negative_marks_value' | 'status'> {
   courseName: string;
   timeLimitMinutes: number;
   scheduledDate: string;
   startTime: string;
   endTime: string;
-  negativeMarksValue: number; // NEW FIELD
+  negativeMarksValue: number; 
+  status: 'draft' | 'published'; // ADDED STATUS FIELD
   // Note: questionIds is derived from fetching questions separately now, not stored on the quiz object itself.
 }
 
@@ -52,7 +53,7 @@ interface QuizContextType {
 
   // Mutations/Actions
   addQuestion: (question: Omit<Question, 'id'>) => string; // Kept for QuestionCreator draft flow
-  addQuiz: (quiz: Omit<Quiz, 'id'>, questionsData: Omit<Question, 'id'>[]) => void; // Updated signature
+  addQuiz: (quiz: Omit<Quiz, 'id' | 'status'>, questionsData: Omit<Question, 'id'>[]) => void; // Updated signature to omit status
   submitQuizAttempt: (attempt: Omit<QuizAttempt, 'id' | 'timestamp'>) => void;
   getQuestionsForQuiz: (quizId: string) => Question[];
   getQuizById: (quizId: string) => Quiz | undefined;
@@ -76,7 +77,8 @@ const mapSupabaseQuizToLocal = (sQuiz: SupabaseQuiz): Quiz => ({
   scheduledDate: sQuiz.scheduled_date,
   startTime: sQuiz.start_time,
   endTime: sQuiz.end_time,
-  negativeMarksValue: sQuiz.negative_marks_value, // Mapped new field
+  negativeMarksValue: sQuiz.negative_marks_value,
+  status: sQuiz.status, // Mapped new field
 });
 
 const mapSupabaseQuestionToLocal = (sQuestion: SupabaseQuestion): Question => ({
@@ -96,18 +98,6 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
   const { data: supabaseQuizzes = [], isLoading: isQuizzesLoading } = useQuizzes();
   const quizzes = supabaseQuizzes.map(mapSupabaseQuizToLocal);
 
-  // Fetch all questions for all quizzes currently loaded (simplified approach for context)
-  // In a large app, this would be optimized, but for now, we fetch questions for all loaded quizzes.
-  const allQuizIds = quizzes.map(q => q.id);
-  
-  // We will use a simplified approach: only fetch questions when needed by QuizPage, 
-  // and keep a local cache of questions fetched so far.
-  // For the context provider, we will only expose the quizzes list and rely on components 
-  // (like QuizPage) to fetch their specific questions using useQuestionsByQuizId.
-  // However, for the Teacher Dashboard's QuestionCreator, we need a local pool.
-  
-  // We will keep the local 'questions' state for the QuestionCreator's pool functionality, 
-  // but it will NOT be synced to Supabase in this context. The QuizCreator handles Supabase insertion.
   const [localQuestionPool, setLocalQuestionPool] = useState<Question[]>([]);
   const [quizAttempts, setQuizAttempts] = useState<QuizAttempt[]>(() => {
     // Load attempts from localStorage (keeping this local for now)
@@ -136,7 +126,8 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
   };
 
   // This function handles inserting the quiz and its questions into Supabase
-  const addQuiz = (quiz: Omit<Quiz, 'id'>, questionsData: Omit<Question, 'id'>[]) => {
+  const addQuiz = (quiz: Omit<Quiz, 'id' | 'status'>, questionsData: Omit<Question, 'id'>[]) => {
+    // Note: We omit 'status' here because the mutation hook sets it to 'published' automatically.
     const quizInsertData = {
       title: quiz.title,
       course_name: quiz.courseName,
@@ -146,7 +137,7 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
       scheduled_date: quiz.scheduledDate,
       start_time: quiz.startTime,
       end_time: quiz.endTime,
-      negative_marks_value: quiz.negativeMarksValue, // NEW: Include negative marks value
+      negative_marks_value: quiz.negativeMarksValue,
     };
 
     const questionsInsertData = questionsData.map(q => ({
@@ -168,18 +159,6 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
   };
 
   const getQuestionsForQuiz = (quizId: string): Question[] => {
-    // This function is now complex because questions are fetched asynchronously.
-    // For components that need questions (like QuizPage), they should use the useQuestionsByQuizId hook directly.
-    // For components that need a synchronous list (like QuizCreator preview), we rely on the local pool or mock data.
-    // Since QuizCreator handles its own draft questions, we can simplify this context function.
-    
-    // For the purpose of the Teacher Dashboard's AvailableQuizzesList (which doesn't need full questions)
-    // and the Student Dashboard's ScheduledQuizzesSection (which only needs question count), 
-    // we will return an empty array here, and update the components to handle the missing data gracefully 
-    // or rely on the local pool for mock data if necessary (e.g., for question count in the Teacher Dashboard).
-    
-    // For now, we return an empty array, forcing components that need questions to fetch them.
-    // We will update QuizPage to use the new hook.
     return []; 
   };
 

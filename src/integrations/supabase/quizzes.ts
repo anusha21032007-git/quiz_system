@@ -27,7 +27,8 @@ export interface SupabaseQuiz {
   scheduled_date: string;
   start_time: string;
   end_time: string;
-  negative_marks_value: number; // NEW FIELD
+  negative_marks_value: number;
+  status: 'draft' | 'published'; // ADDED STATUS FIELD
   created_at: string;
 }
 
@@ -41,6 +42,7 @@ export const useQuizzes = () => {
       const { data, error } = await supabase
         .from("quizzes")
         .select("*")
+        .eq("status", "published") // FILTER: Only fetch published quizzes
         .order("scheduled_date", { ascending: true })
         .order("start_time", { ascending: true });
 
@@ -97,7 +99,7 @@ export const useQuestionCount = (quizId: string) => {
 
 // --- Mutation Hooks (Teacher Actions) ---
 
-interface QuizInsertData extends Omit<SupabaseQuiz, 'id' | 'teacher_id' | 'created_at'> {}
+interface QuizInsertData extends Omit<SupabaseQuiz, 'id' | 'teacher_id' | 'created_at' | 'status'> {}
 interface QuestionInsertData extends Omit<SupabaseQuestion, 'id' | 'teacher_id' | 'created_at'> {}
 
 export const useCreateQuiz = () => {
@@ -107,10 +109,10 @@ export const useCreateQuiz = () => {
       const user = (await supabase.auth.getUser()).data.user;
       if (!user) throw new Error("User not authenticated.");
 
-      // 1. Insert Quiz
+      // 1. Insert Quiz (Always set status to 'published' when created via QuizCreator)
       const { data: quiz, error: quizError } = await supabase
         .from("quizzes")
-        .insert({ ...quizData, teacher_id: user.id })
+        .insert({ ...quizData, teacher_id: user.id, status: 'published' }) // Set status to published
         .select()
         .single();
 

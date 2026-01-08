@@ -9,13 +9,21 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, ListChecks, CheckCircle, XCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useQuestionCount } from '@/integrations/supabase/quizzes'; // Import the new hook
+import { useQuestionCount } from '@/integrations/supabase/quizzes';
 
 interface ScheduledQuizzesSectionProps {
   studentName: string;
 }
 
 type QuizStatus = 'Upcoming' | 'Live' | 'Expired' | 'Completed';
+
+// Mock Course Data (Must match the names used in QuizCreator)
+const MOCK_STUDENT_COURSES = [
+  'CS 101: Introduction to Programming',
+  'Math 202: Calculus II',
+  'Physics 101: Mechanics',
+  'General Studies' // Include a general course name if used
+];
 
 // Utility function to combine date and time strings into a Date object
 const createDateTime = (dateStr: string, timeStr: string): Date => {
@@ -47,6 +55,7 @@ const ScheduledQuizzesSection = ({ studentName }: ScheduledQuizzesSectionProps) 
     const now = new Date();
 
     return quizzes
+      .filter(quiz => MOCK_STUDENT_COURSES.includes(quiz.courseName)) // FILTER by student's mock courses
       .map((quiz) => {
         const startTime = createDateTime(quiz.scheduledDate, quiz.startTime);
         const endTime = createDateTime(quiz.scheduledDate, quiz.endTime);
@@ -205,7 +214,7 @@ const ScheduledQuizzesSection = ({ studentName }: ScheduledQuizzesSectionProps) 
         {scheduledQuizzes.length === 0 ? (
           <div className="text-center p-8">
             <AlertTriangle className="h-10 w-10 text-yellow-500 mx-auto mb-3" />
-            <p className="text-gray-500 font-medium">No quizzes are currently scheduled for your courses.</p>
+            <p className="text-gray-500 font-medium">No quizzes are currently scheduled for your course.</p>
             <p className="text-sm text-gray-400 mt-1">Check back later or contact your instructor.</p>
           </div>
         ) : (
