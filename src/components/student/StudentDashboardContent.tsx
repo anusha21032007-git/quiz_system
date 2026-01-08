@@ -6,8 +6,9 @@ import DashboardWelcome from './DashboardWelcome';
 import OverviewCards from './OverviewCards';
 import MyCourses from './MyCourses';
 import PerformanceOverview from './PerformanceOverview';
-import RecentActivitySection from './RecentActivitySection'; // NEW Component
+import RecentActivitySection from './RecentActivitySection';
 import ScheduledQuizzesSection from './ScheduledQuizzesSection'; 
+import ScheduledQuizAlert from './ScheduledQuizAlert'; // Import the alert component
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -75,6 +76,10 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
   const renderDashboard = () => (
     <div className="space-y-8">
       <DashboardWelcome studentName={studentName} registerNumber={registerNumber} />
+      
+      {/* Scheduled Quiz Alert placed here for high visibility */}
+      <ScheduledQuizAlert studentName={studentName} />
+
       <OverviewCards
         totalQuizzesAttempted={totalQuizzesAttempted}
         quizzesPassed={quizzesPassed}
