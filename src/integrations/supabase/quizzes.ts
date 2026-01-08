@@ -65,7 +65,7 @@ export const useQuestionsByQuizId = (quizId: string) => {
         .order("created_at", { ascending: true });
 
       if (error) {
-        console.error(\`Error fetching questions for quiz \${quizId}:\`, error);
+        console.error("Error fetching questions for quiz " + quizId + ":", error);
         throw new Error(error.message);
       }
       return data;
@@ -123,7 +123,7 @@ export const useCreateQuiz = () => {
       toast.success("Quiz created and scheduled successfully!");
     },
     onError: (error) => {
-      toast.error(\`Failed to create quiz: \${error.message}\`);
+      toast.error("Failed to create quiz: " + error.message);
     },
   });
 };
