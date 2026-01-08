@@ -89,7 +89,7 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
       
       {/* Main Content Grid: Now a single column layout */}
       <div className="space-y-8">
-        <RecentActivitySection studentAttempts={studentAttempts} />
+        {/* Removed RecentActivitySection */}
         <MyCourses courses={MOCK_COURSES} />
         <PerformanceOverview recentAttempts={studentAttempts} />
       </div>
