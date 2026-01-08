@@ -27,6 +27,7 @@ export interface SupabaseQuiz {
   scheduled_date: string;
   start_time: string;
   end_time: string;
+  negative_marks_value: number; // NEW FIELD
   created_at: string;
 }
 

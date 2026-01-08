@@ -21,12 +21,13 @@ export interface Question extends Omit<SupabaseQuestion, 'teacher_id' | 'created
   quizId: string;
 }
 
-export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | 'course_name' | 'time_limit_minutes' | 'scheduled_date' | 'start_time' | 'end_time'> {
+export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | 'course_name' | 'time_limit_minutes' | 'scheduled_date' | 'start_time' | 'end_time' | 'negative_marks_value'> {
   courseName: string;
   timeLimitMinutes: number;
   scheduledDate: string;
   startTime: string;
   endTime: string;
+  negativeMarksValue: number; // NEW FIELD
   // Note: questionIds is derived from fetching questions separately now, not stored on the quiz object itself.
 }
 
@@ -75,6 +76,7 @@ const mapSupabaseQuizToLocal = (sQuiz: SupabaseQuiz): Quiz => ({
   scheduledDate: sQuiz.scheduled_date,
   startTime: sQuiz.start_time,
   endTime: sQuiz.end_time,
+  negativeMarksValue: sQuiz.negative_marks_value, // Mapped new field
 });
 
 const mapSupabaseQuestionToLocal = (sQuestion: SupabaseQuestion): Question => ({
@@ -127,7 +129,7 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
 
   // This function is now only used by QuestionCreator for its local pool (not synced to Supabase)
   const addQuestion = (question: Omit<Question, 'id'>): string => {
-    const newQuestion: Question = { ...question, id: \`q-local-\${Date.now()}-\${Math.random().toString(36).substr(2, 9)}\` };
+    const newQuestion: Question = { ...question, id: `q-local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` };
     setLocalQuestionPool((prev) => [...prev, newQuestion]);
     toast.success("Question added to local pool!");
     return newQuestion.id;
@@ -144,6 +146,7 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
       scheduled_date: quiz.scheduledDate,
       start_time: quiz.startTime,
       end_time: quiz.endTime,
+      negative_marks_value: quiz.negativeMarksValue, // NEW: Include negative marks value
     };
 
     const questionsInsertData = questionsData.map(q => ({
@@ -159,7 +162,7 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
   };
 
   const submitQuizAttempt = (attempt: Omit<QuizAttempt, 'id' | 'timestamp'>) => {
-    const newAttempt: QuizAttempt = { ...attempt, id: \`att-\${Date.now()}-\${Math.random().toString(36).substr(2, 9)}\`, timestamp: Date.now() };
+    const newAttempt: QuizAttempt = { ...attempt, id: `att-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, timestamp: Date.now() };
     setQuizAttempts((prev) => [...prev, newAttempt]);
     toast.success("Quiz submitted successfully!");
   };
@@ -174,9 +177,6 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
     // and the Student Dashboard's ScheduledQuizzesSection (which only needs question count), 
     // we will return an empty array here, and update the components to handle the missing data gracefully 
     // or rely on the local pool for mock data if necessary (e.g., for question count in the Teacher Dashboard).
-    
-    // Since the original implementation of QuizCreator relied on this to get question count, 
-    // we need to adjust the QuizCreator to calculate question count from its draft state.
     
     // For now, we return an empty array, forcing components that need questions to fetch them.
     // We will update QuizPage to use the new hook.
@@ -194,7 +194,7 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
     const baseTimeLimit = 1; 
 
     for (let i = 0; i < numQuestions; i++) {
-      const questionId = \`ai-q-\${Date.now()}-\${i}-\${Math.random().toString(36).substr(2, 4)}\`;
+      const questionId = `ai-q-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 4)}`;
       let questionText = '';
       let options: string[] = [];
       let correctAnswer = '';
@@ -202,17 +202,17 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
       let baseOptions: string[] = [];
       switch (difficulty) {
         case 'Easy':
-          questionText = \`What is the capital of \${coursePaperName.split(' ')[0] || 'France'}?\`;
+          questionText = `What is the capital of ${coursePaperName.split(' ')[0] || 'France'}?`;
           baseOptions = ['Paris', 'London', 'Berlin', 'Rome', 'Madrid', 'Tokyo']; 
           correctAnswer = 'Paris';
           break;
         case 'Medium':
-          questionText = \`In \${coursePaperName}, which concept describes the interaction between supply and demand?\`;
+          questionText = `In ${coursePaperName}, which concept describes the interaction between supply and demand?`;
           baseOptions = ['Equilibrium', 'Elasticity', 'Utility', 'Scarcity', 'Inflation', 'Deflation'];
           correctAnswer = 'Equilibrium';
           break;
         case 'Hard':
-          questionText = \`Explain the implications of Heisenberg's Uncertainty Principle in the context of \${coursePaperName}.\`;
+          questionText = `Explain the implications of Heisenberg's Uncertainty Principle in the context of ${coursePaperName}.`;
           baseOptions = [
             "It states that one cannot simultaneously know the exact position and momentum of a particle.",
             "It describes the behavior of particles at relativistic speeds.",
@@ -224,16 +224,16 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
           correctAnswer = "It states that one cannot simultaneously know the exact position and momentum of a particle.";
           break;
         default:
-          questionText = \`[\${difficulty}] According to "\${coursePaperName}", what is the key concept related to topic \${i + 1}?\`;
-          baseOptions = [\`Option A for \${i + 1}\`, \`Option B for \${i + 1}\`, \`Option C for \${i + 1}\`, \`Option D for \${i + 1}\`, \`Option E for \${i + 1}\`, \`Option F for \${i + 1}\`];
-          correctAnswer = \`Option A for \${i + 1}\`;
+          questionText = `[${difficulty}] According to "${coursePaperName}", what is the key concept related to topic ${i + 1}?`;
+          baseOptions = [`Option A for ${i + 1}`, `Option B for ${i + 1}`, `Option C for ${i + 1}`, `Option D for ${i + 1}`, `Option E for ${i + 1}`, `Option F for ${i + 1}`];
+          correctAnswer = `Option A for ${i + 1}`;
       }
 
       const shuffledBaseOptions = baseOptions.filter(opt => opt !== correctAnswer);
       const finalOptions = [correctAnswer, ...shuffledBaseOptions.sort(() => 0.5 - Math.random()).slice(0, numOptions - 1)].sort(() => 0.5 - Math.random());
 
       while (finalOptions.length < numOptions) {
-        finalOptions.push(\`Generic Option \${finalOptions.length + 1}\`);
+        finalOptions.push(`Generic Option ${finalOptions.length + 1}`);
       }
       options = finalOptions.slice(0, numOptions);
 
@@ -251,7 +251,7 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
         timeLimitMinutes: baseTimeLimit, 
       });
     }
-    toast.info(\`Mock AI generated \${numQuestions} questions for "\${coursePaperName}" (\${difficulty}).\`);
+    toast.info(`Mock AI generated ${numQuestions} questions for "${coursePaperName}" (${difficulty}).`);
     return generated;
   };
 

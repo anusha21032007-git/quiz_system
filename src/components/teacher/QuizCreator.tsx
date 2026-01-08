@@ -42,7 +42,7 @@ interface StoredQuiz {
   questionIds: string[];
   timeLimitMinutes: number;
   negativeMarking: boolean;
-  negativeMarks: string | number; // Store negative marks if enabled
+  negativeMarksValue: number; // Updated field name for consistency
   competitionMode: boolean;
   scheduledDate: string; // ADDED
   startTime: string;     // ADDED
@@ -76,7 +76,7 @@ const QuizCreator = () => {
 
   // Other quiz details not explicitly part of the 'Quiz' structure provided by user, but still needed
   const [negativeMarking, setNegativeMarking] = useState<boolean>(false);
-  const [negativeMarks, setNegativeMarks] = useState<string | number>(''); // State for negative marks value
+  const [negativeMarksValue, setNegativeMarksValue] = useState<string | number>(''); // State for negative marks value
   const [competitionMode, setCompetitionMode] = useState<boolean>(false);
   const [defaultTimePerQuestion, setDefaultTimePerQuestion] = useState<number | null>(null); // New state for optional default time
   const [enableTimePerQuestion, setEnableTimePerQuestion] = useState<boolean>(false); // Toggle for time per question
@@ -174,7 +174,7 @@ const QuizCreator = () => {
       return false;
     }
     // Check global negative marks setting
-    if (negativeMarking && (negativeMarks === '' || Number(negativeMarks) < 0)) {
+    if (negativeMarking && (negativeMarksValue === '' || Number(negativeMarksValue) < 0)) {
       toast.error("Please enter a valid value for negative marks.");
       return false;
     }
@@ -315,7 +315,7 @@ const QuizCreator = () => {
       questionIds: questionsForOutput.map(q => q.id),
       timeLimitMinutes: totalCalculatedQuizTime,
       negativeMarking: negativeMarking,
-      negativeMarks: negativeMarking ? negativeMarks : 0,
+      negativeMarksValue: negativeMarking ? Number(negativeMarksValue) : 0, // Use negativeMarksValue
       competitionMode: competitionMode,
       scheduledDate: quizData.scheduledDate,
       startTime: quizData.startTime,
@@ -338,6 +338,7 @@ const QuizCreator = () => {
         scheduledDate: finalQuizData.scheduledDate,
         startTime: finalQuizData.startTime,
         endTime: finalQuizData.endTime,
+        negativeMarksValue: finalQuizData.negativeMarksValue, // NEW: Pass the value
       };
 
       // 2. Prepare questions data (Omit<Question, 'id'>)
@@ -385,7 +386,7 @@ const QuizCreator = () => {
       endTime: '',
     });
     setNegativeMarking(false);
-    setNegativeMarks('');
+    setNegativeMarksValue('');
     setCompetitionMode(false);
     setDefaultTimePerQuestion(null);
     setTotalCalculatedQuizTime(0);
@@ -569,14 +570,14 @@ const QuizCreator = () => {
           </div>
           {negativeMarking && (
             <div className="mt-2 pl-2 border-l-2 border-red-200">
-              <Label htmlFor="negativeMarks">Negative marks for wrong answer</Label>
+              <Label htmlFor="negativeMarksValue">Negative marks for wrong answer</Label>
               <Input
-                id="negativeMarks"
+                id="negativeMarksValue"
                 type="number"
                 placeholder="e.g. 0.25"
-                value={negativeMarks}
+                value={negativeMarksValue}
                 disabled={step === 2}
-                onChange={(e) => setNegativeMarks(e.target.value)}
+                onChange={(e) => setNegativeMarksValue(e.target.value)}
                 className="mt-1"
               />
             </div>

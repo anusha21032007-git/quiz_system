@@ -74,7 +74,7 @@ const QuizPage = () => {
   // Handle errors during question fetching
   useEffect(() => {
     if (questionsError) {
-      toast.error(\`Failed to load quiz questions: \${questionsError.message}\`);
+      toast.error(`Failed to load quiz questions: ${questionsError.message}`);
       navigate('/student');
     }
   }, [questionsError, navigate]);
@@ -141,16 +141,16 @@ const QuizPage = () => {
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return \`\${minutes.toString().padStart(2, '0')}:\${remainingSeconds.toString().padStart(2, '0')}\`;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   const calculateMarksForQuestion = (question: LocalQuestionType, isCorrect: boolean) => {
     if (isCorrect) {
       return question.marks;
     } else if (quiz?.negativeMarking) {
-      // Use a fixed deduction of 25% of the question's marks if negativeMarks is not explicitly defined or is 0
-      const deduction = typeof quiz.negativeMarks === 'number' && quiz.negativeMarks > 0 
-        ? quiz.negativeMarks 
+      // Use negativeMarksValue from the quiz object
+      const deduction = quiz.negativeMarksValue > 0 
+        ? quiz.negativeMarksValue 
         : 0.25 * question.marks; 
       return -deduction; 
     }
