@@ -28,9 +28,9 @@ const StudentDashboard = () => {
   );
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50"> {/* Changed min-h-screen to h-screen */}
-      {/* Mobile Header */}
-      <header className="flex items-center justify-between p-4 border-b bg-white shadow-sm lg:hidden">
+    <div className="h-screen flex flex-col bg-gray-50">
+      {/* Mobile Header (remains fixed at the top of the screen) */}
+      <header className="flex items-center justify-between p-4 border-b bg-white shadow-sm lg:hidden flex-shrink-0">
         <StudentSidebar
           activeView={activeView}
           setActiveView={setActiveView}
@@ -44,7 +44,7 @@ const StudentDashboard = () => {
       </header>
 
       {/* Desktop Layout */}
-      <div className="flex flex-1 overflow-hidden"> {/* flex-1 ensures it takes remaining height, overflow-hidden contains scrolling */}
+      <div className="flex flex-1 overflow-hidden">
         {/* Fixed Sidebar (Desktop) */}
         {!isMobile && (
           <aside className="w-64 flex-shrink-0 h-full border-r bg-sidebar text-sidebar-foreground">
@@ -52,16 +52,22 @@ const StudentDashboard = () => {
           </aside>
         )}
         
-        {/* Main Content Area (Scrollable) */}
-        <main className="flex-1 overflow-y-auto p-8">
+        {/* Main Content Wrapper (Header + Scrollable Content) */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          
+          {/* Fixed Desktop Header */}
           {!isMobile && (
-            <div className="flex justify-between items-center mb-8 hidden lg:flex">
+            <header className="flex justify-between items-center px-8 py-4 border-b bg-white shadow-sm flex-shrink-0">
               <h1 className="text-4xl font-bold text-gray-800">Student Academic Portal</h1>
               <StudentProfileHeader studentName={studentName} registerNumber={registerNumber} />
-            </div>
+            </header>
           )}
-          {renderMainContent()}
-        </main>
+
+          {/* Scrollable Main Content Area */}
+          <main className="flex-1 overflow-y-auto p-8">
+            {renderMainContent()}
+          </main>
+        </div>
       </div>
     </div>
   );
