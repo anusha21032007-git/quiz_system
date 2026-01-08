@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 "use client";
 
 import React, { useState } from 'react';
@@ -71,4 +72,57 @@ const TeacherDashboard = () => {
   );
 };
 
+=======
+"use client";
+
+import { useLocation } from 'react-router-dom';
+import TeacherLayout from '@/components/layout/TeacherLayout';
+import QuestionCreator from '@/components/teacher/QuestionCreator';
+import QuizCreator from '@/components/teacher/QuizCreator';
+import InterviewMode from '@/components/teacher/InterviewMode';
+import UsersList from '@/components/teacher/UsersList';
+
+const TeacherDashboard = () => {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const activeView = searchParams.get('view') || 'create-question';
+
+  const renderMainContent = () => {
+    switch (activeView) {
+      case 'create-question':
+        return <QuestionCreator />;
+      case 'create-quiz':
+        return <QuizCreator />;
+      case 'interview-mode':
+        return <InterviewMode />;
+      case 'users':
+        return <UsersList />;
+      default:
+        return <QuestionCreator />;
+    }
+  };
+
+  const getPageTitle = () => {
+    switch (activeView) {
+      case 'create-question':
+        return 'Question Bank';
+      case 'create-quiz':
+        return 'Quiz Generator';
+      case 'interview-mode':
+        return 'Interview Session';
+      case 'users':
+        return 'Users';
+      default:
+        return 'Teacher Dashboard';
+    }
+  };
+
+  return (
+    <TeacherLayout activeView={activeView} title={getPageTitle()}>
+      {renderMainContent()}
+    </TeacherLayout>
+  );
+};
+
+>>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
 export default TeacherDashboard;

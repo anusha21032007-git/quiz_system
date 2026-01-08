@@ -11,6 +11,8 @@ import StudentDashboard from "./pages/StudentDashboard";
 import QuizPage from "./pages/QuizPage";
 import Leaderboard from "./pages/Leaderboard";
 import QuizPreviewPage from "./pages/QuizPreviewPage"; // New page import
+import CoursesPage from "./pages/CoursesPage"; // Dedicated Courses page
+import HistoryPage from "./pages/HistoryPage"; // Dedicated History page
 
 const queryClient = new QueryClient();
 
@@ -24,6 +26,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/teacher" element={<TeacherDashboard />} />
+            <Route path="/teacher/courses" element={<CoursesPage />} />
+            <Route path="/teacher/history" element={<HistoryPage />} />
             <Route path="/student" element={<StudentDashboard />} />
             <Route path="/quiz/:quizId" element={<QuizPage />} />
             <Route path="/leaderboard" element={<Leaderboard />} />

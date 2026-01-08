@@ -42,12 +42,16 @@ interface StoredQuiz {
   questionIds: string[];
   timeLimitMinutes: number;
   negativeMarking: boolean;
+<<<<<<< HEAD
   negativeMarksValue: number; // Updated field name for consistency
   competitionMode: boolean;
   scheduledDate: string; // ADDED
   startTime: string;     // ADDED
   endTime: string;       // ADDED
   difficulty: 'Easy' | 'Medium' | 'Hard'; // ADDED DIFFICULTY
+=======
+  negativeMarks: string | number; // Added negativeMarks to stored quiz
+>>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
   _questionsData: {
     id: string;
     quizId: string;
@@ -77,8 +81,12 @@ const QuizCreator = () => {
 
   // Other quiz details not explicitly part of the 'Quiz' structure provided by user, but still needed
   const [negativeMarking, setNegativeMarking] = useState<boolean>(false);
+<<<<<<< HEAD
   const [negativeMarksValue, setNegativeMarksValue] = useState<string | number>(''); // State for negative marks value
   const [competitionMode, setCompetitionMode] = useState<boolean>(false);
+=======
+  const [negativeMarks, setNegativeMarks] = useState<string | number>(''); // State for negative marks value
+>>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
   const [defaultTimePerQuestion, setDefaultTimePerQuestion] = useState<number | null>(null); // New state for optional default time
   const [enableTimePerQuestion, setEnableTimePerQuestion] = useState<boolean>(false); // Toggle for time per question
   const [totalCalculatedQuizTime, setTotalCalculatedQuizTime] = useState<number>(0); // New state for total quiz time
@@ -317,12 +325,16 @@ const QuizCreator = () => {
       questionIds: questionsForOutput.map(q => q.id),
       timeLimitMinutes: totalCalculatedQuizTime,
       negativeMarking: negativeMarking,
+<<<<<<< HEAD
       negativeMarksValue: negativeMarking ? Number(negativeMarksValue) : 0, // Use negativeMarksValue
       competitionMode: competitionMode,
       scheduledDate: quizData.scheduledDate,
       startTime: quizData.startTime,
       endTime: quizData.endTime,
       difficulty: quizDifficulty, // Include difficulty
+=======
+      negativeMarks: negativeMarking ? negativeMarks : 0, // Store negative marks if enabled
+>>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
       _questionsData: questionsForOutput, // Include full question data for easy retrieval
     };
   };
@@ -390,8 +402,11 @@ const QuizCreator = () => {
       endTime: '',
     });
     setNegativeMarking(false);
+<<<<<<< HEAD
     setNegativeMarksValue('');
     setCompetitionMode(false);
+=======
+>>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
     setDefaultTimePerQuestion(null);
     setTotalCalculatedQuizTime(0);
     setAiCoursePaperName('');
@@ -603,131 +618,112 @@ const QuizCreator = () => {
               />
             </div>
           )}
-          <div className="flex items-center justify-between mt-3">
-            <Label htmlFor="competitionMode">Enable Competition Mode</Label>
-            <Switch
-              id="competitionMode"
-              checked={competitionMode}
-              onCheckedChange={setCompetitionMode}
-              disabled={step === 2} // Lock
-            />
-          </div>
         </div>
 
         {/* Step 2 Content */}
-        {step === 2 && (
-          <>
-            <h3 className="text-lg font-semibold mb-2">Questions for "{quizData.quizTitle || 'New Quiz'}"</h3>
-            <div className="flex justify-between items-center mb-4 p-3 border rounded-md bg-blue-50 text-blue-800 font-semibold">
-              <span>Total Questions: {quizData.questions.length}</span>
-              <span>Total Marks: {totalQuizMarks}</span>
-              <span>Total Quiz Time: {totalCalculatedQuizTime} minutes</span>
-            </div>
-
-            {/* AI Question Generation Section */}
-            <div className="border-t pt-4 mt-4 space-y-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Brain className="h-5 w-5" /> Generate Questions with AI (Mock)
-              </h3>
-              <div>
-                <Label htmlFor="aiDifficulty">Difficulty</Label>
-                <Select onValueChange={(value: 'Easy' | 'Medium' | 'Hard') => setAiDifficulty(value)} value={aiDifficulty}>
-                  <SelectTrigger className="w-full mt-1">
-                    <SelectValue placeholder="Select difficulty" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Easy">Easy</SelectItem>
-                    <SelectItem value="Medium">Medium</SelectItem>
-                    <SelectItem value="Hard">Hard</SelectItem>
-                  </SelectContent>
-                </Select>
+        {
+          step === 2 && (
+            <>
+              <h3 className="text-lg font-semibold mb-2">Questions for "{quizData.quizTitle || 'New Quiz'}"</h3>
+              <div className="flex justify-between items-center mb-4 p-3 border rounded-md bg-blue-50 text-blue-800 font-semibold">
+                <span>Total Questions: {quizData.questions.length}</span>
+                <span>Total Marks: {totalQuizMarks}</span>
+                <span>Total Quiz Time: {totalCalculatedQuizTime} minutes</span>
               </div>
-              <Button onClick={handleGenerateAIQuestions} className="w-full bg-purple-600 hover:bg-purple-700">
-                Generate Questions with AI
-              </Button>
-              <p className="text-sm text-gray-500 mt-2">
-                AI will generate {quizData.totalQuestions} questions with {quizData.optionsPerQuestion} options each.
-                You will still need to manually set marks and time for each question.
-              </p>
-            </div>
 
-            <div className="space-y-6 max-h-96 overflow-y-auto p-3 border rounded-md bg-gray-50 mt-4">
-              {quizData.questions.length === 0 ? (
-                <p className="text-gray-500 text-center">No questions added yet. Click "Generate Questions with AI" to begin.</p>
-              ) : (
-                quizData.questions.map((q, index) => (
-                  <Card key={index} className="p-4 border rounded-md bg-white shadow-sm relative">
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2 h-7 w-7"
-                      onClick={() => handleDeleteQuestionFromDraft(index)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                    <div className="space-y-3">
-                      <div>
-                        <Label>Question {index + 1}</Label>
-                        <div className="p-3 bg-gray-50 border rounded-md min-h-[60px] text-sm mt-1">
-                          {q.questionText || <span className="text-gray-400 italic">Example Question Text from AI</span>}
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 gap-2 mt-2">
-                        {q.options.map((option, optIndex) => (
-                          <div key={optIndex} className="flex items-center gap-2 p-2 border rounded-md bg-white text-sm">
-                            <span className="font-semibold text-gray-500 w-6">{String.fromCharCode(65 + optIndex)}.</span>
-                            <span>{option || <span className="text-gray-400 italic">Option Text</span>}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <div>
-                        <Label>Select the correct option</Label>
-                        <RadioGroup
-                          onValueChange={(value) => handleUpdateCorrectAnswerIndex(index, value)}
-                          value={q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : ''}
-                          className="flex flex-col space-y-2 mt-2"
-                        >
-                          {q.options.map((option, optIndex) => (
-                            option && (
-                              <div key={optIndex} className="flex items-center space-x-2">
-                                <RadioGroupItem value={option} id={`q-correct-${index}-${optIndex}`} />
-                                <Label htmlFor={`q-correct-${index}-${optIndex}`} className="font-normal cursor-pointer">
-                                  {String.fromCharCode(65 + optIndex)}. {option}
-                                </Label>
-                              </div>
-                            )
-                          ))}
-                        </RadioGroup>
-                      </div>
-                      <div>
-                        <Label htmlFor={`q-marks-${index}`}>Marks (1-10)</Label>
-                        <Input
-                          id={`q-marks-${index}`}
-                          type="number"
-                          min="0"
-                          max="10"
-                          value={q.marks}
-                          onChange={(e) => {
-                            const val = e.target.value === '' ? '' : parseInt(e.target.value);
-                            if (val === '' || (val >= 0 && val <= 10)) {
-                              handleUpdateDraftQuestion(index, 'marks', val === '' ? '' : val);
-                            }
-                          }}
-                          className="mt-1"
-                        />
-                      </div>
-                      {enableTimePerQuestion && (
+              {/* AI Question Generation Section */}
+              <div className="border-t pt-4 mt-4 space-y-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Brain className="h-5 w-5" /> Generate Questions with AI (Mock)
+                </h3>
+                <div>
+                  <Label htmlFor="aiDifficulty">Difficulty</Label>
+                  <Select onValueChange={(value: 'Easy' | 'Medium' | 'Hard') => setAiDifficulty(value)} value={aiDifficulty}>
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue placeholder="Select difficulty" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Easy">Easy</SelectItem>
+                      <SelectItem value="Medium">Medium</SelectItem>
+                      <SelectItem value="Hard">Hard</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={handleGenerateAIQuestions} className="w-full bg-purple-600 hover:bg-purple-700">
+                  Generate Questions with AI
+                </Button>
+                <p className="text-sm text-gray-500 mt-2">
+                  AI will generate {quizData.totalQuestions} questions with {quizData.optionsPerQuestion} options each.
+                  You will still need to manually set marks and time for each question.
+                </p>
+              </div>
+
+              <div className="space-y-6 max-h-96 overflow-y-auto p-3 border rounded-md bg-gray-50 mt-4">
+                {quizData.questions.length === 0 ? (
+                  <p className="text-gray-500 text-center">No questions added yet. Click "Generate Questions with AI" to begin.</p>
+                ) : (
+                  quizData.questions.map((q, index) => (
+                    <Card key={index} className="p-4 border rounded-md bg-white shadow-sm relative">
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-7 w-7"
+                        onClick={() => handleDeleteQuestionFromDraft(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <div className="space-y-3">
                         <div>
-                          <Label htmlFor={`q-time-${index}`}>Time for this Question (minutes)</Label>
+                          <Label>Question {index + 1}</Label>
+                          <div className="p-3 bg-gray-50 border rounded-md min-h-[60px] text-sm mt-1">
+                            {q.questionText || <span className="text-gray-400 italic">Example Question Text from AI</span>}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2 mt-2">
+                          {q.options.map((option, optIndex) => (
+                            <div key={optIndex} className="flex items-center gap-2 p-2 border rounded-md bg-white text-sm">
+                              <span className="font-semibold text-gray-500 w-6">{String.fromCharCode(65 + optIndex)}.</span>
+                              <span>{option || <span className="text-gray-400 italic">Option Text</span>}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div>
+                          <Label>Select the correct option</Label>
+                          <RadioGroup
+                            onValueChange={(value) => handleUpdateCorrectAnswerIndex(index, value)}
+                            value={q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : ''}
+                            className="flex flex-col space-y-2 mt-2"
+                          >
+                            {q.options.map((option, optIndex) => (
+                              option && (
+                                <div key={optIndex} className="flex items-center space-x-2">
+                                  <RadioGroupItem value={option} id={`q-correct-${index}-${optIndex}`} />
+                                  <Label htmlFor={`q-correct-${index}-${optIndex}`} className="font-normal cursor-pointer">
+                                    {String.fromCharCode(65 + optIndex)}. {option}
+                                  </Label>
+                                </div>
+                              )
+                            ))}
+                          </RadioGroup>
+                        </div>
+                        <div>
+                          <Label htmlFor={`q-marks-${index}`}>Marks (1-10)</Label>
                           <Input
-                            id={`q-time-${index}`}
+                            id={`q-marks-${index}`}
                             type="number"
-                            min="1"
-                            value={q.timeLimitMinutes}
-                            onChange={(e) => handleUpdateDraftQuestion(index, 'timeLimitMinutes', e.target.value)}
+                            min="0"
+                            max="10"
+                            value={q.marks}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? '' : parseInt(e.target.value);
+                              if (val === '' || (val >= 0 && val <= 10)) {
+                                handleUpdateDraftQuestion(index, 'marks', val === '' ? '' : val);
+                              }
+                            }}
                             className="mt-1"
                           />
                         </div>
+<<<<<<< HEAD
                       )}
                     </div>
                   </Card>
@@ -737,6 +733,31 @@ const QuizCreator = () => {
           </>
         )}
       </CardContent>
+=======
+                        {enableTimePerQuestion && (
+                          <div>
+                            <Label htmlFor={`q-time-${index}`}>Time for this Question (minutes)</Label>
+                            <Input
+                              id={`q-time-${index}`}
+                              type="number"
+                              min="1"
+                              value={q.timeLimitMinutes}
+                              onChange={(e) => handleUpdateDraftQuestion(index, 'timeLimitMinutes', e.target.value)}
+                              className="mt-1"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  ))
+                )}
+              </div>
+              {/* Manual 'Add Question' removed per requirement */}
+            </>
+          )
+        }
+      </CardContent >
+>>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
 
       <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 mt-6">
         {step === 1 ? (
@@ -757,7 +778,7 @@ const QuizCreator = () => {
           </>
         )}
       </CardFooter>
-    </Card>
+    </Card >
   );
 };
 

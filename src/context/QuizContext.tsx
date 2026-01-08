@@ -21,6 +21,7 @@ export interface Question extends Omit<SupabaseQuestion, 'teacher_id' | 'created
   quizId: string;
 }
 
+<<<<<<< HEAD
 export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | 'course_name' | 'time_limit_minutes' | 'scheduled_date' | 'start_time' | 'end_time' | 'negative_marks_value' | 'status' | 'difficulty'> {
   courseName: string;
   timeLimitMinutes: number;
@@ -31,6 +32,15 @@ export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | '
   status: 'draft' | 'published'; 
   difficulty: 'Easy' | 'Medium' | 'Hard'; // NEW FIELD
   // Note: questionIds is derived from fetching questions separately now, not stored on the quiz object itself.
+=======
+export interface Quiz {
+  id: string;
+  title: string;
+  questionIds: string[]; // IDs of questions belonging to this quiz
+  timeLimitMinutes: number; // New field for quiz time limit
+  negativeMarking: boolean; // New field for negative marking
+  negativeMarks?: string | number; // Added negative marks field
+>>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
 }
 
 export interface QuizAttempt {
