@@ -3,6 +3,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Megaphone, Clock, AlertTriangle } from 'lucide-react';
+import { cn } from '@/lib/utils'; // FIX: Import cn
 
 // Mock data for the latest notice
 const MOCK_NOTICE = {

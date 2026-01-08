@@ -6,6 +6,7 @@ import { AlertTriangle, Clock, TrendingUp, BookOpen, CheckCircle } from 'lucide-
 import { useQuiz } from '@/context/QuizContext';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils'; // FIX: Import cn
 
 interface NextActionCardProps {
   studentName: string;
