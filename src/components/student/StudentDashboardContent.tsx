@@ -77,6 +77,9 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
     <div className="space-y-8">
       <DashboardWelcome studentName={studentName} registerNumber={registerNumber} />
       
+      {/* Scheduled Quiz Alert placed here for high visibility */}
+      <ScheduledQuizAlert studentName={studentName} />
+
       <OverviewCards
         totalQuizzesAttempted={totalQuizzesAttempted}
         quizzesPassed={quizzesPassed}
@@ -84,19 +87,11 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
         currentRank={currentRank}
       />
       
-      {/* New Grid Layout for main content: 2/3 left, 1/3 right */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Right Column (1/3 width on large screens) - Alert in the top right corner */}
-        <div className="lg:col-span-1 space-y-8 order-first lg:order-last">
-          <ScheduledQuizAlert studentName={studentName} />
-        </div>
-
-        {/* Left Column (2/3 width on large screens) - Main content flow */}
-        <div className="lg:col-span-2 space-y-8 order-last lg:order-first">
-          <MyCourses courses={MOCK_COURSES} />
-          <PerformanceOverview recentAttempts={studentAttempts} />
-        </div>
+      {/* Main Content Grid: Now a single column layout */}
+      <div className="space-y-8">
+        {/* Removed RecentActivitySection */}
+        <MyCourses courses={MOCK_COURSES} />
+        <PerformanceOverview recentAttempts={studentAttempts} />
       </div>
     </div>
   );
