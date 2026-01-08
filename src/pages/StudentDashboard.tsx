@@ -55,7 +55,7 @@ const StudentDashboard = () => {
         {/* Main Content Area (Scrollable) */}
         <main className="flex-1 overflow-y-auto p-8">
           {!isMobile && (
-            <div className="flex justify-between items-center pb-4 mb-8 border-b border-gray-200 hidden lg:flex">
+            <div className="flex justify-between items-center mb-8 hidden lg:flex">
               <h1 className="text-4xl font-bold text-gray-800">Student Academic Portal</h1>
               <StudentProfileHeader studentName={studentName} registerNumber={registerNumber} />
             </div>
