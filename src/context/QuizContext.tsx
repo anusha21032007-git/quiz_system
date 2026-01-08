@@ -21,14 +21,15 @@ export interface Question extends Omit<SupabaseQuestion, 'teacher_id' | 'created
   quizId: string;
 }
 
-export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | 'course_name' | 'time_limit_minutes' | 'scheduled_date' | 'start_time' | 'end_time' | 'negative_marks_value' | 'status'> {
+export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | 'course_name' | 'time_limit_minutes' | 'scheduled_date' | 'start_time' | 'end_time' | 'negative_marks_value' | 'status' | 'difficulty'> {
   courseName: string;
   timeLimitMinutes: number;
   scheduledDate: string;
   startTime: string;
   endTime: string;
   negativeMarksValue: number; 
-  status: 'draft' | 'published'; // ADDED STATUS FIELD
+  status: 'draft' | 'published'; 
+  difficulty: 'Easy' | 'Medium' | 'Hard'; // NEW FIELD
   // Note: questionIds is derived from fetching questions separately now, not stored on the quiz object itself.
 }
 
@@ -78,7 +79,8 @@ const mapSupabaseQuizToLocal = (sQuiz: SupabaseQuiz): Quiz => ({
   startTime: sQuiz.start_time,
   endTime: sQuiz.end_time,
   negativeMarksValue: sQuiz.negative_marks_value,
-  status: sQuiz.status, // Mapped new field
+  status: sQuiz.status, 
+  difficulty: sQuiz.difficulty, // Mapped new field
 });
 
 const mapSupabaseQuestionToLocal = (sQuestion: SupabaseQuestion): Question => ({
@@ -138,6 +140,7 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
       start_time: quiz.startTime,
       end_time: quiz.endTime,
       negative_marks_value: quiz.negativeMarksValue,
+      difficulty: quiz.difficulty, // Pass difficulty
     };
 
     const questionsInsertData = questionsData.map(q => ({

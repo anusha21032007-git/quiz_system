@@ -47,6 +47,7 @@ interface StoredQuiz {
   scheduledDate: string; // ADDED
   startTime: string;     // ADDED
   endTime: string;       // ADDED
+  difficulty: 'Easy' | 'Medium' | 'Hard'; // ADDED DIFFICULTY
   _questionsData: {
     id: string;
     quizId: string;
@@ -81,6 +82,7 @@ const QuizCreator = () => {
   const [defaultTimePerQuestion, setDefaultTimePerQuestion] = useState<number | null>(null); // New state for optional default time
   const [enableTimePerQuestion, setEnableTimePerQuestion] = useState<boolean>(false); // Toggle for time per question
   const [totalCalculatedQuizTime, setTotalCalculatedQuizTime] = useState<number>(0); // New state for total quiz time
+  const [quizDifficulty, setQuizDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Medium'); // NEW: Quiz Difficulty
 
   // AI Question Generation State (now local to QuizCreator)
   const [aiCoursePaperName, setAiCoursePaperName] = useState('');
@@ -320,6 +322,7 @@ const QuizCreator = () => {
       scheduledDate: quizData.scheduledDate,
       startTime: quizData.startTime,
       endTime: quizData.endTime,
+      difficulty: quizDifficulty, // Include difficulty
       _questionsData: questionsForOutput, // Include full question data for easy retrieval
     };
   };
@@ -329,7 +332,7 @@ const QuizCreator = () => {
     if (finalQuizData) {
       
       // 1. Prepare data for QuizContext's addQuiz (which handles Supabase insertion)
-      const quizToAdd: Omit<Quiz, 'id'> = {
+      const quizToAdd: Omit<Quiz, 'id' | 'status'> = {
         title: finalQuizData.title,
         courseName: finalQuizData.courseName,
         timeLimitMinutes: finalQuizData.timeLimitMinutes,
@@ -338,7 +341,8 @@ const QuizCreator = () => {
         scheduledDate: finalQuizData.scheduledDate,
         startTime: finalQuizData.startTime,
         endTime: finalQuizData.endTime,
-        negativeMarksValue: finalQuizData.negativeMarksValue, // NEW: Pass the value
+        negativeMarksValue: finalQuizData.negativeMarksValue,
+        difficulty: finalQuizData.difficulty, // Pass difficulty
       };
 
       // 2. Prepare questions data (Omit<Question, 'id'>)
@@ -392,6 +396,7 @@ const QuizCreator = () => {
     setTotalCalculatedQuizTime(0);
     setAiCoursePaperName('');
     setAiDifficulty('Easy');
+    setQuizDifficulty('Medium'); // Reset difficulty
     setStep(1); // Reset step to 1
   };
 
@@ -529,6 +534,22 @@ const QuizCreator = () => {
         
         <div className="border-t pt-4 mt-4">
           <h3 className="text-lg font-semibold mb-2">Additional Quiz Settings</h3>
+          
+          {/* NEW: Difficulty Selection */}
+          <div className="mb-4">
+            <Label htmlFor="quizDifficulty">Quiz Difficulty Level</Label>
+            <Select onValueChange={(value: 'Easy' | 'Medium' | 'Hard') => setQuizDifficulty(value)} value={quizDifficulty} disabled={step === 2}>
+              <SelectTrigger className="w-full mt-1">
+                <SelectValue placeholder="Select difficulty" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Easy">Easy</SelectItem>
+                <SelectItem value="Medium">Medium</SelectItem>
+                <SelectItem value="Hard">Hard</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
           <div className="flex items-center justify-between mt-3">
             <Label htmlFor="enableTimePerQuestion">Enable Time per Question</Label>
             <Switch

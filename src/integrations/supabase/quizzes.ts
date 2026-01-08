@@ -28,7 +28,8 @@ export interface SupabaseQuiz {
   start_time: string;
   end_time: string;
   negative_marks_value: number;
-  status: 'draft' | 'published'; // ADDED STATUS FIELD
+  status: 'draft' | 'published';
+  difficulty: 'Easy' | 'Medium' | 'Hard'; // NEW FIELD
   created_at: string;
 }
 

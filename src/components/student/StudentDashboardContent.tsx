@@ -7,8 +7,11 @@ import OverviewCards from './OverviewCards';
 import MyCourses from './MyCourses';
 import PerformanceOverview from './PerformanceOverview';
 import RecentActivitySection from './RecentActivitySection';
-import ScheduledQuizzesSection from './ScheduledQuizzesSection'; 
-import ScheduledQuizAlert from './ScheduledQuizAlert'; // Import the alert component
+import QuizStatusTimeline from './QuizStatusTimeline'; // NEW: Timeline component
+import NextActionCard from './NextActionCard'; // NEW: Next Action Card
+import InstructorNoticeCard from './InstructorNoticeCard'; // NEW: Instructor Notice Card
+import QuizHistoryDownload from './QuizHistoryDownload'; // NEW: Download Component
+import ScheduledQuizAlert from './ScheduledQuizAlert'; 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -75,11 +78,15 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
 
   const renderDashboard = () => (
     <div className="space-y-8">
-      {/* DashboardWelcome is now the first content block after the main header */}
       <DashboardWelcome studentName={studentName} registerNumber={registerNumber} />
       
-      {/* Scheduled Quiz Alert placed here for high visibility */}
-      <ScheduledQuizAlert studentName={studentName} />
+      {/* Top Row: Next Action & Notice Card */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <NextActionCard studentName={studentName} averageScore={averageScore} />
+        </div>
+        <InstructorNoticeCard />
+      </div>
 
       <OverviewCards
         totalQuizzesAttempted={totalQuizzesAttempted}
@@ -88,7 +95,7 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
         currentRank={currentRank}
       />
       
-      {/* Main Content Grid: Now a single column layout */}
+      {/* Main Content Grid */}
       <div className="space-y-8">
         <MyCourses courses={MOCK_COURSES} />
         <PerformanceOverview recentAttempts={studentAttempts} />
@@ -105,16 +112,22 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
 
   const renderQuizzes = () => (
     <div className="space-y-8">
-      <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2"><ListChecks className="h-7 w-7 text-blue-600" /> Scheduled Quizzes</h2>
-      <ScheduledQuizzesSection studentName={studentName} />
+      <QuizStatusTimeline studentName={studentName} />
     </div>
   );
 
   const renderMyResults = () => (
     <div className="space-y-8">
       <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2"><BarChart className="h-7 w-7 text-purple-600" /> My Results & Performance</h2>
-      <PerformanceOverview recentAttempts={studentAttempts} />
-      <RecentActivitySection studentAttempts={studentAttempts} />
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <PerformanceOverview recentAttempts={studentAttempts} />
+        </div>
+        <div className="space-y-6">
+          <RecentActivitySection studentAttempts={studentAttempts} />
+          <QuizHistoryDownload studentAttempts={studentAttempts} />
+        </div>
+      </div>
     </div>
   );
 
@@ -130,11 +143,7 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
     </div>
   );
 
-  // Removed renderProfile since the functionality is now in the header popover.
-  // If the user navigates to 'profile', we will redirect them to the dashboard view.
   const renderProfile = () => {
-    // Since 'profile' is removed from the sidebar, this case should ideally not be hit.
-    // If it is hit (e.g., via direct URL manipulation), we can render a simple profile card or redirect.
     return (
       <Card className="shadow-lg max-w-lg mx-auto">
         <CardHeader>
