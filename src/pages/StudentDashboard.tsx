@@ -28,7 +28,7 @@ const StudentDashboard = () => {
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="h-screen flex flex-col bg-gray-50"> {/* Changed min-h-screen to h-screen */}
       {/* Mobile Header */}
       <header className="flex items-center justify-between p-4 border-b bg-white shadow-sm lg:hidden">
         <StudentSidebar
@@ -44,7 +44,7 @@ const StudentDashboard = () => {
       </header>
 
       {/* Desktop Layout */}
-      <div className="flex flex-1 h-screen overflow-hidden">
+      <div className="flex flex-1 overflow-hidden"> {/* flex-1 ensures it takes remaining height, overflow-hidden contains scrolling */}
         {/* Fixed Sidebar (Desktop) */}
         {!isMobile && (
           <aside className="w-64 flex-shrink-0 h-full border-r bg-sidebar text-sidebar-foreground">
