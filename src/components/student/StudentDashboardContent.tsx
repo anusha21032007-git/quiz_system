@@ -81,11 +81,22 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
         averageScore={averageScore}
         currentRank={currentRank}
       />
-      <MyCourses courses={MOCK_COURSES} />
-      <ScheduledQuizzesSection studentName={studentName} /> {/* Replaced AvailableQuizzesSection */}
-      <PerformanceOverview recentAttempts={studentAttempts} />
-      <RecentActivity recentAttempts={studentAttempts} />
-      {/* Achievements section omitted for brevity */}
+      
+      {/* Main Content Grid: Left column (2/3) and Right column (1/3) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Left Column (2/3 width on large screens) - Main content flow */}
+        <div className="lg:col-span-2 space-y-8">
+          <MyCourses courses={MOCK_COURSES} />
+          <PerformanceOverview recentAttempts={studentAttempts} />
+          <RecentActivity recentAttempts={studentAttempts} />
+        </div>
+        
+        {/* Right Column (1/3 width on large screens) - Scheduled Quizzes at the top right */}
+        <div className="lg:col-span-1 space-y-8">
+          <ScheduledQuizzesSection studentName={studentName} />
+        </div>
+      </div>
     </div>
   );
 
