@@ -58,10 +58,59 @@ interface QuizProviderProps {
   children: ReactNode;
 }
 
+// --- Mock Data Setup ---
+const MOCK_Q1_ID = 'q-mock-1';
+const MOCK_Q2_ID = 'q-mock-2';
+const MOCK_QUIZ_ID = 'qz-mock-1';
+
+const MOCK_QUESTIONS: Question[] = [
+  {
+    id: MOCK_Q1_ID,
+    quizId: MOCK_QUIZ_ID,
+    questionText: "What is the primary function of React's virtual DOM?",
+    options: ["Directly manipulate the browser DOM", "Optimize rendering performance", "Handle routing", "Manage state"],
+    correctAnswer: "Optimize rendering performance",
+    marks: 5,
+    timeLimitMinutes: 1,
+  },
+  {
+    id: MOCK_Q2_ID,
+    quizId: MOCK_QUIZ_ID,
+    questionText: "Which hook is used for side effects in functional components?",
+    options: ["useState", "useContext", "useEffect", "useReducer"],
+    correctAnswer: "useEffect",
+    marks: 3,
+    timeLimitMinutes: 1,
+  },
+];
+
+// Calculate today's date and times for a 'Live' quiz
+const now = new Date();
+const todayDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
+const startTime = new Date(now.getTime() - 5 * 60000).toTimeString().substring(0, 5); // 5 minutes ago
+const endTime = new Date(now.getTime() + 60 * 60000).toTimeString().substring(0, 5); // 60 minutes from now
+
+const MOCK_QUIZZES: Quiz[] = [
+  {
+    id: MOCK_QUIZ_ID,
+    title: "Frontend Development Basics",
+    courseName: "CS Fundamentals",
+    questionIds: [MOCK_Q1_ID, MOCK_Q2_ID],
+    timeLimitMinutes: 2, // Total time limit (2 questions * 1 min/q)
+    negativeMarking: true,
+    negativeMarks: 0.5,
+    competitionMode: false,
+    scheduledDate: todayDate,
+    startTime: startTime,
+    endTime: endTime,
+  },
+];
+// ---------------------------------
+
 export const QuizProvider = ({ children }: QuizProviderProps) => {
   // This context manages all quiz-related data and operations.
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [questions, setQuestions] = useState<Question[]>(MOCK_QUESTIONS);
+  const [quizzes, setQuizzes] = useState<Quiz[]>(MOCK_QUIZZES);
   const [quizAttempts, setQuizAttempts] = useState<QuizAttempt[]>([]);
 
   // Load data from localStorage on initial mount
@@ -69,9 +118,11 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
     try {
       const storedQuestions = localStorage.getItem('quiz_questions');
       if (storedQuestions) setQuestions(JSON.parse(storedQuestions));
+      else setQuestions(MOCK_QUESTIONS); // Use mock if nothing stored
 
       const storedQuizzes = localStorage.getItem('quiz_quizzes');
       if (storedQuizzes) setQuizzes(JSON.parse(storedQuizzes));
+      else setQuizzes(MOCK_QUIZZES); // Use mock if nothing stored
 
       const storedAttempts = localStorage.getItem('quiz_attempts');
       if (storedAttempts) setQuizAttempts(JSON.parse(storedAttempts));
