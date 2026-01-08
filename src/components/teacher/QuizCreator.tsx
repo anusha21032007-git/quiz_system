@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ListChecks, PlusCircle, Trash2, Eye, Save, Brain } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { useQuiz, Quiz } from '@/context/QuizContext'; // Import Quiz type and useQuiz
+import { useQuiz, Quiz, Question } from '@/context/QuizContext'; // Import Quiz and Question types
 
 // Define a type for questions in local draft state
 interface LocalQuestion {
@@ -60,7 +60,7 @@ interface StoredQuiz {
 
 const QuizCreator = () => {
   const navigate = useNavigate();
-  const { generateAIQuestions, addQuestion, addQuiz } = useQuiz(); // Destructure addQuestion and addQuiz
+  const { generateAIQuestions, addQuiz } = useQuiz(); // Removed addQuestion
 
   // Consolidated quiz data state
   const [quizData, setQuizData] = useState<LocalQuizData>({
@@ -223,6 +223,21 @@ const QuizCreator = () => {
       [field]: value,
     }));
   };
+  
+  const handleUpdateCorrectAnswerIndex = (questionIndex: number, selectedOptionValue: string) => {
+    setQuizData((prev) => {
+      const newQuestions = [...prev.questions];
+      const question = newQuestions[questionIndex];
+      const newIndex = question.options.findIndex(opt => opt === selectedOptionValue);
+      
+      newQuestions[questionIndex] = { 
+        ...question, 
+        correctAnswerIndex: newIndex !== -1 ? newIndex : null 
+      };
+      return { ...prev, questions: newQuestions };
+    });
+  };
+
 
   const handleUpdateDraftQuestion = (
     questionIndex: number,
@@ -313,22 +328,8 @@ const QuizCreator = () => {
     const finalQuizData = prepareQuizForOutput();
     if (finalQuizData) {
       
-      // 1. Add questions to the global pool and collect real IDs
-      const questionIds: string[] = [];
-      finalQuizData._questionsData.forEach(q => {
-          const newId = addQuestion({
-              quizId: finalQuizData.id, // Use the generated quiz ID
-              questionText: q.questionText,
-              options: q.options,
-              correctAnswer: q.correctAnswer,
-              marks: q.marks,
-              timeLimitMinutes: q.timeLimitMinutes,
-          });
-          questionIds.push(newId);
-      });
-
-      // 2. Prepare data for QuizContext's addQuiz (which expects Omit<Quiz, 'id' | 'questionIds'>)
-      const quizToAdd: Omit<Quiz, 'id' | 'questionIds'> = {
+      // 1. Prepare data for QuizContext's addQuiz (which handles Supabase insertion)
+      const quizToAdd: Omit<Quiz, 'id'> = {
         title: finalQuizData.title,
         courseName: finalQuizData.courseName,
         timeLimitMinutes: finalQuizData.timeLimitMinutes,
@@ -339,10 +340,20 @@ const QuizCreator = () => {
         endTime: finalQuizData.endTime,
       };
 
-      // 3. Add the quiz to the global pool using the collected IDs
-      addQuiz(quizToAdd, questionIds);
+      // 2. Prepare questions data (Omit<Question, 'id'>)
+      const questionsToAdd: Omit<Question, 'id'>[] = finalQuizData._questionsData.map(q => ({
+        quizId: q.quizId, // Placeholder, will be overwritten by mutation
+        questionText: q.questionText,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        marks: q.marks,
+        timeLimitMinutes: q.timeLimitMinutes,
+      }));
 
-      toast.success("Quiz created and scheduled successfully!");
+      // 3. Add the quiz to the global pool (triggers Supabase mutation)
+      addQuiz(quizToAdd, questionsToAdd);
+
+      // Reset form regardless of immediate success (mutation handles success/error toast)
       resetForm();
     }
   };

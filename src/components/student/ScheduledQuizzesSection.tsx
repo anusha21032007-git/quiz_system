@@ -6,7 +6,7 @@ import { useQuiz, Quiz } from '@/context/QuizContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, ListChecks, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Calendar, Clock, ListChecks, CheckCircle, XCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -20,21 +20,24 @@ type QuizStatus = 'Upcoming' | 'Live' | 'Expired' | 'Completed';
 const createDateTime = (dateStr: string, timeStr: string): Date => {
   // Assumes dateStr is YYYY-MM-DD and timeStr is HH:MM
   // We use local time zone interpretation for simplicity in a mock environment
-  return new Date(`${dateStr}T${timeStr}:00`);
+  return new Date(\`\${dateStr}T\${timeStr}:00\`);
 };
 
 const ScheduledQuizzesSection = ({ studentName }: ScheduledQuizzesSectionProps) => {
-  const { quizzes, quizAttempts, getQuestionsForQuiz } = useQuiz();
+  const { quizzes, quizAttempts, isQuizzesLoading } = useQuiz();
   const navigate = useNavigate();
 
   const scheduledQuizzes = useMemo(() => {
+    if (isQuizzesLoading) return [];
     const now = new Date();
 
     return quizzes
       .map((quiz) => {
         const startTime = createDateTime(quiz.scheduledDate, quiz.startTime);
         const endTime = createDateTime(quiz.scheduledDate, quiz.endTime);
-        const totalMarks = getQuestionsForQuiz(quiz.id).reduce((sum, q) => sum + q.marks, 0);
+        // Note: totalMarks and question count are not easily available here without extra queries.
+        // We will use a placeholder for question count.
+        const totalQuestionsPlaceholder = 'N/A'; 
 
         // 1. Check Completion Status
         const isCompleted = quizAttempts.some(
@@ -62,14 +65,14 @@ const ScheduledQuizzesSection = ({ studentName }: ScheduledQuizzesSectionProps) 
           ...quiz,
           startTime,
           endTime,
-          totalMarks,
+          totalQuestions: totalQuestionsPlaceholder,
           status,
           statusColor,
           isCompleted,
         };
       })
       .sort((a, b) => a.startTime.getTime() - b.startTime.getTime()); // Sort by scheduled time
-  }, [quizzes, quizAttempts, studentName, getQuestionsForQuiz]);
+  }, [quizzes, quizAttempts, studentName, isQuizzesLoading]);
 
   const handleStartQuiz = (quiz: Quiz) => {
     if (!studentName.trim()) {
@@ -91,7 +94,7 @@ const ScheduledQuizzesSection = ({ studentName }: ScheduledQuizzesSectionProps) 
     }
 
     // If live and not completed, navigate to quiz page
-    navigate(`/quiz/${quiz.id}`, { state: { studentName } });
+    navigate(\`/quiz/\${quiz.id}\`, { state: { studentName } });
   };
 
   const getButton = (quiz: typeof scheduledQuizzes[0]) => {
@@ -120,7 +123,7 @@ const ScheduledQuizzesSection = ({ studentName }: ScheduledQuizzesSectionProps) 
           .filter(a => a.quizId === quiz.id && a.studentName === studentName)
           .sort((a, b) => b.timestamp - a.timestamp)[0];
         
-        const scoreDisplay = latestAttempt ? `${latestAttempt.score.toFixed(1)}/${latestAttempt.totalQuestions}` : 'N/A';
+        const scoreDisplay = latestAttempt ? \`\${latestAttempt.score.toFixed(1)}/\${latestAttempt.totalQuestions}\` : 'N/A';
 
         return (
           <Link to="/leaderboard">
@@ -134,7 +137,7 @@ const ScheduledQuizzesSection = ({ studentName }: ScheduledQuizzesSectionProps) 
     }
   };
 
-  const getStatusBadge = (status: QuizStatus, statusColor: string) => {
+  const getStatusBadge = (status: QuizStatus) => {
     const baseClasses = "font-semibold text-xs uppercase";
     let colorClasses = '';
     let Icon = AlertTriangle;
@@ -165,6 +168,21 @@ const ScheduledQuizzesSection = ({ studentName }: ScheduledQuizzesSectionProps) 
     );
   };
 
+  if (isQuizzesLoading) {
+    return (
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-2xl">
+            <Loader2 className="h-6 w-6 animate-spin text-indigo-600" /> Loading Quizzes
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500">Fetching scheduled quizzes from the server...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="shadow-lg">
       <CardHeader>
@@ -186,7 +204,7 @@ const ScheduledQuizzesSection = ({ studentName }: ScheduledQuizzesSectionProps) 
                 <div className="flex-1 space-y-1 mb-3 lg:mb-0">
                   <div className="flex items-center gap-3">
                     <h3 className="font-bold text-xl text-gray-800">{quiz.title}</h3>
-                    {getStatusBadge(quiz.status, quiz.statusColor)}
+                    {getStatusBadge(quiz.status)}
                   </div>
                   <p className="text-sm text-gray-700">Course: <span className="font-medium">{quiz.courseName}</span></p>
                   
@@ -201,7 +219,7 @@ const ScheduledQuizzesSection = ({ studentName }: ScheduledQuizzesSectionProps) 
                     </span>
                     <span className="flex items-center gap-1">
                       <ListChecks className="h-4 w-4 text-indigo-500" />
-                      {quiz.timeLimitMinutes} min ({quiz.questionIds.length} Qs)
+                      {quiz.timeLimitMinutes} min ({quiz.totalQuestions} Qs)
                     </span>
                   </div>
                 </div>

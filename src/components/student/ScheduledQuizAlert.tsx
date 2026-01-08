@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { useQuiz } from '@/context/QuizContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, ListChecks, AlertTriangle } from 'lucide-react';
+import { Calendar, Clock, AlertTriangle, XCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ScheduledQuizAlertProps {
@@ -13,13 +13,17 @@ interface ScheduledQuizAlertProps {
 
 // Utility function to combine date and time strings into a Date object
 const createDateTime = (dateStr: string, timeStr: string): Date => {
-  return new Date(`${dateStr}T${timeStr}:00`);
+  return new Date(\`\${dateStr}T\${timeStr}:00\`);
 };
 
 const ScheduledQuizAlert = ({ studentName }: ScheduledQuizAlertProps) => {
-  const { quizzes, quizAttempts } = useQuiz();
+  const { quizzes, quizAttempts, isQuizzesLoading } = useQuiz();
 
   const todayAlert = useMemo(() => {
+    if (isQuizzesLoading) {
+        return { status: 'loading', title: "Loading Quizzes...", description: "Fetching schedule from server.", icon: Loader2, color: 'text-gray-500', isLive: false };
+    }
+    
     const now = new Date();
     const todayDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
 
@@ -44,6 +48,7 @@ const ScheduledQuizAlert = ({ studentName }: ScheduledQuizAlertProps) => {
         description: "Enjoy your day!",
         icon: Calendar,
         color: 'text-gray-500',
+        isLive: false,
       };
     }
 
@@ -54,23 +59,19 @@ const ScheduledQuizAlert = ({ studentName }: ScheduledQuizAlertProps) => {
 
     let status: 'Upcoming' | 'Live' | 'Expired' = 'Upcoming';
     let color = 'text-blue-600';
-    let badgeVariant: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' = 'outline';
-    let description = `Time: ${quiz.startTime} - ${quiz.endTime}`;
+    let description = \`Time: \${quiz.startTime} - \${quiz.endTime}\`;
     let Icon = Clock;
     let isLive = false;
 
     if (now >= startTime && now <= endTime) {
       status = 'Live';
       color = 'text-green-600';
-      badgeVariant = 'success';
       description = "Hurry up! The quiz is live now.";
       Icon = AlertTriangle;
       isLive = true;
     } else if (now > endTime) {
-        // Should be filtered out by the main ScheduledQuizzesSection, but good to handle here
         status = 'Expired';
         color = 'text-red-600';
-        badgeVariant = 'destructive';
         description = "This quiz has expired.";
         Icon = XCircle;
     }
@@ -82,12 +83,11 @@ const ScheduledQuizAlert = ({ studentName }: ScheduledQuizAlertProps) => {
       icon: Icon,
       color: color,
       isLive: isLive,
-      badgeVariant: badgeVariant,
       quiz,
     };
-  }, [quizzes, quizAttempts, studentName]);
+  }, [quizzes, quizAttempts, studentName, isQuizzesLoading]);
 
-  const { status, title, description, icon: Icon, color, isLive, quiz } = todayAlert;
+  const { status, title, description, icon: Icon, color, isLive } = todayAlert;
 
   if (status === 'none') {
     return (
@@ -100,6 +100,19 @@ const ScheduledQuizAlert = ({ studentName }: ScheduledQuizAlertProps) => {
       </Alert>
     );
   }
+  
+  if (status === 'loading') {
+      return (
+        <Alert className="p-3 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+            <Icon className={cn("h-4 w-4 animate-spin", color)} />
+            <AlertTitle className="text-sm font-semibold">{title}</AlertTitle>
+            <AlertDescription className="text-xs text-gray-600 dark:text-gray-400">
+              {description}
+            </AlertDescription>
+        </Alert>
+      );
+  }
+
 
   return (
     <Alert className={cn(

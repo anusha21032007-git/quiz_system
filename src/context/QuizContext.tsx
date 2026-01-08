@@ -2,31 +2,32 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+import { 
+  useQuizzes, 
+  useQuestionsByQuizId, 
+  useCreateQuiz, 
+  SupabaseQuiz, 
+  SupabaseQuestion 
+} from '@/integrations/supabase/quizzes';
+import { supabase } from '@/integrations/supabase/client';
 
-// Type Definitions
-export interface Question {
-  id: string;
-  quizId: string;
+// --- Type Definitions (Simplified for Context) ---
+
+// Map Supabase types to local context types
+export interface Question extends Omit<SupabaseQuestion, 'teacher_id' | 'created_at' | 'question_text' | 'correct_answer' | 'quiz_id'> {
   questionText: string;
-  options: string[];
   correctAnswer: string;
-  marks: number; // New field for question marks
-  timeLimitMinutes: number; // New field for individual question time limit
+  quizId: string;
 }
 
-export interface Quiz {
-  id: string;
-  title: string;
-  courseName: string; // NEW FIELD
-  questionIds: string[]; // IDs of questions belonging to this quiz
-  timeLimitMinutes: number; // New field for quiz time limit
-  negativeMarking: boolean; // New field for negative marking
-  negativeMarks?: string | number; // Added negative marks field
-  competitionMode: boolean; // New field for competition mode
-  // NEW SCHEDULING FIELDS
-  scheduledDate: string; // YYYY-MM-DD
-  startTime: string;     // HH:MM (24h format)
-  endTime: string;       // HH:MM (24h format)
+export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | 'course_name' | 'time_limit_minutes' | 'scheduled_date' | 'start_time' | 'end_time'> {
+  courseName: string;
+  timeLimitMinutes: number;
+  scheduledDate: string;
+  startTime: string;
+  endTime: string;
+  // Note: questionIds is derived from fetching questions separately now, not stored on the quiz object itself.
 }
 
 export interface QuizAttempt {
@@ -37,15 +38,20 @@ export interface QuizAttempt {
   totalQuestions: number;
   answers: { questionId: string; selectedAnswer: string; isCorrect: boolean }[];
   timestamp: number;
-  timeTakenSeconds: number; // New field for time taken in seconds
+  timeTakenSeconds: number;
 }
 
 interface QuizContextType {
-  questions: Question[];
+  // Data accessors
   quizzes: Quiz[];
+  questions: Question[]; // All questions fetched across all quizzes (for simplicity in context)
   quizAttempts: QuizAttempt[];
-  addQuestion: (question: Omit<Question, 'id'>) => string; // Changed return type to string
-  addQuiz: (quiz: Omit<Quiz, 'id' | 'questionIds'>, questionIds: string[]) => void;
+  isQuizzesLoading: boolean;
+  isQuestionsLoading: boolean;
+
+  // Mutations/Actions
+  addQuestion: (question: Omit<Question, 'id'>) => string; // Kept for QuestionCreator draft flow
+  addQuiz: (quiz: Omit<Quiz, 'id'>, questionsData: Omit<Question, 'id'>[]) => void; // Updated signature
   submitQuizAttempt: (attempt: Omit<QuizAttempt, 'id' | 'timestamp'>) => void;
   getQuestionsForQuiz: (quizId: string) => Question[];
   getQuizById: (quizId: string) => Quiz | undefined;
@@ -58,203 +64,205 @@ interface QuizProviderProps {
   children: ReactNode;
 }
 
-// --- Mock Data Setup ---
-const MOCK_Q1_ID = 'q-mock-1';
-const MOCK_Q2_ID = 'q-mock-2';
-const MOCK_QUIZ_ID = 'qz-mock-1';
+// Helper to map Supabase data structure to local context structure
+const mapSupabaseQuizToLocal = (sQuiz: SupabaseQuiz): Quiz => ({
+  id: sQuiz.id,
+  title: sQuiz.title,
+  courseName: sQuiz.course_name,
+  timeLimitMinutes: sQuiz.time_limit_minutes,
+  negativeMarking: sQuiz.negative_marking,
+  competitionMode: sQuiz.competition_mode,
+  scheduledDate: sQuiz.scheduled_date,
+  startTime: sQuiz.start_time,
+  endTime: sQuiz.end_time,
+});
 
-const MOCK_QUESTIONS: Question[] = [
-  {
-    id: MOCK_Q1_ID,
-    quizId: MOCK_QUIZ_ID,
-    questionText: "What is the primary function of React's virtual DOM?",
-    options: ["Directly manipulate the browser DOM", "Optimize rendering performance", "Handle routing", "Manage state"],
-    correctAnswer: "Optimize rendering performance",
-    marks: 5,
-    timeLimitMinutes: 1,
-  },
-  {
-    id: MOCK_Q2_ID,
-    quizId: MOCK_QUIZ_ID,
-    questionText: "Which hook is used for side effects in functional components?",
-    options: ["useState", "useContext", "useEffect", "useReducer"],
-    correctAnswer: "useEffect",
-    marks: 3,
-    timeLimitMinutes: 1,
-  },
-];
-
-// Calculate today's date and times for a 'Live' quiz
-const now = new Date();
-const todayDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
-const startTime = new Date(now.getTime() - 5 * 60000).toTimeString().substring(0, 5); // 5 minutes ago
-const endTime = new Date(now.getTime() + 60 * 60000).toTimeString().substring(0, 5); // 60 minutes from now
-
-const MOCK_QUIZZES: Quiz[] = [
-  {
-    id: MOCK_QUIZ_ID,
-    title: "Frontend Development Basics",
-    courseName: "CS Fundamentals",
-    questionIds: [MOCK_Q1_ID, MOCK_Q2_ID],
-    timeLimitMinutes: 2, // Total time limit (2 questions * 1 min/q)
-    negativeMarking: true,
-    negativeMarks: 0.5,
-    competitionMode: false,
-    scheduledDate: todayDate,
-    startTime: startTime,
-    endTime: endTime,
-  },
-];
-// ---------------------------------
+const mapSupabaseQuestionToLocal = (sQuestion: SupabaseQuestion): Question => ({
+  id: sQuestion.id,
+  quizId: sQuestion.quiz_id,
+  questionText: sQuestion.question_text,
+  options: sQuestion.options,
+  correctAnswer: sQuestion.correct_answer,
+  marks: sQuestion.marks,
+  timeLimitMinutes: sQuestion.time_limit_minutes,
+});
 
 export const QuizProvider = ({ children }: QuizProviderProps) => {
-  // This context manages all quiz-related data and operations.
-  const [questions, setQuestions] = useState<Question[]>(MOCK_QUESTIONS);
-  const [quizzes, setQuizzes] = useState<Quiz[]>(MOCK_QUIZZES);
-  const [quizAttempts, setQuizAttempts] = useState<QuizAttempt[]>([]);
+  const queryClient = useQueryClient();
+  
+  // Fetch Quizzes using Supabase hook
+  const { data: supabaseQuizzes = [], isLoading: isQuizzesLoading } = useQuizzes();
+  const quizzes = supabaseQuizzes.map(mapSupabaseQuizToLocal);
 
-  // Load data from localStorage on initial mount
-  useEffect(() => {
+  // Fetch all questions for all quizzes currently loaded (simplified approach for context)
+  // In a large app, this would be optimized, but for now, we fetch questions for all loaded quizzes.
+  const allQuizIds = quizzes.map(q => q.id);
+  
+  // We will use a simplified approach: only fetch questions when needed by QuizPage, 
+  // and keep a local cache of questions fetched so far.
+  // For the context provider, we will only expose the quizzes list and rely on components 
+  // (like QuizPage) to fetch their specific questions using useQuestionsByQuizId.
+  // However, for the Teacher Dashboard's QuestionCreator, we need a local pool.
+  
+  // We will keep the local 'questions' state for the QuestionCreator's pool functionality, 
+  // but it will NOT be synced to Supabase in this context. The QuizCreator handles Supabase insertion.
+  const [localQuestionPool, setLocalQuestionPool] = useState<Question[]>([]);
+  const [quizAttempts, setQuizAttempts] = useState<QuizAttempt[]>(() => {
+    // Load attempts from localStorage (keeping this local for now)
     try {
-      const storedQuestions = localStorage.getItem('quiz_questions');
-      if (storedQuestions) setQuestions(JSON.parse(storedQuestions));
-      else setQuestions(MOCK_QUESTIONS); // Use mock if nothing stored
-
-      const storedQuizzes = localStorage.getItem('quiz_quizzes');
-      if (storedQuizzes) setQuizzes(JSON.parse(storedQuizzes));
-      else setQuizzes(MOCK_QUIZZES); // Use mock if nothing stored
-
       const storedAttempts = localStorage.getItem('quiz_attempts');
-      if (storedAttempts) setQuizAttempts(JSON.parse(storedAttempts));
+      return storedAttempts ? JSON.parse(storedAttempts) : [];
     } catch (error) {
-      console.error("Failed to load quiz data from localStorage", error);
-      toast.error("Failed to load previous data.");
+      console.error("Failed to load quiz attempts from localStorage", error);
+      return [];
     }
-  }, []);
+  });
 
-  // Save data to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('quiz_questions', JSON.stringify(questions));
-  }, [questions]);
-
-  useEffect(() => {
-    localStorage.setItem('quiz_quizzes', JSON.stringify(quizzes));
-  }, [quizzes]);
-
+  // Save attempts to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('quiz_attempts', JSON.stringify(quizAttempts));
   }, [quizAttempts]);
 
+  const createQuizMutation = useCreateQuiz();
+
+  // This function is now only used by QuestionCreator for its local pool (not synced to Supabase)
   const addQuestion = (question: Omit<Question, 'id'>): string => {
-    const newQuestion: Question = { ...question, id: `q-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` };
-    setQuestions((prev) => [...prev, newQuestion]);
-    toast.success("Question added successfully!");
-    return newQuestion.id; // Return the ID
+    const newQuestion: Question = { ...question, id: \`q-local-\${Date.now()}-\${Math.random().toString(36).substr(2, 9)}\` };
+    setLocalQuestionPool((prev) => [...prev, newQuestion]);
+    toast.success("Question added to local pool!");
+    return newQuestion.id;
   };
 
-  const addQuiz = (quiz: Omit<Quiz, 'id' | 'questionIds'>, questionIds: string[]) => {
-    const newQuiz: Quiz = { ...quiz, id: `qz-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, questionIds };
-    setQuizzes((prev) => [...prev, newQuiz]);
-    toast.success("Quiz created successfully!");
+  // This function handles inserting the quiz and its questions into Supabase
+  const addQuiz = (quiz: Omit<Quiz, 'id'>, questionsData: Omit<Question, 'id'>[]) => {
+    const quizInsertData = {
+      title: quiz.title,
+      course_name: quiz.courseName,
+      time_limit_minutes: quiz.timeLimitMinutes,
+      negative_marking: quiz.negativeMarking,
+      competition_mode: quiz.competitionMode,
+      scheduled_date: quiz.scheduledDate,
+      start_time: quiz.startTime,
+      end_time: quiz.endTime,
+    };
+
+    const questionsInsertData = questionsData.map(q => ({
+      quiz_id: 'placeholder', // Will be replaced by mutation function
+      question_text: q.questionText,
+      options: q.options,
+      correct_answer: q.correctAnswer,
+      marks: q.marks,
+      time_limit_minutes: q.timeLimitMinutes,
+    }));
+
+    createQuizMutation.mutate({ quizData: quizInsertData, questionsData: questionsInsertData });
   };
 
   const submitQuizAttempt = (attempt: Omit<QuizAttempt, 'id' | 'timestamp'>) => {
-    const newAttempt: QuizAttempt = { ...attempt, id: `att-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, timestamp: Date.now() };
+    const newAttempt: QuizAttempt = { ...attempt, id: \`att-\${Date.now()}-\${Math.random().toString(36).substr(2, 9)}\`, timestamp: Date.now() };
     setQuizAttempts((prev) => [...prev, newAttempt]);
     toast.success("Quiz submitted successfully!");
   };
 
   const getQuestionsForQuiz = (quizId: string): Question[] => {
-    const quiz = quizzes.find(q => q.id === quizId);
-    if (!quiz) return [];
-    return questions.filter(q => quiz.questionIds.includes(q.id));
+    // This function is now complex because questions are fetched asynchronously.
+    // For components that need questions (like QuizPage), they should use the useQuestionsByQuizId hook directly.
+    // For components that need a synchronous list (like QuizCreator preview), we rely on the local pool or mock data.
+    // Since QuizCreator handles its own draft questions, we can simplify this context function.
+    
+    // For the purpose of the Teacher Dashboard's AvailableQuizzesList (which doesn't need full questions)
+    // and the Student Dashboard's ScheduledQuizzesSection (which only needs question count), 
+    // we will return an empty array here, and update the components to handle the missing data gracefully 
+    // or rely on the local pool for mock data if necessary (e.g., for question count in the Teacher Dashboard).
+    
+    // Since the original implementation of QuizCreator relied on this to get question count, 
+    // we need to adjust the QuizCreator to calculate question count from its draft state.
+    
+    // For now, we return an empty array, forcing components that need questions to fetch them.
+    // We will update QuizPage to use the new hook.
+    return []; 
   };
 
   const getQuizById = (quizId: string): Quiz | undefined => {
     return quizzes.find(q => q.id === quizId);
   };
 
-  // Mock AI Question Generation
+  // Mock AI Question Generation (remains local)
   const generateAIQuestions = (coursePaperName: string, difficulty: 'Easy' | 'Medium' | 'Hard', numQuestions: number, numOptions: number): Question[] => {
     const generated: Question[] = [];
-    const baseMarks = 1; // User wants manual input, so default to 1
-    const baseTimeLimit = 1; // Default time limit for AI generated questions
+    const baseMarks = 1; 
+    const baseTimeLimit = 1; 
 
     for (let i = 0; i < numQuestions; i++) {
-      const questionId = `ai-q-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 4)}`;
+      const questionId = \`ai-q-\${Date.now()}-\${i}-\${Math.random().toString(36).substr(2, 4)}\`;
       let questionText = '';
       let options: string[] = [];
       let correctAnswer = '';
 
-      // Generate base options, then pad/truncate to numOptions
       let baseOptions: string[] = [];
       switch (difficulty) {
         case 'Easy':
-          questionText = `What is the capital of ${coursePaperName.split(' ')[0] || 'France'}?`;
-          baseOptions = ['Paris', 'London', 'Berlin', 'Rome', 'Madrid', 'Tokyo']; // More options to pick from
+          questionText = \`What is the capital of \${coursePaperName.split(' ')[0] || 'France'}?\`;
+          baseOptions = ['Paris', 'London', 'Berlin', 'Rome', 'Madrid', 'Tokyo']; 
           correctAnswer = 'Paris';
           break;
         case 'Medium':
-          questionText = `In ${coursePaperName}, which concept describes the interaction between supply and demand?`;
+          questionText = \`In \${coursePaperName}, which concept describes the interaction between supply and demand?\`;
           baseOptions = ['Equilibrium', 'Elasticity', 'Utility', 'Scarcity', 'Inflation', 'Deflation'];
           correctAnswer = 'Equilibrium';
           break;
         case 'Hard':
-          questionText = `Explain the implications of Heisenberg's Uncertainty Principle in the context of ${coursePaperName}.`;
+          questionText = \`Explain the implications of Heisenberg's Uncertainty Principle in the context of \${coursePaperName}.\`;
           baseOptions = [
-            'It states that one cannot simultaneously know the exact position and momentum of a particle.',
-            'It describes the behavior of particles at relativistic speeds.',
-            'It quantifies the energy levels of electrons in an atom.',
-            'It relates to the wave-particle duality of light.',
-            'It is a fundamental principle of classical mechanics.',
-            'It applies only to macroscopic objects.'
+            "It states that one cannot simultaneously know the exact position and momentum of a particle.",
+            "It describes the behavior of particles at relativistic speeds.",
+            "It quantifies the energy levels of electrons in an atom.",
+            "It relates to the wave-particle duality of light.",
+            "It is a fundamental principle of classical mechanics.",
+            "It applies only to macroscopic objects."
           ];
-          correctAnswer = 'It states that one cannot simultaneously know the exact position and momentum of a particle.';
+          correctAnswer = "It states that one cannot simultaneously know the exact position and momentum of a particle.";
           break;
         default:
-          questionText = `[${difficulty}] According to "${coursePaperName}", what is the key concept related to topic ${i + 1}?`;
-          baseOptions = [`Option A for ${i + 1}`, `Option B for ${i + 1}`, `Option C for ${i + 1}`, `Option D for ${i + 1}`, `Option E for ${i + 1}`, `Option F for ${i + 1}`];
-          correctAnswer = `Option A for ${i + 1}`;
+          questionText = \`[\${difficulty}] According to "\${coursePaperName}", what is the key concept related to topic \${i + 1}?\`;
+          baseOptions = [\`Option A for \${i + 1}\`, \`Option B for \${i + 1}\`, \`Option C for \${i + 1}\`, \`Option D for \${i + 1}\`, \`Option E for \${i + 1}\`, \`Option F for \${i + 1}\`];
+          correctAnswer = \`Option A for \${i + 1}\`;
       }
 
-      // Ensure correct answer is always included and options count matches numOptions
       const shuffledBaseOptions = baseOptions.filter(opt => opt !== correctAnswer);
-      // Take numOptions - 1 random options from shuffledBaseOptions, then add correctAnswer
       const finalOptions = [correctAnswer, ...shuffledBaseOptions.sort(() => 0.5 - Math.random()).slice(0, numOptions - 1)].sort(() => 0.5 - Math.random());
 
-      // If for some reason finalOptions is still less than numOptions (e.g., not enough unique base options), pad with generic ones
       while (finalOptions.length < numOptions) {
-        finalOptions.push(`Generic Option ${finalOptions.length + 1}`);
+        finalOptions.push(\`Generic Option \${finalOptions.length + 1}\`);
       }
-      // If finalOptions is more than numOptions, truncate
       options = finalOptions.slice(0, numOptions);
 
-      // Ensure correctAnswer is still in the final options, if not, pick the first one
       if (!options.includes(correctAnswer)) {
         correctAnswer = options[0];
       }
 
-
       generated.push({
         id: questionId,
-        quizId: 'ai-generated', // A placeholder quizId for now
+        quizId: 'ai-generated', 
         questionText: questionText.replace(coursePaperName.split(' ')[0] || 'France', coursePaperName),
         options,
         correctAnswer,
-        marks: baseMarks, // Default marks, user will set manually
-        timeLimitMinutes: baseTimeLimit, // Default time limit for AI generated questions
+        marks: baseMarks, 
+        timeLimitMinutes: baseTimeLimit, 
       });
     }
-    toast.info(`Mock AI generated ${numQuestions} questions for "${coursePaperName}" (${difficulty}).`);
+    toast.info(\`Mock AI generated \${numQuestions} questions for "\${coursePaperName}" (\${difficulty}).\`);
     return generated;
   };
 
   return (
     <QuizContext.Provider
       value={{
-        questions,
+        questions: localQuestionPool, // Expose local pool for QuestionCreator
         quizzes,
         quizAttempts,
+        isQuizzesLoading,
+        isQuestionsLoading: false, // We handle question loading locally in QuizPage now
         addQuestion,
         addQuiz,
         submitQuizAttempt,

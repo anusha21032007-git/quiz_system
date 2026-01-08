@@ -2,17 +2,31 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useQuiz, Question } from '@/context/QuizContext';
+import { useQuiz, Question as LocalQuestionType } from '@/context/QuizContext';
+import { useQuestionsByQuizId } from '@/integrations/supabase/quizzes';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle, XCircle, Info } from 'lucide-react';
+import { CheckCircle, XCircle, Info, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils'; // Import cn for conditional class names
-import QuizHeader from '@/components/quiz/QuizHeader'; // Import QuizHeader
-import { useIsMobile } from '@/hooks/use-mobile'; // Import useIsMobile
+import { cn } from '@/lib/utils';
+import QuizHeader from '@/components/quiz/QuizHeader';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Input } from '@/components/ui/input'; // Ensure Input is imported
+
+// Map SupabaseQuestion to LocalQuestionType for internal use
+const mapSupabaseQuestionToLocal = (sQuestion: any): LocalQuestionType => ({
+  id: sQuestion.id,
+  quizId: sQuestion.quiz_id,
+  questionText: sQuestion.question_text,
+  options: sQuestion.options,
+  correctAnswer: sQuestion.correct_answer,
+  marks: sQuestion.marks,
+  timeLimitMinutes: sQuestion.time_limit_minutes,
+});
+
 
 const QuizPage = () => {
   const { quizId } = useParams<{ quizId: string }>();
@@ -20,9 +34,14 @@ const QuizPage = () => {
   const location = useLocation();
   const { studentName } = (location.state || {}) as { studentName?: string };
 
-  const { getQuizById, getQuestionsForQuiz, submitQuizAttempt } = useQuiz();
+  const { getQuizById, submitQuizAttempt } = useQuiz();
   const quiz = quizId ? getQuizById(quizId) : undefined;
-  const questions = quizId ? getQuestionsForQuiz(quizId) : [];
+  
+  // Fetch questions using Supabase hook
+  const { data: supabaseQuestions, isLoading: isQuestionsLoading, error: questionsError } = useQuestionsByQuizId(quizId || '');
+  
+  const questions: LocalQuestionType[] = (supabaseQuestions || []).map(mapSupabaseQuestionToLocal);
+  
   const isMobile = useIsMobile();
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -30,34 +49,44 @@ const QuizPage = () => {
   const [answers, setAnswers] = useState<{ questionId: string; selectedAnswer: string; isCorrect: boolean; marksObtained: number }[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [quizStudentName, setQuizStudentName] = useState(studentName || '');
-  const [initialTime, setInitialTime] = useState<number>(0); // To store the starting time for calculation
-  const [timeLeft, setTimeLeft] = useState<number>(0); // Time in seconds
+  const [initialTime, setInitialTime] = useState<number>(0); 
+  const [timeLeft, setTimeLeft] = useState<number>(0); 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize quiz state and handle missing quiz/questions
   useEffect(() => {
     if (!quizId || !quiz) {
-      toast.error("Quiz not found.");
-      navigate('/student');
+      // Wait for quiz data to load if necessary, but if quiz is undefined, navigate away.
+      // Note: getQuizById relies on the context's useQuizzes hook, which is asynchronous.
+      // We assume the quiz list is loaded before navigating here, or we handle the loading state.
+      // Since we are using react-query in context, we rely on the context to provide the quiz object.
       return;
     }
-    if (questions.length === 0) {
-      toast.info(`Quiz "${quiz.title}" has no questions yet.`);
-      navigate('/student');
-      return;
+    
+    if (questions.length > 0) {
+      // Calculate total time limit based on individual question times
+      const totalDuration = questions.reduce((sum, q) => sum + q.timeLimitMinutes, 0) * 60; // Convert minutes to seconds
+      setInitialTime(totalDuration);
+      setTimeLeft(totalDuration); 
     }
-    const quizDuration = quiz.timeLimitMinutes * 60;
-    setInitialTime(quizDuration);
-    setTimeLeft(quizDuration); // Set initial time
   }, [quizId, quiz, questions.length, navigate]);
+
+  // Handle errors during question fetching
+  useEffect(() => {
+    if (questionsError) {
+      toast.error(\`Failed to load quiz questions: \${questionsError.message}\`);
+      navigate('/student');
+    }
+  }, [questionsError, navigate]);
+
 
   // Timer logic
   useEffect(() => {
-    if (timeLeft > 0 && !showResults) {
+    if (timeLeft > 0 && !showResults && questions.length > 0) {
       timerRef.current = setInterval(() => {
         setTimeLeft((prevTime) => prevTime - 1);
       }, 1000);
-    } else if (timeLeft === 0 && !showResults) {
+    } else if (timeLeft === 0 && !showResults && questions.length > 0) {
       // Auto-submit when time runs out
       handleSubmitQuiz(true);
     }
@@ -67,7 +96,7 @@ const QuizPage = () => {
         clearInterval(timerRef.current);
       }
     };
-  }, [timeLeft, showResults]);
+  }, [timeLeft, showResults, questions.length]);
 
   // Load previously selected answer for current question
   useEffect(() => {
@@ -79,14 +108,28 @@ const QuizPage = () => {
     }
   }, [currentQuestionIndex, questions, answers]);
 
-  if (!quizId || !quiz || questions.length === 0) {
+  if (!quizId || !quiz || isQuestionsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-8">
         <Alert className="max-w-md">
-          <Info className="h-4 w-4" />
+          <Loader2 className="h-4 w-4 animate-spin" />
           <AlertTitle>Loading Quiz...</AlertTitle>
           <AlertDescription>
-            Please wait while the quiz loads, or navigate back to the student dashboard.
+            Please wait while the quiz loads.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+  
+  if (questions.length === 0) {
+     return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-8">
+        <Alert className="max-w-md">
+          <Info className="h-4 w-4" />
+          <AlertTitle>Quiz Empty</AlertTitle>
+          <AlertDescription>
+            Quiz "{quiz.title}" has no questions yet.
           </AlertDescription>
         </Alert>
       </div>
@@ -94,21 +137,24 @@ const QuizPage = () => {
   }
 
   const currentQuestion = questions[currentQuestionIndex];
-  // const progress = (currentQuestionIndex / questions.length) * 100; // Moved to QuizHeader
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    return \`\${minutes.toString().padStart(2, '0')}:\${remainingSeconds.toString().padStart(2, '0')}\`;
   };
 
-  const calculateMarksForQuestion = (question: Question, isCorrect: boolean) => {
+  const calculateMarksForQuestion = (question: LocalQuestionType, isCorrect: boolean) => {
     if (isCorrect) {
       return question.marks;
     } else if (quiz?.negativeMarking) {
-      return -0.25 * question.marks; // Deduct 25% for wrong answers
+      // Use a fixed deduction of 25% of the question's marks if negativeMarks is not explicitly defined or is 0
+      const deduction = typeof quiz.negativeMarks === 'number' && quiz.negativeMarks > 0 
+        ? quiz.negativeMarks 
+        : 0.25 * question.marks; 
+      return -deduction; 
     }
-    return 0; // No marks for incorrect, no negative marking
+    return 0; 
   };
 
   const handleSubmitQuiz = (isAutoSubmit: boolean = false) => {
@@ -144,7 +190,7 @@ const QuizPage = () => {
     }
 
     const totalScore = finalAnswers.reduce((sum, ans) => sum + ans.marksObtained, 0);
-    const timeTaken = initialTime - timeLeft; // Calculate time taken
+    const timeTaken = initialTime - timeLeft; 
 
     submitQuizAttempt({
       quizId: quiz.id,
@@ -152,7 +198,7 @@ const QuizPage = () => {
       score: totalScore,
       totalQuestions: questions.length,
       answers: finalAnswers,
-      timeTakenSeconds: timeTaken, // Include time taken
+      timeTakenSeconds: timeTaken, 
     });
 
     if (timerRef.current) {
@@ -197,7 +243,7 @@ const QuizPage = () => {
 
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
-      setSelectedAnswer(null); // Reset selected answer for next question
+      setSelectedAnswer(null); 
     } else {
       // End of quiz, submit
       handleSubmitQuiz();
@@ -207,7 +253,6 @@ const QuizPage = () => {
   const handlePreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex((prev) => prev - 1);
-      // The selectedAnswer state will be updated by the useEffect hook
     }
   };
 
@@ -217,7 +262,6 @@ const QuizPage = () => {
     const timeTaken = initialTime - timeLeft;
     const totalCorrectAnswers = answers.filter(ans => ans.isCorrect).length;
     const totalWrongAnswers = answers.filter(ans => !ans.isCorrect && ans.selectedAnswer !== null).length;
-    // const totalUnanswered = questions.length - answers.length; // Not explicitly requested, but good for debugging
 
 
     return (
@@ -269,10 +313,10 @@ const QuizPage = () => {
                               key={optIndex}
                               className={cn(
                                 "p-2 border rounded-md text-left",
-                                isCorrectOption && "bg-green-100 border-green-400", // Correct answer
-                                isSelected && !isCorrectOption && "bg-red-100 border-red-400", // Wrong selected answer
-                                isSelected && isCorrectOption && "bg-green-100 border-green-400", // Correct selected answer
-                                !isSelected && !isCorrectOption && "bg-gray-50 border-gray-200" // Unselected, incorrect option
+                                isCorrectOption && "bg-green-100 border-green-400", 
+                                isSelected && !isCorrectOption && "bg-red-100 border-red-400", 
+                                isSelected && isCorrectOption && "bg-green-100 border-green-400", 
+                                !isSelected && !isCorrectOption && "bg-gray-50 border-gray-200" 
                               )}
                             >
                               <span className="font-medium">{option}</span>
