@@ -7,6 +7,8 @@ import TeacherSidebar from '@/components/layout/TeacherSidebar';
 import QuestionCreator from '@/components/teacher/QuestionCreator';
 import QuizCreator from '@/components/teacher/QuizCreator';
 import AvailableQuizzesList from '@/components/teacher/AvailableQuizzesList';
+import InterviewMode from '@/components/teacher/InterviewMode';
+import UsersList from '@/components/teacher/UsersList';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils'; // Import cn for conditional classes
 
@@ -27,6 +29,12 @@ const TeacherDashboard = () => {
       </div>
       <div className={cn(activeView === 'available-quizzes' ? 'block' : 'hidden')}>
         <AvailableQuizzesList quizzes={quizzes} />
+      </div>
+      <div className={cn(activeView === 'interview-mode' ? 'block' : 'hidden')}>
+        <InterviewMode />
+      </div>
+      <div className={cn(activeView === 'users' ? 'block' : 'hidden')}>
+        <UsersList />
       </div>
     </>
   );

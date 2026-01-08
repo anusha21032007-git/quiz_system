@@ -7,327 +7,562 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { PlusCircle, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { PlusCircle, Trash2, History, X, Settings2, Save, Send, CheckCircle2 } from 'lucide-react';
 import { useQuiz } from '@/context/QuizContext';
 
-// Define a type for questions in local draft state
+interface Poll {
+  pollId: string;
+  numberOfQuestions: number;
+  mcqCount: number;
+  createdAt: number;
+  status: 'pending' | 'completed';
+  draftQuestions?: DraftQuestion[];
+  questionSetName?: string;
+}
+
 interface DraftQuestion {
   questionText: string;
   options: string[];
   correctAnswer: string;
-  marks: number | ''; // Allow marks to be an empty string
-  timeLimitMinutes: number | ''; // Allow timeLimitMinutes to be an empty string
+  marks: number | '';
+  timeLimitMinutes: number | '';
 }
 
-interface QuestionCreatorProps {
-  onNavigate?: (view: string) => void;
-}
-
-const QuestionCreator = ({ onNavigate }: QuestionCreatorProps) => {
+const QuestionCreator = () => {
   const { addQuestion } = useQuiz();
 
-  const [numQuestionsToCreate, setNumQuestionsToCreate] = useState<number | ''>(0); // Default to 0, allow empty string
-  const [optionsPerQuestion, setOptionsPerQuestion] = useState<number>(0); // Default to 0
-  const [draftQuestions, setDraftQuestions] = useState<DraftQuestion[]>([]); // Start with empty array
+  // Configuration State
+  const [numQuestions, setNumQuestions] = useState<number | ''>(0);
+  const [numOptions, setNumOptions] = useState<number | ''>(0);
 
-  /* New state for wizard step */
-  const [step, setStep] = useState<number>(1);
+  // Drafting State
+  const [step, setStep] = useState<1 | 2>(1);
+  const [draftQuestions, setDraftQuestions] = useState<DraftQuestion[]>([]);
+  const [questionSetName, setQuestionSetName] = useState('');
+  const [isSetupVisible, setIsSetupVisible] = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
+  const [creationStatus, setCreationStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
-  // Adjust draftQuestions array length and options count when numQuestionsToCreate or optionsPerQuestion changes
+  // History State
+  const [polls, setPolls] = useState<Poll[]>([]);
+  const [currentSetId, setCurrentSetId] = useState<string | null>(null);
+
+  // NEW: Session Persistence State (Current active work)
+  // Load session and history from local storage on initial mount
   useEffect(() => {
-    setDraftQuestions((prevQuestions) => {
-      const newQuestions = [...prevQuestions];
-      const targetCount = numQuestionsToCreate === '' ? 0 : numQuestionsToCreate;
-
-      // Adjust number of questions
-      while (newQuestions.length < targetCount) {
-        newQuestions.push({
-          questionText: '',
-          options: Array(optionsPerQuestion).fill(''), // Use optionsPerQuestion for new questions
-          correctAnswer: '',
-          marks: 1,
-          timeLimitMinutes: 1, // Default time limit for new questions
-        });
+    // Load session
+    const session = localStorage.getItem('activeCreationSession');
+    if (session) {
+      try {
+        const { numQuestions: sq, numOptions: so, draftQuestions: sd, step: ss, questionSetName: sn } = JSON.parse(session);
+        if (sq !== undefined) setNumQuestions(sq);
+        if (so !== undefined) setNumOptions(so);
+        if (sd !== undefined) setDraftQuestions(sd);
+        if (sn !== undefined) setQuestionSetName(sn);
+        if (ss !== undefined) setStep(ss);
+      } catch (e) {
+        console.error("Failed to restore creation session", e);
       }
-      const slicedQuestions = newQuestions.slice(0, targetCount);
+    }
 
-      // Adjust options count for all questions
-      return slicedQuestions.map(q => {
-        const newOptions = [...q.options];
-        while (newOptions.length < optionsPerQuestion) {
-          newOptions.push('');
-        }
-        const adjustedOptions = newOptions.slice(0, optionsPerQuestion);
+    // Load Polls History
+    const storedPolls = localStorage.getItem('polls');
+    if (storedPolls) setPolls(JSON.parse(storedPolls));
+  }, []);
 
-        // If the correct answer is no longer in the options, reset it
-        let newCorrectAnswer = q.correctAnswer;
-        if (newCorrectAnswer && !adjustedOptions.includes(newCorrectAnswer)) {
-          newCorrectAnswer = '';
-        }
+  // Save session to local storage whenever active state changes
+  useEffect(() => {
+    const sessionData = {
+      numQuestions,
+      numOptions,
+      draftQuestions,
+      questionSetName,
+      step
+    };
+    localStorage.setItem('activeCreationSession', JSON.stringify(sessionData));
+  }, [numQuestions, numOptions, draftQuestions, questionSetName, step]);
 
-        return {
-          ...q,
-          options: adjustedOptions,
-          correctAnswer: newCorrectAnswer,
-        };
+  // Sync Polls
+  useEffect(() => {
+    localStorage.setItem('polls', JSON.stringify(polls));
+  }, [polls]);
+
+  // Clear session helper
+  const clearActiveSession = () => {
+    localStorage.removeItem('activeCreationSession');
+    setNumQuestions(0);
+    setNumOptions(0);
+    setDraftQuestions([]);
+    setQuestionSetName('');
+    setCurrentSetId(null);
+    setStep(1);
+    setIsSetupVisible(false);
+    setShowErrors(false);
+    setCreationStatus(null);
+  };
+
+  // Validation for Step 1
+  const isConfigValid =
+    typeof numQuestions === 'number' && numQuestions > 0 &&
+    typeof numOptions === 'number' && numOptions >= 1 && numOptions <= 6;
+
+  // Generate Questions based on Config
+  const generateDraftBlocks = () => {
+    const count = typeof numQuestions === 'number' ? numQuestions : 0;
+    const optionsCount = typeof numOptions === 'number' ? numOptions : 0;
+
+    const newDraft: DraftQuestion[] = Array(count).fill(null).map(() => ({
+      questionText: '',
+      options: Array(optionsCount).fill(''),
+      correctAnswer: '',
+      marks: 1,
+      timeLimitMinutes: 1,
+    }));
+
+    setDraftQuestions(newDraft);
+    return newDraft;
+  };
+
+  const handleProceed = () => {
+    if (isConfigValid) {
+      const generatedDraft = generateDraftBlocks();
+
+      // Save poll data to localStorage history
+      const pollId = `poll_${Date.now()}`;
+      const newPoll: Poll = {
+        pollId,
+        numberOfQuestions: numQuestions as number,
+        mcqCount: numOptions as number,
+        createdAt: Date.now(),
+        status: 'pending',
+        draftQuestions: generatedDraft,
+        questionSetName: ''
+      };
+      setPolls(prev => {
+        const updated = [newPoll, ...prev];
+        localStorage.setItem('polls', JSON.stringify(updated));
+        return updated;
       });
-    });
-  }, [numQuestionsToCreate, optionsPerQuestion]); // Depend on both counts
+      setCurrentSetId(pollId); // Use pollId as sessionId
+
+      setIsSetupVisible(false);
+      setStep(2);
+      setShowErrors(false);
+    } else {
+      setShowErrors(true);
+    }
+  };
+
+  const handleCompletePoll = (pollId: string) => {
+    const updated = polls.map(p => p.pollId === pollId ? { ...p, status: 'completed' as const } : p);
+    setPolls(updated);
+    localStorage.setItem('polls', JSON.stringify(updated));
+  };
+
+  const handleDeletePoll = (pollId: string) => {
+    const updated = polls.filter(p => p.pollId !== pollId);
+    setPolls(updated);
+    localStorage.setItem('polls', JSON.stringify(updated));
+  };
 
   const handleUpdateQuestion = (index: number, field: keyof DraftQuestion, value: any) => {
-    setDraftQuestions((prevQuestions) => {
-      const newQuestions = [...prevQuestions];
+    setDraftQuestions(prev => {
+      const updated = [...prev];
       if (field === 'marks' || field === 'timeLimitMinutes') {
-        // If value is empty string, store as empty string. Otherwise, parse to int.
-        const parsedValue = value === '' ? '' : parseInt(value);
-        newQuestions[index] = { ...newQuestions[index], [field]: parsedValue };
+        updated[index] = { ...updated[index], [field]: value === '' ? '' : parseInt(value) };
       } else {
-        newQuestions[index] = { ...newQuestions[index], [field]: value };
+        updated[index] = { ...updated[index], [field]: value };
       }
-      return newQuestions;
+      return updated;
     });
   };
 
-  const handleOptionChange = (questionIndex: number, optionIndex: number, value: string) => {
-    setDraftQuestions((prevQuestions) => {
-      const newQuestions = [...prevQuestions];
-      const newOptions = [...newQuestions[questionIndex].options];
-      newOptions[optionIndex] = value;
-      newQuestions[questionIndex] = { ...newQuestions[questionIndex], options: newOptions };
-      return newQuestions;
+  const handleOptionChange = (qIndex: number, oIndex: number, val: string) => {
+    setDraftQuestions(prev => {
+      const updated = [...prev];
+      const options = [...updated[qIndex].options];
+      options[oIndex] = val;
+      updated[qIndex] = { ...updated[qIndex], options };
+      return updated;
     });
   };
 
-  const handleAddAllQuestions = () => {
-    // Check if number of questions is 0 or empty
-    if (!numQuestionsToCreate || numQuestionsToCreate === 0 || draftQuestions.length === 0) {
-      toast.error("Please enter number of questions to continue");
+  const handleSaveDraft = () => {
+    if (currentSetId) {
+      setPolls(prev => {
+        const updated = prev.map(p => p.pollId === currentSetId ? {
+          ...p,
+          questionSetName,
+          draftQuestions
+        } : p);
+        localStorage.setItem('polls', JSON.stringify(updated));
+        return updated;
+      });
+    }
+    setCreationStatus({ type: 'success', message: "Draft saved successfully" });
+    // Remove status message after some time
+    setTimeout(() => setCreationStatus(null), 3000);
+  };
+
+  const handleResumePoll = (poll: Poll) => {
+    setNumQuestions(poll.numberOfQuestions);
+    setNumOptions(poll.mcqCount);
+    setDraftQuestions(poll.draftQuestions || []);
+    setQuestionSetName(poll.questionSetName || '');
+    setCurrentSetId(poll.pollId);
+    setStep(2);
+    setIsSetupVisible(false);
+    setCreationStatus(null);
+  };
+
+  const handleStartNew = () => {
+    clearActiveSession();
+    setIsSetupVisible(true);
+  };
+
+  const handleAddToPool = () => {
+    const invalid = draftQuestions.some(q =>
+      !q.questionText.trim() || q.options.some(o => !o.trim()) || !q.correctAnswer.trim() || q.marks === '' || q.timeLimitMinutes === ''
+    );
+
+    if (invalid) {
+      setCreationStatus({ type: 'error', message: "Please fill all fields for all questions before adding to pool." });
       return;
     }
 
-    // Check if options per question is 0
-    if (optionsPerQuestion === 0) {
-      toast.error("Please select number of MCQ options (1 to 6)");
-      return;
-    }
-
-    let hasError = false;
-    draftQuestions.forEach((q, index) => {
-      // Check for empty question text, empty options, no correct answer, or invalid marks/time
-      if (
-        !q.questionText.trim() ||
-        q.options.some(opt => !opt.trim()) ||
-        !q.correctAnswer.trim() ||
-        q.marks === '' ||
-        (typeof q.marks === 'number' && q.marks <= 0) ||
-        q.timeLimitMinutes === '' ||
-        (typeof q.timeLimitMinutes === 'number' && q.timeLimitMinutes <= 0)
-      ) {
-        toast.error(`Question ${index + 1}: Please fill all fields, select a correct answer, and set valid marks and time (must be at least 1).`);
-        hasError = true;
-      } else if (!q.options.includes(q.correctAnswer)) {
-        toast.error(`Question ${index + 1}: Correct answer must be one of the provided options.`);
-        hasError = true;
-      }
-    });
-
-    if (hasError) {
-      return;
-    }
-
-    draftQuestions.forEach((q) => {
-      // Ensure marks and timeLimitMinutes are numbers before adding
-      const marksToAdd = typeof q.marks === 'number' ? q.marks : 1; // Fallback to 1 if somehow not a number
-      const timeLimitToAdd = typeof q.timeLimitMinutes === 'number' ? q.timeLimitMinutes : 1; // Fallback to 1 if somehow not a number
-
+    draftQuestions.forEach(q => {
       addQuestion({
-        quizId: 'unassigned', // These questions are added to a general pool
+        quizId: 'unassigned',
         questionText: q.questionText,
         options: q.options,
         correctAnswer: q.correctAnswer,
-        marks: marksToAdd,
-        timeLimitMinutes: timeLimitToAdd,
+        marks: q.marks as number,
+        timeLimitMinutes: q.timeLimitMinutes as number
       });
     });
 
-    toast.success(`${draftQuestions.length} question(s) added to the pool!`);
-    // Reset form
-    setNumQuestionsToCreate(0);
-    setOptionsPerQuestion(0); // Reset options per question
-    setDraftQuestions([]);
-    setStep(1); // Return to step 1
+    clearActiveSession();
+    setCreationStatus({ type: 'success', message: `${draftQuestions.length} question(s) added to the pool!` });
+    setTimeout(() => setCreationStatus(null), 3000);
   };
-
-  const handleDeleteQuestionBlock = (indexToDelete: number) => {
-    setDraftQuestions((prevQuestions) => {
-      const newQuestions = prevQuestions.filter((_, index) => index !== indexToDelete);
-      setNumQuestionsToCreate(newQuestions.length); // Update the count input
-      if (newQuestions.length === 0) setStep(1); // If all deleted, go back to step 1
-      return newQuestions;
-    });
-    toast.info("Question block removed.");
-  };
-
-  // derived state for Step 1 validation
-  const isStep1Valid =
-    numQuestionsToCreate !== '' &&
-    numQuestionsToCreate > 0 &&
-    optionsPerQuestion > 0 &&
-    optionsPerQuestion <= 6;
 
   return (
-    <Card className="shadow-lg">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-2xl">
-          <PlusCircle className="h-6 w-6" /> Create New Questions
-          {step === 2 && <span className="text-sm font-normal text-muted-foreground ml-2">(Step 2: Fill Details)</span>}
-        </CardTitle>
-      </CardHeader>
-
-      <CardContent className="space-y-6">
-        {/* Step 1 Inputs - Always visible, locked in Step 2 */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <Label htmlFor="numQuestionsToCreate">Number of Questions to Create</Label>
-            <Input
-              id="numQuestionsToCreate"
-              type="number"
-              min="0"
-              value={numQuestionsToCreate}
-              disabled={step === 2} // Lock in Step 2
-              onChange={(e) => {
-                const val = e.target.value;
-                setNumQuestionsToCreate(val === '' ? '' : parseInt(val));
-              }}
-              className="mt-1"
-            />
+    <div className="space-y-6">
+      {isSetupVisible ? (
+        /* Question Setup Section */
+        <div className="bg-white rounded-xl shadow-lg border border-blue-100 p-8 space-y-8 animate-in slide-in-from-top-4 duration-300 max-w-2xl mx-auto">
+          <div className="flex items-center gap-3 border-b border-blue-50 pb-4">
+            <Settings2 className="h-6 w-6 text-blue-600" />
+            <h3 className="text-2xl font-bold text-gray-800">Question Setup</h3>
           </div>
-          <div>
-            <Label htmlFor="optionsPerQuestion">Number of MCQ Options per Question</Label>
-            <Input
-              id="optionsPerQuestion"
-              type="number"
-              min="0"
-              max="6"
-              value={optionsPerQuestion}
-              disabled={step === 2} // Lock in Step 2
-              onChange={(e) => {
-                const val = e.target.value === '' ? 0 : parseInt(e.target.value);
-                // Block > 6 or < 0, but allow 0 (default)
-                if (val >= 0 && val <= 6) {
-                  setOptionsPerQuestion(val);
-                }
-              }}
-              className="mt-1"
-            />
+
+          <div className="grid gap-8">
+            <div className="space-y-3">
+              <Label htmlFor="numQuestions" className="text-lg font-bold text-gray-700">Number of Questions</Label>
+              <Input
+                id="numQuestions"
+                type="number"
+                min="0"
+                value={numQuestions}
+                onChange={(e) => {
+                  setNumQuestions(e.target.value === '' ? '' : parseInt(e.target.value));
+                  if (showErrors) setShowErrors(false);
+                }}
+                className={`h-14 text-xl bg-gray-50/50 focus:bg-white transition-all shadow-sm ${showErrors && (numQuestions === '' || numQuestions <= 0) ? 'border-red-500 ring-red-50' : 'border-blue-100 focus:border-blue-500'}`}
+              />
+              {showErrors && (numQuestions === '' || numQuestions <= 0) && (
+                <p className="text-sm text-red-500 font-bold flex items-center gap-1">
+                  <X className="h-4 w-4" /> Please enter at least 1 question.
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="numOptions" className="text-lg font-bold text-gray-700">Number of MCQ Options</Label>
+              <Input
+                id="numOptions"
+                type="number"
+                min="0"
+                max="6"
+                value={numOptions}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? '' : parseInt(e.target.value);
+                  if (val === '' || (val >= 0 && val <= 6)) setNumOptions(val);
+                  if (showErrors) setShowErrors(false);
+                }}
+                className={`h-14 text-xl bg-gray-50/50 focus:bg-white transition-all shadow-sm ${showErrors && (numOptions === '' || numOptions < 1 || numOptions > 6) ? 'border-red-500 ring-red-50' : 'border-blue-100 focus:border-blue-500'}`}
+              />
+              <div className="flex justify-between items-center px-1">
+                <p className="text-sm text-gray-400 font-medium">Range: 1 to 6 options</p>
+                {showErrors && (numOptions === '' || numOptions < 1 || numOptions > 6) && (
+                  <p className="text-sm text-red-500 font-bold">Invalid range!</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-6 border-t border-blue-50 gap-4">
+            <Button
+              variant="ghost"
+              onClick={() => { setIsSetupVisible(false); setStep(1); }}
+              className="px-6 h-12 font-bold text-gray-400 hover:text-gray-600"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleProceed}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-10 h-14 rounded-xl font-black text-lg shadow-blue-200 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+            >
+              Proceed to Draft
+            </Button>
           </div>
         </div>
+      ) : step === 1 ? (
+        /* Initial View: + New Question Button and History */
+        <Card className="shadow-lg border-none">
+          <CardHeader className="border-b bg-white rounded-t-lg">
+            <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
+              <PlusCircle className="h-6 w-6 text-blue-600" />
+              Question Creator
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 space-y-8">
+            <Button
+              onClick={handleStartNew}
+              className="w-full bg-green-600 hover:bg-green-700 text-white h-16 rounded-xl shadow-md flex items-center justify-center gap-3 text-xl font-bold transition-all"
+            >
+              <PlusCircle className="h-6 w-6" />
+              + New Question
+            </Button>
 
-        {/* Step 2 Content - Question List */}
-        {step === 2 && (
-          <div className="space-y-8 max-h-[60vh] overflow-y-auto p-3 border rounded-md bg-gray-50 mt-6">
-            {draftQuestions.map((q, index) => (
-              <Card key={index} className="p-4 border rounded-md bg-white shadow-sm relative">
-                {numQuestionsToCreate !== '' && numQuestionsToCreate > 1 && (
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 h-7 w-7"
-                    onClick={() => handleDeleteQuestionBlock(index)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold flex items-center gap-2 text-gray-700">
+                  <History className="h-5 w-5" />
+                  Question History
+                </h3>
+              </div>
+
+              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                {polls.filter(p => p.status === 'pending').length > 0 ? (
+                  polls.filter(p => p.status === 'pending').map(poll => (
+                    <div key={poll.pollId} className="group flex items-center p-4 bg-gray-50 rounded-xl border border-transparent hover:border-blue-200 hover:bg-white hover:shadow-sm transition-all text-sm">
+                      <div className="w-1/3 flex items-center gap-3">
+                        <div className={`h-1.5 w-1.5 rounded-full ${poll.status === 'pending' ? 'bg-violet-400' : 'bg-green-500'}`} />
+                        <span className="font-mono font-bold text-gray-500">ID: {poll.pollId.split('_')[1]}</span>
+                      </div>
+                      <div className="w-1/3 text-center font-bold text-gray-600">
+                        {poll.numberOfQuestions} Questions
+                      </div>
+                      <div className="w-1/3 flex justify-end items-center gap-4">
+                        {poll.status === 'pending' && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleResumePoll(poll)}
+                              className="h-7 px-2 text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            >
+                              Resume
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCompletePoll(poll.pollId)}
+                              className="h-7 px-2 text-[11px] font-bold text-green-600 hover:text-green-700 hover:bg-green-50"
+                            >
+                              Complete
+                            </Button>
+                          </>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeletePoll(poll.pollId)}
+                          className="h-7 px-2 text-[11px] font-bold text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          Delete
+                        </Button>
+                        <span className={`text-[11px] font-bold uppercase tracking-wider ${poll.status === 'pending' ? 'text-violet-600' : 'text-green-600'
+                          }`}>
+                          {poll.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                    <p className="text-gray-400 font-medium">No pending question sets available.</p>
+                  </div>
                 )}
-                <h3 className="text-lg font-semibold mb-3">Question {index + 1}</h3>
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor={`questionText-${index}`}>Question Text</Label>
-                    <Textarea
-                      id={`questionText-${index}`}
-                      placeholder="Enter your question here..."
-                      value={q.questionText}
-                      onChange={(e) => handleUpdateQuestion(index, 'questionText', e.target.value)}
-                      className="mt-1"
-                    />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        /* Question Creator (Drafting) View */
+        <Card className="shadow-lg border-none overflow-hidden">
+          <CardHeader className="border-b bg-white rounded-t-lg">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
+                <PlusCircle className="h-6 w-6 text-blue-600" />
+                Question Creator
+              </CardTitle>
+              <div className="text-sm font-black text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full uppercase tracking-widest border border-blue-100">
+                {draftQuestions.length} Blocks
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-12 max-h-[60vh] overflow-y-auto pr-4 custom-scrollbar p-1">
+              {draftQuestions.map((q, qIndex) => (
+                <Card key={qIndex} className="relative overflow-hidden border-2 border-gray-100 hover:border-blue-100 transition-colors shadow-sm">
+                  <div className="bg-gray-50/50 p-4 border-b flex items-center justify-between">
+                    <h4 className="font-black text-gray-700 uppercase tracking-tighter">Question {qIndex + 1}</h4>
+                    {draftQuestions.length > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        onClick={() => {
+                          const updated = draftQuestions.filter((_, i) => i !== qIndex);
+                          setDraftQuestions(updated);
+                          setNumQuestions(updated.length);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
-                  <div>
-                    <Label htmlFor={`questionMarks-${index}`}>Marks for this Question</Label>
-                    <Input
-                      id={`questionMarks-${index}`}
-                      type="number"
-                      min="1"
-                      value={q.marks}
-                      onChange={(e) => handleUpdateQuestion(index, 'marks', e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor={`questionTime-${index}`}>Time for this Question (minutes)</Label>
-                    <Input
-                      id={`questionTime-${index}`}
-                      type="number"
-                      min="1"
-                      value={q.timeLimitMinutes}
-                      onChange={(e) => handleUpdateQuestion(index, 'timeLimitMinutes', e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                  {q.options.map((option, optIndex) => (
-                    <div key={optIndex}>
-                      <Label htmlFor={`option-${index}-${optIndex}`}>Option {optIndex + 1}</Label>
-                      <Input
-                        id={`option-${index}-${optIndex}`}
-                        placeholder={`Option ${optIndex + 1}`}
-                        value={option}
-                        onChange={(e) => handleOptionChange(index, optIndex, e.target.value)}
-                        className="mt-1"
+                  <CardContent className="p-6 space-y-6">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-bold text-gray-600">Question Text</Label>
+                      <Textarea
+                        placeholder="What would you like to ask?"
+                        value={q.questionText}
+                        onChange={(e) => handleUpdateQuestion(qIndex, 'questionText', e.target.value)}
+                        className="min-h-[100px] text-lg font-medium resize-none focus:ring-blue-500 border-gray-200"
                       />
                     </div>
-                  ))}
-                  <div>
-                    <Label>Correct Answer</Label>
-                    <RadioGroup
-                      onValueChange={(value) => handleUpdateQuestion(index, 'correctAnswer', value)}
-                      value={q.correctAnswer}
-                      className="flex flex-col space-y-1 mt-2"
-                    >
-                      {q.options.filter(opt => opt.trim()).map((option, optIndex) => (
-                        <div key={optIndex} className="flex items-center space-x-2">
-                          <RadioGroupItem value={option} id={`correct-option-${index}-${optIndex}`} />
-                          <Label htmlFor={`correct-option-${index}-${optIndex}`}>{option}</Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
-      </CardContent>
 
-      <CardFooter>
-        {step === 1 ? (
-          <Button
-            onClick={() => setStep(2)}
-            disabled={!isStep1Valid}
-            className="w-full bg-blue-600 hover:bg-blue-700"
-          >
-            Proceed to Questions
-          </Button>
-        ) : (
-          <div className="flex gap-2 w-full">
-            <Button variant="outline" onClick={() => setStep(1)} className="w-[100px]">
-              Back
-            </Button>
-            <Button onClick={handleAddAllQuestions} className="flex-1 bg-green-600 hover:bg-green-700">
-              Add All Questions to Pool
-            </Button>
-          </div>
-        )}
-      </CardFooter>
-    </Card>
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold text-gray-600">Marks</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={q.marks}
+                          onChange={(e) => handleUpdateQuestion(qIndex, 'marks', e.target.value)}
+                          className="font-bold text-blue-600 border-gray-200"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold text-gray-600">Time Limit (mins)</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={q.timeLimitMinutes}
+                          onChange={(e) => handleUpdateQuestion(qIndex, 'timeLimitMinutes', e.target.value)}
+                          className="font-bold text-blue-600 border-gray-200"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <Label className="text-sm font-bold text-gray-600">MCQ Options</Label>
+                      <div className="grid gap-3">
+                        {q.options.map((opt, oIndex) => (
+                          <div key={oIndex} className="flex gap-3 items-center">
+                            <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-gray-100 font-bold text-gray-500 text-sm">
+                              {String.fromCharCode(65 + oIndex)}
+                            </div>
+                            <Input
+                              placeholder={`Option ${oIndex + 1}`}
+                              value={opt}
+                              onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)}
+                              className="flex-1 font-medium border-gray-200"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                      <Label className="text-sm font-black text-blue-700 uppercase tracking-widest">Select Correct Answer</Label>
+                      <RadioGroup
+                        value={q.correctAnswer}
+                        onValueChange={(val) => handleUpdateQuestion(qIndex, 'correctAnswer', val)}
+                        className="grid grid-cols-2 gap-4"
+                      >
+                        {q.options.map((opt, oIndex) => (
+                          <div key={oIndex} className={`flex items-center space-x-3 p-3 rounded-lg border-2 transition-all ${q.correctAnswer === opt && opt.trim() ? 'bg-white border-blue-500 shadow-sm' : 'bg-transparent border-transparent'
+                            }`}>
+                            <RadioGroupItem value={opt} id={`q-${qIndex}-opt-${oIndex}`} disabled={!opt.trim()} />
+                            <Label
+                              htmlFor={`q-${qIndex}-opt-${oIndex}`}
+                              className={`text-sm font-bold truncate ${!opt.trim() ? 'text-gray-300' : 'text-gray-700'}`}
+                            >
+                              {opt.trim() || `(Empty Option ${oIndex + 1})`}
+                            </Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col gap-6 p-6 bg-gray-50/80 border-t rounded-b-lg">
+            <div className="w-full space-y-2">
+              <Label className="text-sm font-bold text-gray-600">Question Set Name</Label>
+              <Input
+                placeholder="e.g., Biology Final Exam - Section A"
+                value={questionSetName}
+                onChange={(e) => {
+                  setQuestionSetName(e.target.value);
+                  if (creationStatus) setCreationStatus(null);
+                }}
+                className={`bg-white h-12 text-lg font-bold ${creationStatus?.type === 'error' && !questionSetName.trim() ? 'border-red-500 ring-red-100' : 'border-gray-300'}`}
+              />
+            </div>
+
+            {creationStatus && (
+              <div className={`w-full p-4 rounded-xl border flex items-center gap-3 animate-in fade-in zoom-in duration-300 ${creationStatus.type === 'success' ? 'bg-green-50 border-green-100 text-green-800' : 'bg-red-50 border-red-100 text-red-800'
+                }`}>
+                {creationStatus.type === 'success' ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <X className="h-5 w-5 text-red-600" />}
+                <p className="font-bold">{creationStatus.message}</p>
+              </div>
+            )}
+
+            <div className="flex gap-4 w-full">
+              <Button
+                variant="outline"
+                onClick={() => { setStep(1); setIsSetupVisible(true); setCreationStatus(null); }}
+                className="px-8 h-12 font-bold border-gray-300"
+              >
+                Back to Config
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={handleSaveDraft}
+                className="flex-1 h-12 font-bold flex items-center gap-2"
+              >
+                <Save className="h-4 w-4" />
+                Save Draft
+              </Button>
+              <Button
+                onClick={handleAddToPool}
+                className="flex-1 h-12 font-bold bg-green-600 hover:bg-green-700 flex items-center gap-2"
+              >
+                <Send className="h-4 w-4" />
+                Add Questions to Pool
+              </Button>
+            </div>
+          </CardFooter>
+        </Card>
+      )}
+    </div>
   );
 };
 

@@ -189,7 +189,7 @@ const QuizCreator = () => {
         return false;
       }
       if (q.correctAnswerIndex === null || q.correctAnswerIndex < 0 || q.correctAnswerIndex >= q.options.length) {
-        toast.error(`Question ${index + 1}: Please select a correct answer.`);
+        toast.error(`Question ${index + 1}: Please select the correct answer`);
         return false;
       }
       if (q.marks === '' || q.marks < 1 || q.marks > 10) {
@@ -648,10 +648,23 @@ const QuizCreator = () => {
                         ))}
                       </div>
                       <div>
-                        <Label>Correct Answer</Label>
-                        <div className="p-2 mt-1 font-medium text-green-700 bg-green-50 border border-green-200 rounded-md">
-                          {q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : 'Not Set'}
-                        </div>
+                        <Label>Select the correct option</Label>
+                        <RadioGroup
+                          onValueChange={(value) => handleUpdateCorrectAnswerIndex(index, value)}
+                          value={q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : ''}
+                          className="flex flex-col space-y-2 mt-2"
+                        >
+                          {q.options.map((option, optIndex) => (
+                            option && (
+                              <div key={optIndex} className="flex items-center space-x-2">
+                                <RadioGroupItem value={option} id={`q-correct-${index}-${optIndex}`} />
+                                <Label htmlFor={`q-correct-${index}-${optIndex}`} className="font-normal cursor-pointer">
+                                  {String.fromCharCode(65 + optIndex)}. {option}
+                                </Label>
+                              </div>
+                            )
+                          ))}
+                        </RadioGroup>
                       </div>
                       <div>
                         <Label htmlFor={`q-marks-${index}`}>Marks (1-10)</Label>
