@@ -10,14 +10,18 @@ import AvailableQuizzesList from '@/components/teacher/AvailableQuizzesList';
 import InterviewMode from '@/components/teacher/InterviewMode';
 import UsersList from '@/components/teacher/UsersList';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { cn } from '@/lib/utils'; // Import cn for conditional classes
+import { cn } from '@/lib/utils';
+import BackButton from '@/components/ui/BackButton';
+import { useSearchParams } from 'react-router-dom';
 
 const TeacherDashboard = () => {
   const { quizzes } = useQuiz();
   const isMobile = useIsMobile();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // State for active view in sidebar
-  const [activeView, setActiveView] = useState<string>('create-question');
+  // Manage active view via URL search params for history support
+  const activeView = searchParams.get('view') || 'create-question';
+  const setActiveView = (view: string) => setSearchParams({ view });
 
   const renderMainContent = () => (
     <>
@@ -27,10 +31,7 @@ const TeacherDashboard = () => {
       <div className={cn(activeView === 'create-quiz' ? 'block' : 'hidden')}>
         <QuizCreator />
       </div>
-      <div className={cn(activeView === 'available-quizzes' ? 'block' : 'hidden')}>
-        <AvailableQuizzesList quizzes={quizzes} />
-      </div>
-      <div className={cn(activeView === 'interview-mode' ? 'block' : 'hidden')}>
+      <div className={cn(activeView === 'competitive-mode' ? 'block' : 'hidden')}>
         <InterviewMode />
       </div>
       <div className={cn(activeView === 'users' ? 'block' : 'hidden')}>
@@ -40,29 +41,40 @@ const TeacherDashboard = () => {
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <header className="flex items-center justify-between p-4 border-b bg-white shadow-sm lg:hidden">
-        <TeacherSidebar activeView={activeView} setActiveView={setActiveView} isMobile={isMobile} />
-        <h1 className="text-2xl font-bold text-gray-800">Teacher Dashboard</h1>
+    <div className="min-h-screen flex flex-col bg-white">
+      <header className="flex items-center justify-between p-4 border-b-2 border-gray-100 bg-white lg:hidden">
+        <div className="flex items-center gap-2">
+          <TeacherSidebar activeView={activeView} setActiveView={setActiveView} isMobile={isMobile} />
+          <BackButton />
+        </div>
+        <h1 className="text-xl font-bold text-black">Teacher Dashboard</h1>
       </header>
 
       <div className="flex flex-1">
         {!isMobile && (
           <ResizablePanelGroup direction="horizontal" className="min-h-screen max-w-full">
-            <ResizablePanel defaultSize={20} minSize={15} maxSize={25}>
+            <ResizablePanel defaultSize={20} minSize={15} maxSize={25} className="border-r-0">
               <TeacherSidebar activeView={activeView} setActiveView={setActiveView} isMobile={isMobile} />
             </ResizablePanel>
-            <ResizableHandle withHandle />
+            <ResizableHandle withHandle className="bg-gray-200 w-[2px]" />
             <ResizablePanel defaultSize={80}>
-              <main className="flex-1 p-8 overflow-auto">
-                <h1 className="text-4xl font-bold text-gray-800 mb-8 hidden lg:block">Teacher Dashboard</h1>
+              <main className="flex-1 p-8 overflow-auto bg-white">
+                <div className="space-y-4 mb-8">
+                  <BackButton />
+                  <div className="pb-4 border-b-2 border-gray-100 flex items-center justify-between">
+                    <h1 className="text-3xl font-bold text-black tracking-tight">Teacher Dashboard</h1>
+                    <div className="px-4 py-1 bg-gray-50 border border-gray-200 rounded-full text-xs font-mono text-gray-500">
+                      v2.0 Minimal
+                    </div>
+                  </div>
+                </div>
                 {renderMainContent()}
               </main>
             </ResizablePanel>
           </ResizablePanelGroup>
         )}
         {isMobile && (
-          <main className="flex-1 p-4 overflow-auto">
+          <main className="flex-1 p-4 overflow-auto bg-white">
             {renderMainContent()}
           </main>
         )}
@@ -71,57 +83,4 @@ const TeacherDashboard = () => {
   );
 };
 
-=======
-"use client";
-
-import { useLocation } from 'react-router-dom';
-import TeacherLayout from '@/components/layout/TeacherLayout';
-import QuestionCreator from '@/components/teacher/QuestionCreator';
-import QuizCreator from '@/components/teacher/QuizCreator';
-import InterviewMode from '@/components/teacher/InterviewMode';
-import UsersList from '@/components/teacher/UsersList';
-
-const TeacherDashboard = () => {
-  const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const activeView = searchParams.get('view') || 'create-question';
-
-  const renderMainContent = () => {
-    switch (activeView) {
-      case 'create-question':
-        return <QuestionCreator />;
-      case 'create-quiz':
-        return <QuizCreator />;
-      case 'interview-mode':
-        return <InterviewMode />;
-      case 'users':
-        return <UsersList />;
-      default:
-        return <QuestionCreator />;
-    }
-  };
-
-  const getPageTitle = () => {
-    switch (activeView) {
-      case 'create-question':
-        return 'Question Bank';
-      case 'create-quiz':
-        return 'Quiz Generator';
-      case 'interview-mode':
-        return 'Interview Session';
-      case 'users':
-        return 'Users';
-      default:
-        return 'Teacher Dashboard';
-    }
-  };
-
-  return (
-    <TeacherLayout activeView={activeView} title={getPageTitle()}>
-      {renderMainContent()}
-    </TeacherLayout>
-  );
-};
-
->>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
 export default TeacherDashboard;

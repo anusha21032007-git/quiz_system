@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ListChecks, PlusCircle, Trash2, Eye, Save, Brain } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
@@ -40,16 +39,12 @@ interface StoredQuiz {
   questionIds: string[];
   timeLimitMinutes: number;
   negativeMarking: boolean;
-<<<<<<< HEAD
   negativeMarksValue: number; // Updated field name for consistency
   competitionMode: boolean;
   scheduledDate: string; // ADDED
   startTime: string;     // ADDED
   endTime: string;       // ADDED
   difficulty: 'Easy' | 'Medium' | 'Hard'; // ADDED DIFFICULTY
-=======
-  negativeMarks: string | number; // Added negativeMarks to stored quiz
->>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
   _questionsData: {
     id: string;
     quizId: string;
@@ -77,12 +72,8 @@ const QuizCreator = () => {
   });
 
   const [negativeMarking, setNegativeMarking] = useState<boolean>(false);
-<<<<<<< HEAD
   const [negativeMarksValue, setNegativeMarksValue] = useState<string | number>(''); // State for negative marks value
   const [competitionMode, setCompetitionMode] = useState<boolean>(false);
-=======
-  const [negativeMarks, setNegativeMarks] = useState<string | number>(''); // State for negative marks value
->>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
   const [defaultTimePerQuestion, setDefaultTimePerQuestion] = useState<number | null>(null); // New state for optional default time
   const [enableTimePerQuestion, setEnableTimePerQuestion] = useState<boolean>(false); // Toggle for time per question
   const [totalCalculatedQuizTime, setTotalCalculatedQuizTime] = useState<number>(0); // New state for total quiz time
@@ -92,6 +83,36 @@ const QuizCreator = () => {
   const [aiCoursePaperName, setAiCoursePaperName] = useState('');
   const [aiDifficulty, setAiDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Easy');
   const [step, setStep] = useState<number>(1);
+
+  // Persistence logic for QuizCreator
+  useEffect(() => {
+    const saved = localStorage.getItem('quizCreatorState');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.quizData) setQuizData(parsed.quizData);
+        if (parsed.negativeMarking !== undefined) setNegativeMarking(parsed.negativeMarking);
+        if (parsed.negativeMarksValue !== undefined) setNegativeMarksValue(parsed.negativeMarksValue);
+        if (parsed.competitionMode !== undefined) setCompetitionMode(parsed.competitionMode);
+        if (parsed.quizDifficulty) setQuizDifficulty(parsed.quizDifficulty);
+        if (parsed.step) setStep(parsed.step);
+      } catch (e) {
+        console.error("Failed to restore QuizCreator session", e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const stateToSave = {
+      quizData,
+      negativeMarking,
+      negativeMarksValue,
+      competitionMode,
+      quizDifficulty,
+      step
+    };
+    localStorage.setItem('quizCreatorState', JSON.stringify(stateToSave));
+  }, [quizData, negativeMarking, negativeMarksValue, competitionMode, quizDifficulty, step]);
 
   useEffect(() => {
     const draftData = sessionStorage.getItem('draft_quiz_params');
@@ -201,6 +222,18 @@ const QuizCreator = () => {
     });
   };
 
+  const handleDeleteQuestionFromDraft = (index: number) => {
+    setQuizData(prev => {
+      const newQuestions = [...prev.questions];
+      newQuestions.splice(index, 1);
+      return {
+        ...prev,
+        questions: newQuestions,
+        totalQuestions: (typeof prev.totalQuestions === 'number' ? prev.totalQuestions : 0) - 1,
+      };
+    });
+  };
+
   const handleUpdateDraftQuestion = (questionIndex: number, field: any, value: any) => {
     setQuizData(prev => {
       const newQuestions = [...prev.questions];
@@ -228,6 +261,19 @@ const QuizCreator = () => {
   const prepareQuizForOutput = (): StoredQuiz | null => {
     if (!validateQuizDraft()) return null;
     const quizId = `qz-${Date.now()}`;
+    const questionsForOutput = quizData.questions.map((q, index) => {
+      // Validation per question could go here
+      return {
+        id: `q-${quizId}-${index}`,
+        quizId: quizId,
+        questionText: q.questionText,
+        options: q.options,
+        correctAnswer: q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : '',
+        marks: typeof q.marks === 'number' ? q.marks : 1,
+        timeLimitMinutes: typeof q.timeLimitMinutes === 'number' ? q.timeLimitMinutes : 1,
+      };
+    });
+
     return {
       id: quizId,
       title: quizData.quizTitle,
@@ -235,16 +281,12 @@ const QuizCreator = () => {
       questionIds: [],
       timeLimitMinutes: totalCalculatedQuizTime,
       negativeMarking: negativeMarking,
-<<<<<<< HEAD
       negativeMarksValue: negativeMarking ? Number(negativeMarksValue) : 0, // Use negativeMarksValue
       competitionMode: competitionMode,
       scheduledDate: quizData.scheduledDate,
       startTime: quizData.startTime,
       endTime: quizData.endTime,
       difficulty: quizDifficulty, // Include difficulty
-=======
-      negativeMarks: negativeMarking ? negativeMarks : 0, // Store negative marks if enabled
->>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
       _questionsData: questionsForOutput, // Include full question data for easy retrieval
     };
   };
@@ -286,7 +328,7 @@ const QuizCreator = () => {
   };
 
   const handlePreviewQuiz = () => {
-    const quizToPreview = prepareQuizForOutput(true);
+    const quizToPreview = prepareQuizForOutput();
     if (quizToPreview) {
       try {
         // We use the StoredQuiz structure for preview, which includes question data
@@ -312,17 +354,15 @@ const QuizCreator = () => {
       endTime: '',
     });
     setNegativeMarking(false);
-<<<<<<< HEAD
     setNegativeMarksValue('');
     setCompetitionMode(false);
-=======
->>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
     setDefaultTimePerQuestion(null);
     setTotalCalculatedQuizTime(0);
     setAiCoursePaperName('');
     setAiDifficulty('Easy');
     setQuizDifficulty('Medium'); // Reset difficulty
     setStep(1); // Reset step to 1
+    localStorage.removeItem('quizCreatorState');
   };
 
   const handleProceed = () => {
@@ -632,17 +672,6 @@ const QuizCreator = () => {
                             className="mt-1"
                           />
                         </div>
-<<<<<<< HEAD
-                      )}
-                    </div >
-                  </Card >
-                ))
-              )}
-            </div >
-          </>
-        )}
-      </CardContent >
-=======
                         {enableTimePerQuestion && (
                           <div>
                             <Label htmlFor={`q-time-${index}`}>Time for this Question (minutes)</Label>
@@ -661,33 +690,31 @@ const QuizCreator = () => {
                   ))
                 )}
               </div>
-              {/* Manual 'Add Question' removed per requirement */}
             </>
           )
         }
-      </CardContent >
->>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
+      </CardContent>
 
-  <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 mt-6">
-    {step === 1 ? (
-      <Button onClick={handleProceed} className="w-full bg-blue-600 hover:bg-blue-700">
-        Proceed
-      </Button>
-    ) : (
-      <>
-        <Button variant="outline" onClick={() => setStep(1)} className="w-[100px]">
-          Back
-        </Button>
-        <Button onClick={handlePreviewQuiz} variant="outline" className="w-full sm:w-auto">
-          <Eye className="h-4 w-4 mr-2" /> Preview Quiz
-        </Button>
-        <Button onClick={handleCreateQuiz} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
-          <Save className="h-4 w-4 mr-2" /> Create & Schedule Quiz
-        </Button>
-      </>
-    )}
-  </CardFooter>
-    </Card >
+      <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 mt-6">
+        {step === 1 ? (
+          <Button onClick={handleProceed} className="w-full bg-blue-600 hover:bg-blue-700">
+            Proceed
+          </Button>
+        ) : (
+          <>
+            <Button variant="outline" onClick={() => setStep(1)} className="w-[100px]">
+              Back
+            </Button>
+            <Button onClick={handlePreviewQuiz} variant="outline" className="w-full sm:w-auto">
+              <Eye className="h-4 w-4 mr-2" /> Preview Quiz
+            </Button>
+            <Button onClick={handleCreateQuiz} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
+              <Save className="h-4 w-4 mr-2" /> Create & Schedule Quiz
+            </Button>
+          </>
+        )}
+      </CardFooter>
+    </Card>
   );
 };
 

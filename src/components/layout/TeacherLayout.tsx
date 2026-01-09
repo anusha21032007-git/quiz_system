@@ -4,6 +4,7 @@ import React from 'react';
 import TeacherSidebar from '@/components/layout/TeacherSidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import BackButton from '@/components/ui/BackButton';
 
 interface TeacherLayoutProps {
     children: React.ReactNode;
@@ -25,7 +26,10 @@ const TeacherLayout = ({ children, activeView, title = "Teacher Dashboard" }: Te
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
             <header className="flex items-center justify-between p-4 border-b bg-white shadow-sm lg:hidden">
-                <TeacherSidebar activeView={activeView} setActiveView={handleSetActiveView} isMobile={isMobile} />
+                <div className="flex items-center gap-2">
+                    <TeacherSidebar activeView={activeView} setActiveView={handleSetActiveView} isMobile={isMobile} />
+                    <BackButton />
+                </div>
                 <h1 className="text-2xl font-bold text-gray-800">{title}</h1>
             </header>
 
@@ -38,7 +42,10 @@ const TeacherLayout = ({ children, activeView, title = "Teacher Dashboard" }: Te
                         <ResizableHandle withHandle />
                         <ResizablePanel defaultSize={80}>
                             <main className="flex-1 p-8 overflow-auto">
-                                <h1 className="text-4xl font-bold text-gray-800 mb-8 hidden lg:block">{title}</h1>
+                                <div className="space-y-4 mb-8">
+                                    <BackButton />
+                                    <h1 className="text-4xl font-bold text-gray-800 hidden lg:block">{title}</h1>
+                                </div>
                                 {children}
                             </main>
                         </ResizablePanel>

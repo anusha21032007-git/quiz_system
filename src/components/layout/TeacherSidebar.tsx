@@ -1,11 +1,10 @@
-<<<<<<< HEAD
 "use client";
 
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { PanelLeft, PlusCircle, ListChecks, Trophy, Brain, Users } from 'lucide-react';
+import { PanelLeft, PlusCircle, ListChecks, Trophy, Brain, Users, BookOpen, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TeacherSidebarProps {
@@ -15,124 +14,49 @@ interface TeacherSidebarProps {
 }
 
 const TeacherSidebar = ({ activeView, setActiveView, isMobile }: TeacherSidebarProps) => {
-  const navItems = [
-    { id: 'create-question', label: 'Create Question', icon: PlusCircle },
-    { id: 'create-quiz', label: 'Generate Quiz', icon: ListChecks },
-    { id: 'available-quizzes', label: 'Available Quizzes', icon: Trophy },
-    { id: 'interview-mode', label: 'Interview Mode', icon: Brain },
-    { id: 'users', label: 'Users', icon: Users },
-  ];
-
-  const renderNav = () => (
-    <nav className="flex flex-col gap-2 p-4">
-      {navItems.map((item) => (
-        <Button
-          key={item.id}
-          variant={activeView === item.id ? 'secondary' : 'ghost'}
-          className={cn(
-            "justify-start gap-3",
-            activeView === item.id && "bg-accent text-accent-foreground"
-          )}
-          onClick={() => setActiveView(item.id)}
-        >
-          <item.icon className="h-5 w-5" />
-          {item.label}
-        </Button>
-      ))}
-      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <Link to="/" className="block text-blue-600 hover:underline mb-2">Home</Link>
-        <Link to="/leaderboard" className="block text-blue-600 hover:underline">Leaderboard</Link>
-      </div>
-    </nav>
-  );
-
-  if (isMobile) {
-    return (
-      <Sheet>
-        <SheetTrigger asChild>
-          <Button size="icon" variant="outline" className="lg:hidden">
-            <PanelLeft className="h-5 w-5" />
-            <span className="sr-only">Toggle Menu</span>
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="sm:max-w-xs">
-          {renderNav()}
-        </SheetContent>
-      </Sheet>
-    );
-  }
-
-  return (
-    <div className="flex flex-col h-full border-r bg-sidebar text-sidebar-foreground">
-      {renderNav()}
-    </div>
-  );
-};
-
-=======
-"use client";
-
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { PanelLeft, PlusCircle, ListChecks, Brain, Users, BookOpen, History } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
-interface TeacherSidebarProps {
-  activeView?: string; // Optional if using route
-  setActiveView?: (view: string) => void; // Optional if using route
-  isMobile: boolean;
-}
-
-const TeacherSidebar = ({ activeView, setActiveView, isMobile }: TeacherSidebarProps) => {
-  const location = useLocation();
-  const navigate = useNavigate();
 
   const navItems = [
-    { id: 'create-question', label: 'Create Question', icon: PlusCircle, path: '/teacher' },
+    { id: 'create-question', label: 'Create Question', icon: PlusCircle, path: '/teacher?view=create-question' },
     { id: 'create-quiz', label: 'Generate Quiz', icon: ListChecks, path: '/teacher?view=create-quiz' },
-    { id: 'interview-mode', label: 'Interview Mode', icon: Brain, path: '/teacher?view=interview-mode' },
-    { id: 'courses', label: 'Courses', icon: BookOpen, path: '/teacher/courses' },
+    { id: 'courses', label: 'Available Courses', icon: BookOpen, path: '/teacher/courses' },
+    { id: 'competitive-mode', label: 'Interview Mode', icon: Brain, path: '/teacher?view=competitive-mode' },
     { id: 'users', label: 'Users', icon: Users, path: '/teacher?view=users' },
     { id: 'history', label: 'History', icon: History, path: '/teacher/history' },
   ];
 
-  const isActive = (item: typeof navItems[0]) => {
-    if (item.id === 'courses') {
-      return location.pathname === '/teacher/courses';
-    }
-    if (item.id === 'history') {
-      return location.pathname === '/teacher/history';
-    }
-    if (location.pathname === '/teacher') {
-      const searchParams = new URLSearchParams(location.search);
-      const view = searchParams.get('view') || 'create-question';
-      return view === item.id;
-    }
-    return activeView === item.id;
-  };
-
   const renderNav = () => (
     <nav className="flex flex-col gap-2 p-4">
       {navItems.map((item) => (
-        <Button
+        <Link
           key={item.id}
-          variant={isActive(item) ? 'secondary' : 'ghost'}
-          className={cn(
-            "justify-start gap-3",
-            isActive(item) && "bg-accent text-accent-foreground"
-          )}
-          asChild
+          to={item.path}
+          onClick={() => {
+            if (setActiveView) setActiveView(item.id);
+          }}
+          className="block w-full"
         >
-          <Link to={item.path}>
-            <item.icon className="h-5 w-5" />
+          <Button
+            variant="ghost"
+            className={cn(
+              "w-full justify-start gap-3 transition-all duration-200 border-2 rounded-lg",
+              activeView === item.id
+                ? "bg-black text-white border-black shadow-none hover:bg-gray-800 hover:text-white"
+                : "bg-white text-gray-700 border-transparent hover:border-gray-300 hover:bg-gray-50"
+            )}
+          >
+            <item.icon className={cn("h-5 w-5", activeView === item.id ? "text-white" : "text-gray-500")} />
             {item.label}
-          </Link>
-        </Button>
+          </Button>
+        </Link>
       ))}
-      <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700">
-        <Link to="/" className="block px-4 py-2 text-sm text-blue-600 hover:underline">Home</Link>
-        <Link to="/leaderboard" className="block px-4 py-2 text-sm text-blue-600 hover:underline">Leaderboard</Link>
+
+      <div className="mt-auto pt-4 border-t-2 border-gray-100 space-y-2">
+        <Link to="/" className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-black hover:bg-gray-50 rounded-md transition-colors border border-transparent hover:border-gray-200">
+          Home
+        </Link>
+        <Link to="/leaderboard" className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-black hover:bg-gray-50 rounded-md transition-colors border border-transparent hover:border-gray-200">
+          Leaderboard
+        </Link>
       </div>
     </nav>
   );
@@ -154,7 +78,7 @@ const TeacherSidebar = ({ activeView, setActiveView, isMobile }: TeacherSidebarP
   }
 
   return (
-    <div className="flex flex-col h-full border-r bg-sidebar text-sidebar-foreground">
+    <div className="flex flex-col h-full border-r-2 border-gray-200 bg-white text-gray-900">
       {renderNav()}
     </div>
   );
