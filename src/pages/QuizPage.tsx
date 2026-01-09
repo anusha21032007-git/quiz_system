@@ -34,23 +34,39 @@ const QuizPage = () => {
   const location = useLocation();
   const { studentName } = (location.state || {}) as { studentName?: string };
 
-  const { getQuizById, submitQuizAttempt } = useQuiz();
+  const { getQuizById, submitQuizAttempt, getQuestionsForQuiz } = useQuiz();
   const quiz = quizId ? getQuizById(quizId) : undefined;
-  
-  // Fetch questions using Supabase hook
-  const { data: supabaseQuestions, isLoading: isQuestionsLoading, error: questionsError } = useQuestionsByQuizId(quizId || '');
-  
-  const questions: LocalQuestionType[] = (supabaseQuestions || []).map(mapSupabaseQuestionToLocal);
-  
+
+  // 1. Try Cloud Questions (Supabase)
+  const { data: supabaseQuestions, isLoading: isSupabaseLoading, error: questionsError } = useQuestionsByQuizId(quizId || '');
+
+  // 2. Decide which source to use (Memoized to prevent reset loops)
+  const questions = React.useMemo(() => {
+    const localQuestions = quizId ? getQuestionsForQuiz(quizId) : [];
+    if (localQuestions.length > 0) return localQuestions;
+    return (supabaseQuestions || []).map(mapSupabaseQuestionToLocal);
+  }, [quizId, supabaseQuestions, getQuestionsForQuiz]);
+
+  const isQuestionsLoading = isSupabaseLoading && questions.length === 0;
+
   const isMobile = useIsMobile();
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [answers, setAnswers] = useState<{ questionId: string; selectedAnswer: string; isCorrect: boolean; marksObtained: number }[]>([]);
   const [showResults, setShowResults] = useState(false);
-  const [quizStudentName, setQuizStudentName] = useState(studentName || '');
-  const [initialTime, setInitialTime] = useState<number>(0); 
-  const [timeLeft, setTimeLeft] = useState<number>(0); 
+  const [quizStudentName, setQuizStudentName] = useState(() => {
+    return (location.state as any)?.studentName || sessionStorage.getItem('currentStudentName') || '';
+  });
+
+  useEffect(() => {
+    if (quizStudentName) {
+      sessionStorage.setItem('currentStudentName', quizStudentName);
+    }
+  }, [quizStudentName]);
+
+  const [initialTime, setInitialTime] = useState<number>(0);
+  const [timeLeft, setTimeLeft] = useState<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize quiz state and handle missing quiz/questions
@@ -58,12 +74,12 @@ const QuizPage = () => {
     if (!quizId || !quiz) {
       return;
     }
-    
+
     if (questions.length > 0) {
       // Calculate total time limit based on individual question times
       const totalDuration = questions.reduce((sum, q) => sum + q.timeLimitMinutes, 0) * 60; // Convert minutes to seconds
       setInitialTime(totalDuration);
-      setTimeLeft(totalDuration); 
+      setTimeLeft(totalDuration);
     }
   }, [quizId, quiz, questions.length, navigate]);
 
@@ -94,15 +110,18 @@ const QuizPage = () => {
     };
   }, [timeLeft, showResults, questions.length]);
 
+  const currentQuestionId = questions[currentQuestionIndex]?.id;
+
   // Load previously selected answer for current question
+  // DEPEND ON ID, NOT ARRAY REFERENCE
   useEffect(() => {
-    if (currentQuestionIndex < questions.length) {
+    if (currentQuestionId) {
       const existingAnswer = answers.find(
-        (ans) => ans.questionId === questions[currentQuestionIndex].id
+        (ans) => ans.questionId === currentQuestionId
       );
       setSelectedAnswer(existingAnswer ? existingAnswer.selectedAnswer : null);
     }
-  }, [currentQuestionIndex, questions, answers]);
+  }, [currentQuestionId, answers]);
 
   if (!quizId || !quiz || isQuestionsLoading) {
     return (
@@ -117,9 +136,9 @@ const QuizPage = () => {
       </div>
     );
   }
-  
+
   if (questions.length === 0) {
-     return (
+    return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-8">
         <Alert className="max-w-md">
           <Info className="h-4 w-4" />
@@ -145,12 +164,12 @@ const QuizPage = () => {
       return question.marks;
     } else if (quiz?.negativeMarking) {
       // Use negativeMarksValue from the quiz object
-      const deduction = quiz.negativeMarksValue > 0 
-        ? quiz.negativeMarksValue 
-        : 0.25 * question.marks; 
-      return -deduction; 
+      const deduction = quiz.negativeMarksValue > 0
+        ? quiz.negativeMarksValue
+        : 0.25 * question.marks;
+      return -deduction;
     }
-    return 0; 
+    return 0;
   };
 
   const handleSubmitQuiz = (isAutoSubmit: boolean = false) => {
@@ -186,7 +205,7 @@ const QuizPage = () => {
     }
 
     const totalScore = finalAnswers.reduce((sum, ans) => sum + ans.marksObtained, 0);
-    const timeTaken = initialTime - timeLeft; 
+    const timeTaken = initialTime - timeLeft;
 
     submitQuizAttempt({
       quizId: quiz.id,
@@ -194,7 +213,7 @@ const QuizPage = () => {
       score: totalScore,
       totalQuestions: questions.length,
       answers: finalAnswers,
-      timeTakenSeconds: timeTaken, 
+      timeTakenSeconds: timeTaken,
     });
 
     if (timerRef.current) {
@@ -239,7 +258,7 @@ const QuizPage = () => {
 
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
-      setSelectedAnswer(null); 
+      setSelectedAnswer(null);
     } else {
       // End of quiz, submit
       handleSubmitQuiz();
@@ -307,10 +326,10 @@ const QuizPage = () => {
                               key={optIndex}
                               className={cn(
                                 "p-2 border rounded-md text-left",
-                                isCorrectOption && "bg-green-100 border-green-400", 
-                                isSelected && !isCorrectOption && "bg-red-100 border-red-400", 
-                                isSelected && isCorrectOption && "bg-green-100 border-green-400", 
-                                !isSelected && !isCorrectOption && "bg-gray-50 border-gray-200" 
+                                isCorrectOption && "bg-green-100 border-green-400",
+                                isSelected && !isCorrectOption && "bg-red-100 border-red-400",
+                                isSelected && isCorrectOption && "bg-green-100 border-green-400",
+                                !isSelected && !isCorrectOption && "bg-gray-50 border-gray-200"
                               )}
                             >
                               <span className="font-medium">{option}</span>
@@ -376,16 +395,39 @@ const QuizPage = () => {
               </div>
             )}
             <h2 className="text-2xl font-semibold text-gray-900">{currentQuestion.questionText} ({currentQuestion.marks} marks)</h2>
-            <RadioGroup onValueChange={setSelectedAnswer} value={selectedAnswer || ''} className="space-y-3">
-              {currentQuestion.options.map((option, index) => (
-                <div key={index} className="flex items-center space-x-3 p-3 border rounded-md hover:bg-gray-100 cursor-pointer">
-                  <RadioGroupItem value={option} id={`option-${index}`} />
-                  <Label htmlFor={`option-${index}`} className="text-lg font-normal flex-grow cursor-pointer">
-                    {option}
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
+            <div className="space-y-3">
+              {currentQuestion.options.map((option, index) => {
+                const isSelected = selectedAnswer === option;
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setSelectedAnswer(option)}
+                    className={cn(
+                      "w-full flex items-center space-x-3 p-4 border rounded-xl cursor-pointer transition-all duration-200 text-left group",
+                      isSelected
+                        ? "border-indigo-600 bg-indigo-50 shadow-md transform scale-[1.01]"
+                        : "border-gray-200 hover:bg-gray-50 hover:border-gray-300"
+                    )}
+                  >
+                    {/* Custom Radio Circle */}
+                    <div className={cn(
+                      "h-6 w-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0",
+                      isSelected ? "border-indigo-600 bg-indigo-600" : "border-gray-300 bg-white group-hover:border-gray-400"
+                    )}>
+                      {isSelected && <div className="h-2.5 w-2.5 rounded-full bg-white shadow-sm" />}
+                    </div>
+
+                    <span className={cn(
+                      "text-lg flex-grow",
+                      isSelected ? "font-medium text-indigo-900" : "font-normal text-gray-700"
+                    )}>
+                      {option}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </CardContent>
           <CardFooter className="flex justify-between mt-6">
             <Button

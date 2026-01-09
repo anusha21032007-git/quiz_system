@@ -5,7 +5,8 @@ import { Link } from 'react-router-dom';
 import { useQuiz, QuizAttempt } from '@/context/QuizContext';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trophy, Users, Clock } from 'lucide-react'; // Added Users and Clock icons
+import { Button } from '@/components/ui/button';
+import { Trophy, Users, Clock, ChevronLeft } from 'lucide-react';
 
 const Leaderboard = () => {
   const { quizAttempts, quizzes } = useQuiz();
@@ -37,13 +38,19 @@ const Leaderboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      <header className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold text-gray-800">Leaderboard</h1>
-        <nav className="space-x-4">
-          <Link to="/" className="text-blue-600 hover:underline">Home</Link>
-          <Link to="/student" className="text-blue-600 hover:underline">Student Dashboard</Link>
-          <Link to="/teacher" className="text-blue-600 hover:underline">Teacher Dashboard</Link>
-        </nav>
+      <header className="relative flex items-center justify-center mb-10">
+        <div className="absolute left-0">
+          <Link to="/student">
+            <Button
+              variant="ghost"
+              className="group flex items-center gap-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+            >
+              <ChevronLeft className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
+              <span className="font-medium text-lg">Back to Dashboard</span>
+            </Button>
+          </Link>
+        </div>
+        <h1 className="text-4xl font-extrabold text-gray-800 tracking-tight">Leaderboard</h1>
       </header>
 
       <div className="max-w-4xl mx-auto space-y-8">

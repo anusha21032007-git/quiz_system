@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ListChecks, PlusCircle, Trash2, Eye, Save, Brain } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -83,9 +84,49 @@ const QuizCreator = () => {
   const [step, setStep] = useState<number>(1);
 
   useEffect(() => {
+    const draftData = sessionStorage.getItem('draft_quiz_params');
+    if (draftData) {
+      try {
+        const { questions, source } = JSON.parse(draftData);
+        if (questions && Array.isArray(questions)) {
+          const mappedQuestions: LocalQuestion[] = questions.map((q: any) => ({
+            questionText: q.questionText,
+            options: q.options,
+            correctAnswerIndex: q.options.indexOf(q.correctAnswer),
+            marks: typeof q.marks === 'number' ? q.marks : 1,
+            timeLimitMinutes: typeof q.timeLimitMinutes === 'number' ? q.timeLimitMinutes : 1
+          }));
+
+          setQuizData(prev => ({
+            ...prev,
+            questions: mappedQuestions,
+            totalQuestions: mappedQuestions.length,
+            // optional: infer options count
+            optionsPerQuestion: mappedQuestions[0]?.options?.length || 4
+          }));
+
+          toast.success("Loaded questions from Question Bank!");
+          // Clean up
+          sessionStorage.removeItem('draft_quiz_params');
+        }
+      } catch (e) {
+        console.error("Failed to load draft quiz", e);
+      }
+    }
+  }, []); // Run once on mount
+
+  useEffect(() => {
     setQuizData((prev) => {
-      const newQuestions = [...prev.questions];
+      // If we have questions loaded from draft (length > 0) and totalMatches, don't wipe them out.
+      // Only regenerate if the lengths mismatch significantly or if it's a fresh init.
+      // Logic: If user manually changes 'totalQuestions', we adjust. 
+
+      const currentCount = prev.questions.length;
       const targetCount = prev.totalQuestions === '' ? 0 : prev.totalQuestions;
+
+      if (currentCount === targetCount && currentCount > 0) return prev; // Stability check
+
+      const newQuestions = [...prev.questions];
 
       while (newQuestions.length < targetCount) {
         newQuestions.push({
@@ -96,9 +137,12 @@ const QuizCreator = () => {
           timeLimitMinutes: defaultTimePerQuestion !== null ? defaultTimePerQuestion : 1,
         });
       }
+
+      // If reducing count
       const slicedQuestions = newQuestions.slice(0, targetCount);
 
       const updatedQuestions = slicedQuestions.map(q => {
+        // Ensure options count matches config
         const newOptions = [...q.options];
         while (newOptions.length < prev.optionsPerQuestion) {
           newOptions.push('');
@@ -246,31 +290,31 @@ const QuizCreator = () => {
           </>
         ) : (
           <>
-             <div className="space-y-4">
-                <Button onClick={handleGenerateAIQuestions} variant="outline" className="w-full">Generate with AI</Button>
-                {quizData.questions.map((q, i) => (
-                  <Card key={i} className="p-4 space-y-3">
-                    <Label>Question {i+1}</Label>
-                    <Input value={q.questionText} onChange={e => handleUpdateDraftQuestion(i, 'questionText', e.target.value)} />
-                    <RadioGroup value={q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : ''} onValueChange={v => handleUpdateCorrectAnswerIndex(i, v)}>
-                      {q.options.map((opt, oi) => (
-                        <div key={oi} className="flex items-center gap-2">
-                           <RadioGroupItem value={opt} id={`q-${i}-${oi}`} />
-                           <Input value={opt} onChange={e => {
-                             const opts = [...q.options]; opts[oi] = e.target.value;
-                             handleUpdateDraftQuestion(i, 'options', opts);
-                           }} />
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </Card>
-                ))}
-             </div>
-             <div className="flex gap-2">
-                <Button onClick={() => setStep(1)} variant="outline">Back</Button>
-                <Button onClick={handlePreviewQuiz} variant="secondary">Preview</Button>
-                <Button onClick={handleCreateQuiz} className="bg-green-600">Create & Schedule</Button>
-             </div>
+            <div className="space-y-4">
+              <Button onClick={handleGenerateAIQuestions} variant="outline" className="w-full">Generate with AI</Button>
+              {quizData.questions.map((q, i) => (
+                <Card key={i} className="p-4 space-y-3">
+                  <Label>Question {i + 1}</Label>
+                  <Input value={q.questionText} onChange={e => handleUpdateDraftQuestion(i, 'questionText', e.target.value)} />
+                  <RadioGroup value={q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : ''} onValueChange={v => handleUpdateCorrectAnswerIndex(i, v)}>
+                    {q.options.map((opt, oi) => (
+                      <div key={oi} className="flex items-center gap-2">
+                        <RadioGroupItem value={opt} id={`q-${i}-${oi}`} />
+                        <Input value={opt} onChange={e => {
+                          const opts = [...q.options]; opts[oi] = e.target.value;
+                          handleUpdateDraftQuestion(i, 'options', opts);
+                        }} />
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </Card>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={() => setStep(1)} variant="outline">Back</Button>
+              <Button onClick={handlePreviewQuiz} variant="secondary">Preview</Button>
+              <Button onClick={handleCreateQuiz} className="bg-green-600">Create & Schedule</Button>
+            </div>
           </>
         )}
       </CardContent>

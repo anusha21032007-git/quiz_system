@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useSearchParams } from 'react-router-dom';
 import StudentSidebar from '@/components/layout/StudentSidebar';
 import StudentDashboardContent from '@/components/student/StudentDashboardContent';
 import StudentProfileHeader from '@/components/student/StudentProfileHeader';
@@ -12,8 +13,16 @@ const DEFAULT_REGISTER_NUMBER = '2024-001';
 
 const StudentDashboard = () => {
   const isMobile = useIsMobile();
-  const [activeView, setActiveView] = useState<string>('dashboard');
-  
+  const [searchParams] = useSearchParams();
+  const [activeView, setActiveView] = useState<string>(searchParams.get('view') || 'dashboard');
+
+  useEffect(() => {
+    const viewParam = searchParams.get('view');
+    if (viewParam && viewParam !== activeView) {
+      setActiveView(viewParam);
+    }
+  }, [searchParams]);
+
   const studentName = DEFAULT_STUDENT_NAME;
   const registerNumber = DEFAULT_REGISTER_NUMBER;
 
@@ -46,7 +55,7 @@ const StudentDashboard = () => {
             <StudentSidebar activeView={activeView} setActiveView={setActiveView} isMobile={isMobile} studentName={studentName} registerNumber={registerNumber} />
           </aside>
         )}
-        
+
         <div className="flex-1 flex flex-col overflow-hidden">
           {!isMobile && (
             <header className="flex justify-between items-center px-8 py-4 border-b bg-white shadow-sm flex-shrink-0">
