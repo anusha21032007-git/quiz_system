@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/componen
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { PlusCircle, Trash2, History, X, Settings2, Save, Send, CheckCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useQuiz } from '@/context/QuizContext';
 
 interface Poll {
@@ -285,9 +286,21 @@ const QuestionCreator = () => {
                 min="0"
                 value={numQuestions}
                 onChange={(e) => {
-                  setNumQuestions(e.target.value === '' ? '' : parseInt(e.target.value));
+                  const val = e.target.value;
+                  // Allow empty for clearing
+                  if (val === '') {
+                    setNumQuestions('');
+                    return;
+                  }
+                  const numVal = parseInt(val);
+                  if (numVal <= 0) {
+                    toast.error("Number of questions must be at least 1.");
+                    return;
+                  }
+                  setNumQuestions(numVal);
                   if (showErrors) setShowErrors(false);
                 }}
+                onKeyDown={(e) => e.preventDefault()}
                 className={`h-14 text-xl bg-gray-50/50 focus:bg-white transition-all shadow-sm ${showErrors && (numQuestions === '' || numQuestions <= 0) ? 'border-red-500 ring-red-50' : 'border-blue-100 focus:border-blue-500'}`}
               />
               {showErrors && (numQuestions === '' || numQuestions <= 0) && (
@@ -306,10 +319,20 @@ const QuestionCreator = () => {
                 max="6"
                 value={numOptions}
                 onChange={(e) => {
-                  const val = e.target.value === '' ? '' : parseInt(e.target.value);
-                  if (val === '' || (val >= 0 && val <= 6)) setNumOptions(val);
+                  const val = e.target.value;
+                  if (val === '') {
+                    setNumOptions('');
+                    return;
+                  }
+                  const numVal = parseInt(val);
+                  if (numVal < 0 || numVal > 6) {
+                    toast.error("Options per question must be between 1 and 6.");
+                    return;
+                  }
+                  setNumOptions(numVal);
                   if (showErrors) setShowErrors(false);
                 }}
+                onKeyDown={(e) => e.preventDefault()}
                 className={`h-14 text-xl bg-gray-50/50 focus:bg-white transition-all shadow-sm ${showErrors && (numOptions === '' || numOptions < 1 || numOptions > 6) ? 'border-red-500 ring-red-50' : 'border-blue-100 focus:border-blue-500'}`}
               />
               <div className="flex justify-between items-center px-1">
@@ -472,7 +495,15 @@ const QuestionCreator = () => {
                           type="number"
                           min="1"
                           value={q.marks}
-                          onChange={(e) => handleUpdateQuestion(qIndex, 'marks', e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val !== '' && parseInt(val) < 0) {
+                              toast.error("Marks cannot be negative.");
+                              return;
+                            }
+                            handleUpdateQuestion(qIndex, 'marks', val);
+                          }}
+                          onKeyDown={(e) => e.preventDefault()}
                           className="font-bold text-blue-600 border-gray-200"
                         />
                       </div>
@@ -482,7 +513,15 @@ const QuestionCreator = () => {
                           type="number"
                           min="1"
                           value={q.timeLimitMinutes}
-                          onChange={(e) => handleUpdateQuestion(qIndex, 'timeLimitMinutes', e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val !== '' && parseInt(val) <= 0) {
+                              toast.error("Time limit must be at least 1 minute.");
+                              return;
+                            }
+                            handleUpdateQuestion(qIndex, 'timeLimitMinutes', val);
+                          }}
+                          onKeyDown={(e) => e.preventDefault()}
                           className="font-bold text-blue-600 border-gray-200"
                         />
                       </div>

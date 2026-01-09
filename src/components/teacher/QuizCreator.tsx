@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/componen
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ListChecks, PlusCircle, Trash2, Eye, Save, Brain } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useQuiz, Quiz, Question } from '@/context/QuizContext'; // Import Quiz and Question types
@@ -42,16 +43,13 @@ interface StoredQuiz {
   questionIds: string[];
   timeLimitMinutes: number;
   negativeMarking: boolean;
-<<<<<<< HEAD
   negativeMarksValue: number; // Updated field name for consistency
   competitionMode: boolean;
   scheduledDate: string; // ADDED
   startTime: string;     // ADDED
   endTime: string;       // ADDED
   difficulty: 'Easy' | 'Medium' | 'Hard'; // ADDED DIFFICULTY
-=======
-  negativeMarks: string | number; // Added negativeMarks to stored quiz
->>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
+
   _questionsData: {
     id: string;
     quizId: string;
@@ -65,7 +63,7 @@ interface StoredQuiz {
 
 const QuizCreator = () => {
   const navigate = useNavigate();
-  const { generateAIQuestions, addQuiz } = useQuiz(); // Removed addQuestion
+  const { generateAIQuestions, addQuiz, addCourse } = useQuiz(); // Removed addQuestion
 
   // Consolidated quiz data state
   const [quizData, setQuizData] = useState<LocalQuizData>({
@@ -81,12 +79,9 @@ const QuizCreator = () => {
 
   // Other quiz details not explicitly part of the 'Quiz' structure provided by user, but still needed
   const [negativeMarking, setNegativeMarking] = useState<boolean>(false);
-<<<<<<< HEAD
   const [negativeMarksValue, setNegativeMarksValue] = useState<string | number>(''); // State for negative marks value
   const [competitionMode, setCompetitionMode] = useState<boolean>(false);
-=======
-  const [negativeMarks, setNegativeMarks] = useState<string | number>(''); // State for negative marks value
->>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
+
   const [defaultTimePerQuestion, setDefaultTimePerQuestion] = useState<number | null>(null); // New state for optional default time
   const [enableTimePerQuestion, setEnableTimePerQuestion] = useState<boolean>(false); // Toggle for time per question
   const [totalCalculatedQuizTime, setTotalCalculatedQuizTime] = useState<number>(0); // New state for total quiz time
@@ -233,16 +228,16 @@ const QuizCreator = () => {
       [field]: value,
     }));
   };
-  
+
   const handleUpdateCorrectAnswerIndex = (questionIndex: number, selectedOptionValue: string) => {
     setQuizData((prev) => {
       const newQuestions = [...prev.questions];
       const question = newQuestions[questionIndex];
       const newIndex = question.options.findIndex(opt => opt === selectedOptionValue);
-      
-      newQuestions[questionIndex] = { 
-        ...question, 
-        correctAnswerIndex: newIndex !== -1 ? newIndex : null 
+
+      newQuestions[questionIndex] = {
+        ...question,
+        correctAnswerIndex: newIndex !== -1 ? newIndex : null
       };
       return { ...prev, questions: newQuestions };
     });
@@ -325,16 +320,13 @@ const QuizCreator = () => {
       questionIds: questionsForOutput.map(q => q.id),
       timeLimitMinutes: totalCalculatedQuizTime,
       negativeMarking: negativeMarking,
-<<<<<<< HEAD
       negativeMarksValue: negativeMarking ? Number(negativeMarksValue) : 0, // Use negativeMarksValue
       competitionMode: competitionMode,
       scheduledDate: quizData.scheduledDate,
       startTime: quizData.startTime,
       endTime: quizData.endTime,
       difficulty: quizDifficulty, // Include difficulty
-=======
-      negativeMarks: negativeMarking ? negativeMarks : 0, // Store negative marks if enabled
->>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
+
       _questionsData: questionsForOutput, // Include full question data for easy retrieval
     };
   };
@@ -342,7 +334,7 @@ const QuizCreator = () => {
   const handleCreateQuiz = () => {
     const finalQuizData = prepareQuizForOutput();
     if (finalQuizData) {
-      
+
       // 1. Prepare data for QuizContext's addQuiz (which handles Supabase insertion)
       const quizToAdd: Omit<Quiz, 'id' | 'status'> = {
         title: finalQuizData.title,
@@ -402,11 +394,9 @@ const QuizCreator = () => {
       endTime: '',
     });
     setNegativeMarking(false);
-<<<<<<< HEAD
     setNegativeMarksValue('');
     setCompetitionMode(false);
-=======
->>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
+
     setDefaultTimePerQuestion(null);
     setTotalCalculatedQuizTime(0);
     setAiCoursePaperName('');
@@ -432,6 +422,12 @@ const QuizCreator = () => {
       toast.error("Please set the scheduled date, start time, and end time.");
       return;
     }
+
+    // Add course only when proceeding
+    if (quizData.courseName.trim()) {
+      addCourse(quizData.courseName.trim());
+    }
+
     setStep(2);
   };
 
@@ -465,11 +461,14 @@ const QuizCreator = () => {
             placeholder="e.g., 'CS 101: Introduction to Programming'"
             value={quizData.courseName}
             disabled={step === 2} // Lock
-            onChange={(e) => handleUpdateQuizDetails('courseName', e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              handleUpdateQuizDetails('courseName', val);
+            }}
             className="mt-1"
           />
         </div>
-        
+
         {/* Scheduling Inputs */}
         <div className="border-t pt-4 mt-4">
           <h3 className="text-lg font-semibold mb-2">Quiz Scheduling</h3>
@@ -481,7 +480,56 @@ const QuizCreator = () => {
                 type="date"
                 value={quizData.scheduledDate}
                 disabled={step === 2}
-                onChange={(e) => handleUpdateQuizDetails('scheduledDate', e.target.value)}
+                onChange={(e) => {
+                  const dateValue = e.target.value;
+
+                  // If empty, allow it (for clearing the field)
+                  if (!dateValue) {
+                    handleUpdateQuizDetails('scheduledDate', dateValue);
+                    return;
+                  }
+
+                  // Validate date format and value
+                  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+                  if (!dateRegex.test(dateValue)) {
+                    toast.error("Invalid date format. Please use the date picker.");
+                    return;
+                  }
+
+                  // Parse the date components
+                  const [year, month, day] = dateValue.split('-').map(Number);
+
+                  // Validate month (1-12)
+                  if (month < 1 || month > 12) {
+                    toast.error(`Invalid month: ${month}. Month must be between 1 and 12.`);
+                    return;
+                  }
+
+                  // Validate day for the given month and year
+                  const daysInMonth = new Date(year, month, 0).getDate();
+                  if (day < 1 || day > daysInMonth) {
+                    toast.error(`Invalid day: ${day}. This month has only ${daysInMonth} days.`);
+                    return;
+                  }
+
+                  // Create a date object and verify it matches the input
+                  const dateObj = new Date(dateValue);
+                  if (isNaN(dateObj.getTime())) {
+                    toast.error("Invalid date. Please select a valid date.");
+                    return;
+                  }
+
+                  // Verify the date components match (prevents auto-correction)
+                  if (dateObj.getFullYear() !== year ||
+                    dateObj.getMonth() + 1 !== month ||
+                    dateObj.getDate() !== day) {
+                    toast.error("Invalid date. Please select a valid date.");
+                    return;
+                  }
+
+                  // All validations passed, update the value
+                  handleUpdateQuizDetails('scheduledDate', dateValue);
+                }}
                 className="mt-1"
               />
             </div>
@@ -492,7 +540,40 @@ const QuizCreator = () => {
                 type="time"
                 value={quizData.startTime}
                 disabled={step === 2}
-                onChange={(e) => handleUpdateQuizDetails('startTime', e.target.value)}
+                onChange={(e) => {
+                  const timeValue = e.target.value;
+
+                  // If empty, allow it (for clearing the field)
+                  if (!timeValue) {
+                    handleUpdateQuizDetails('startTime', timeValue);
+                    return;
+                  }
+
+                  // Validate time format (HH:MM)
+                  const timeRegex = /^\d{2}:\d{2}$/;
+                  if (!timeRegex.test(timeValue)) {
+                    toast.error("Invalid time format. Please use the time picker.");
+                    return;
+                  }
+
+                  // Parse hours and minutes
+                  const [hours, minutes] = timeValue.split(':').map(Number);
+
+                  // Validate hours (0-23)
+                  if (hours < 0 || hours > 23) {
+                    toast.error(`Invalid hour: ${hours}. Hours must be between 0 and 23.`);
+                    return;
+                  }
+
+                  // Validate minutes (0-59)
+                  if (minutes < 0 || minutes > 59) {
+                    toast.error(`Invalid minutes: ${minutes}. Minutes must be between 0 and 59.`);
+                    return;
+                  }
+
+                  // All validations passed, update the value
+                  handleUpdateQuizDetails('startTime', timeValue);
+                }}
                 className="mt-1"
               />
             </div>
@@ -503,7 +584,40 @@ const QuizCreator = () => {
                 type="time"
                 value={quizData.endTime}
                 disabled={step === 2}
-                onChange={(e) => handleUpdateQuizDetails('endTime', e.target.value)}
+                onChange={(e) => {
+                  const timeValue = e.target.value;
+
+                  // If empty, allow it (for clearing the field)
+                  if (!timeValue) {
+                    handleUpdateQuizDetails('endTime', timeValue);
+                    return;
+                  }
+
+                  // Validate time format (HH:MM)
+                  const timeRegex = /^\d{2}:\d{2}$/;
+                  if (!timeRegex.test(timeValue)) {
+                    toast.error("Invalid time format. Please use the time picker.");
+                    return;
+                  }
+
+                  // Parse hours and minutes
+                  const [hours, minutes] = timeValue.split(':').map(Number);
+
+                  // Validate hours (0-23)
+                  if (hours < 0 || hours > 23) {
+                    toast.error(`Invalid hour: ${hours}. Hours must be between 0 and 23.`);
+                    return;
+                  }
+
+                  // Validate minutes (0-59)
+                  if (minutes < 0 || minutes > 59) {
+                    toast.error(`Invalid minutes: ${minutes}. Minutes must be between 0 and 59.`);
+                    return;
+                  }
+
+                  // All validations passed, update the value
+                  handleUpdateQuizDetails('endTime', timeValue);
+                }}
                 className="mt-1"
               />
             </div>
@@ -546,10 +660,10 @@ const QuizCreator = () => {
             />
           </div>
         </div>
-        
+
         <div className="border-t pt-4 mt-4">
           <h3 className="text-lg font-semibold mb-2">Additional Quiz Settings</h3>
-          
+
           {/* NEW: Difficulty Selection */}
           <div className="mb-4">
             <Label htmlFor="quizDifficulty">Quiz Difficulty Level</Label>
@@ -564,7 +678,7 @@ const QuizCreator = () => {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="flex items-center justify-between mt-3">
             <Label htmlFor="enableTimePerQuestion">Enable Time per Question</Label>
             <Switch
@@ -706,58 +820,54 @@ const QuizCreator = () => {
                             ))}
                           </RadioGroup>
                         </div>
-                        <div>
-                          <Label htmlFor={`q-marks-${index}`}>Marks (1-10)</Label>
-                          <Input
-                            id={`q-marks-${index}`}
-                            type="number"
-                            min="0"
-                            max="10"
-                            value={q.marks}
-                            onChange={(e) => {
-                              const val = e.target.value === '' ? '' : parseInt(e.target.value);
-                              if (val === '' || (val >= 0 && val <= 10)) {
-                                handleUpdateDraftQuestion(index, 'marks', val === '' ? '' : val);
-                              }
-                            }}
-                            className="mt-1"
-                          />
-                        </div>
-<<<<<<< HEAD
-                      )}
-                    </div>
-                  </Card>
-                ))
-              )}
-            </div>
-          </>
-        )}
-      </CardContent>
-=======
-                        {enableTimePerQuestion && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <Label htmlFor={`q-time-${index}`}>Time for this Question (minutes)</Label>
+                            <Label htmlFor={`q-marks-${index}`}>Marks (1-10)</Label>
                             <Input
-                              id={`q-time-${index}`}
+                              id={`q-marks-${index}`}
                               type="number"
-                              min="1"
-                              value={q.timeLimitMinutes}
-                              onChange={(e) => handleUpdateDraftQuestion(index, 'timeLimitMinutes', e.target.value)}
+                              min="0"
+                              max="10"
+                              value={q.marks}
+                              onChange={(e) => {
+                                const val = e.target.value === '' ? '' : parseInt(e.target.value);
+                                if (val === '' || (val >= 0 && val <= 10)) {
+                                  handleUpdateDraftQuestion(index, 'marks', val);
+                                }
+                              }}
+                              onKeyDown={(e) => e.preventDefault()}
                               className="mt-1"
                             />
                           </div>
-                        )}
+                          {enableTimePerQuestion && (
+                            <div>
+                              <Label htmlFor={`q-time-${index}`}>Time (minutes)</Label>
+                              <Input
+                                id={`q-time-${index}`}
+                                type="number"
+                                min="1"
+                                value={q.timeLimitMinutes}
+                                onChange={(e) => {
+                                  const val = e.target.value === '' ? '' : parseInt(e.target.value);
+                                  if (val === '' || val > 0) {
+                                    handleUpdateDraftQuestion(index, 'timeLimitMinutes', val);
+                                  }
+                                }}
+                                onKeyDown={(e) => e.preventDefault()}
+                                className="mt-1"
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </Card>
                   ))
                 )}
               </div>
-              {/* Manual 'Add Question' removed per requirement */}
             </>
-          )
-        }
-      </CardContent >
->>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
+          )}
+      </CardContent>
+
 
       <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 mt-6">
         {step === 1 ? (

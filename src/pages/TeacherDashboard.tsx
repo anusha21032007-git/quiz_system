@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 "use client";
 
 import React, { useState } from 'react';
@@ -7,14 +6,13 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import TeacherSidebar from '@/components/layout/TeacherSidebar';
 import QuestionCreator from '@/components/teacher/QuestionCreator';
 import QuizCreator from '@/components/teacher/QuizCreator';
-import AvailableQuizzesList from '@/components/teacher/AvailableQuizzesList';
 import InterviewMode from '@/components/teacher/InterviewMode';
 import UsersList from '@/components/teacher/UsersList';
+import CoursesList from '@/components/teacher/CoursesList';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { cn } from '@/lib/utils'; // Import cn for conditional classes
+import { cn } from '@/lib/utils';
 
 const TeacherDashboard = () => {
-  const { quizzes } = useQuiz();
   const isMobile = useIsMobile();
 
   // State for active view in sidebar
@@ -28,14 +26,19 @@ const TeacherDashboard = () => {
       <div className={cn(activeView === 'create-quiz' ? 'block' : 'hidden')}>
         <QuizCreator />
       </div>
-      <div className={cn(activeView === 'available-quizzes' ? 'block' : 'hidden')}>
-        <AvailableQuizzesList quizzes={quizzes} />
-      </div>
       <div className={cn(activeView === 'interview-mode' ? 'block' : 'hidden')}>
         <InterviewMode />
       </div>
       <div className={cn(activeView === 'users' ? 'block' : 'hidden')}>
         <UsersList />
+      </div>
+      <div className={cn(activeView === 'courses' ? 'block' : 'hidden')}>
+        <CoursesList />
+      </div>
+      <div className={cn(activeView === 'history' ? 'block' : 'hidden')}>
+        <div className="p-8 border rounded-lg bg-white shadow-sm flex items-center justify-center min-h-[400px]">
+          <h2 className="text-xl text-gray-500 font-medium">History Feature Coming Soon</h2>
+        </div>
       </div>
     </>
   );
@@ -72,57 +75,4 @@ const TeacherDashboard = () => {
   );
 };
 
-=======
-"use client";
-
-import { useLocation } from 'react-router-dom';
-import TeacherLayout from '@/components/layout/TeacherLayout';
-import QuestionCreator from '@/components/teacher/QuestionCreator';
-import QuizCreator from '@/components/teacher/QuizCreator';
-import InterviewMode from '@/components/teacher/InterviewMode';
-import UsersList from '@/components/teacher/UsersList';
-
-const TeacherDashboard = () => {
-  const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const activeView = searchParams.get('view') || 'create-question';
-
-  const renderMainContent = () => {
-    switch (activeView) {
-      case 'create-question':
-        return <QuestionCreator />;
-      case 'create-quiz':
-        return <QuizCreator />;
-      case 'interview-mode':
-        return <InterviewMode />;
-      case 'users':
-        return <UsersList />;
-      default:
-        return <QuestionCreator />;
-    }
-  };
-
-  const getPageTitle = () => {
-    switch (activeView) {
-      case 'create-question':
-        return 'Question Bank';
-      case 'create-quiz':
-        return 'Quiz Generator';
-      case 'interview-mode':
-        return 'Interview Session';
-      case 'users':
-        return 'Users';
-      default:
-        return 'Teacher Dashboard';
-    }
-  };
-
-  return (
-    <TeacherLayout activeView={activeView} title={getPageTitle()}>
-      {renderMainContent()}
-    </TeacherLayout>
-  );
-};
-
->>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
 export default TeacherDashboard;

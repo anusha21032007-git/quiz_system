@@ -15,7 +15,6 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import QuizHeader from '@/components/quiz/QuizHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Input } from '@/components/ui/input'; // Ensure Input is imported
 
 // Map SupabaseQuestion to LocalQuestionType for internal use
 const mapSupabaseQuestionToLocal = (sQuestion: any): LocalQuestionType => ({
@@ -37,12 +36,12 @@ const QuizPage = () => {
 
   const { getQuizById, submitQuizAttempt } = useQuiz();
   const quiz = quizId ? getQuizById(quizId) : undefined;
-  
+
   // Fetch questions using Supabase hook
   const { data: supabaseQuestions, isLoading: isQuestionsLoading, error: questionsError } = useQuestionsByQuizId(quizId || '');
-  
+
   const questions: LocalQuestionType[] = (supabaseQuestions || []).map(mapSupabaseQuestionToLocal);
-  
+
   const isMobile = useIsMobile();
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -50,8 +49,8 @@ const QuizPage = () => {
   const [answers, setAnswers] = useState<{ questionId: string; selectedAnswer: string; isCorrect: boolean; marksObtained: number }[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [quizStudentName, setQuizStudentName] = useState(studentName || '');
-  const [initialTime, setInitialTime] = useState<number>(0); 
-  const [timeLeft, setTimeLeft] = useState<number>(0); 
+  const [initialTime, setInitialTime] = useState<number>(0);
+  const [timeLeft, setTimeLeft] = useState<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize quiz state and handle missing quiz/questions
@@ -63,12 +62,12 @@ const QuizPage = () => {
       // Since we are using react-query in context, we rely on the context to provide the quiz object.
       return;
     }
-    
+
     if (questions.length > 0) {
       // Calculate total time limit based on individual question times
       const totalDuration = questions.reduce((sum, q) => sum + q.timeLimitMinutes, 0) * 60; // Convert minutes to seconds
       setInitialTime(totalDuration);
-      setTimeLeft(totalDuration); 
+      setTimeLeft(totalDuration);
     }
   }, [quizId, quiz, questions.length, navigate]);
 
@@ -122,9 +121,9 @@ const QuizPage = () => {
       </div>
     );
   }
-  
+
   if (questions.length === 0) {
-     return (
+    return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-8">
         <Alert className="max-w-md">
           <Info className="h-4 w-4" />
@@ -150,12 +149,12 @@ const QuizPage = () => {
       return question.marks;
     } else if (quiz?.negativeMarking) {
       // Use negativeMarksValue from the quiz object
-      const deduction = quiz.negativeMarksValue > 0 
-        ? quiz.negativeMarksValue 
-        : 0.25 * question.marks; 
-      return -deduction; 
+      const deduction = quiz.negativeMarksValue > 0
+        ? quiz.negativeMarksValue
+        : 0.25 * question.marks;
+      return -deduction;
     }
-    return 0; 
+    return 0;
   };
 
   const handleSubmitQuiz = (isAutoSubmit: boolean = false) => {
@@ -191,7 +190,7 @@ const QuizPage = () => {
     }
 
     const totalScore = finalAnswers.reduce((sum, ans) => sum + ans.marksObtained, 0);
-    const timeTaken = initialTime - timeLeft; 
+    const timeTaken = initialTime - timeLeft;
 
     submitQuizAttempt({
       quizId: quiz.id,
@@ -199,7 +198,7 @@ const QuizPage = () => {
       score: totalScore,
       totalQuestions: questions.length,
       answers: finalAnswers,
-      timeTakenSeconds: timeTaken, 
+      timeTakenSeconds: timeTaken,
     });
 
     if (timerRef.current) {
@@ -244,7 +243,7 @@ const QuizPage = () => {
 
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
-      setSelectedAnswer(null); 
+      setSelectedAnswer(null);
     } else {
       // End of quiz, submit
       handleSubmitQuiz();
@@ -312,10 +311,10 @@ const QuizPage = () => {
                               key={optIndex}
                               className={cn(
                                 "p-2 border rounded-md text-left",
-                                isCorrectOption && "bg-green-100 border-green-400", 
-                                isSelected && !isCorrectOption && "bg-red-100 border-red-400", 
-                                isSelected && isCorrectOption && "bg-green-100 border-green-400", 
-                                !isSelected && !isCorrectOption && "bg-gray-50 border-gray-200" 
+                                isCorrectOption && "bg-green-100 border-green-400",
+                                isSelected && !isCorrectOption && "bg-red-100 border-red-400",
+                                isSelected && isCorrectOption && "bg-green-100 border-green-400",
+                                !isSelected && !isCorrectOption && "bg-gray-50 border-gray-200"
                               )}
                             >
                               <span className="font-medium">{option}</span>

@@ -3,44 +3,37 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { 
-  useQuizzes, 
-  useQuestionsByQuizId, 
-  useCreateQuiz, 
-  SupabaseQuiz, 
-  SupabaseQuestion 
+import {
+  useQuizzes,
+  useQuestionsByQuizId,
+  useCreateQuiz,
+  SupabaseQuiz,
+  SupabaseQuestion
 } from '@/integrations/supabase/quizzes';
 import { supabase } from '@/integrations/supabase/client';
 
 // --- Type Definitions (Simplified for Context) ---
 
 // Map Supabase types to local context types
-export interface Question extends Omit<SupabaseQuestion, 'teacher_id' | 'created_at' | 'question_text' | 'correct_answer' | 'quiz_id'> {
+export interface Question extends Omit<SupabaseQuestion, 'teacher_id' | 'created_at' | 'question_text' | 'correct_answer' | 'quiz_id' | 'time_limit_minutes'> {
   questionText: string;
   correctAnswer: string;
   quizId: string;
+  timeLimitMinutes: number;
 }
 
-<<<<<<< HEAD
-export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | 'course_name' | 'time_limit_minutes' | 'scheduled_date' | 'start_time' | 'end_time' | 'negative_marks_value' | 'status' | 'difficulty'> {
+export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | 'course_name' | 'time_limit_minutes' | 'scheduled_date' | 'start_time' | 'end_time' | 'negative_marks_value' | 'status' | 'difficulty' | 'negative_marking' | 'competition_mode'> {
   courseName: string;
   timeLimitMinutes: number;
   scheduledDate: string;
   startTime: string;
   endTime: string;
-  negativeMarksValue: number; 
-  status: 'draft' | 'published'; 
+  negativeMarksValue: number;
+  status: 'draft' | 'published';
   difficulty: 'Easy' | 'Medium' | 'Hard'; // NEW FIELD
+  negativeMarking: boolean;
+  competitionMode: boolean;
   // Note: questionIds is derived from fetching questions separately now, not stored on the quiz object itself.
-=======
-export interface Quiz {
-  id: string;
-  title: string;
-  questionIds: string[]; // IDs of questions belonging to this quiz
-  timeLimitMinutes: number; // New field for quiz time limit
-  negativeMarking: boolean; // New field for negative marking
-  negativeMarks?: string | number; // Added negative marks field
->>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
 }
 
 export interface QuizAttempt {
@@ -61,10 +54,12 @@ interface QuizContextType {
   quizAttempts: QuizAttempt[];
   isQuizzesLoading: boolean;
   isQuestionsLoading: boolean;
+  availableCourses: string[];
 
   // Mutations/Actions
   addQuestion: (question: Omit<Question, 'id'>) => string; // Kept for QuestionCreator draft flow
   addQuiz: (quiz: Omit<Quiz, 'id' | 'status'>, questionsData: Omit<Question, 'id'>[]) => void; // Updated signature to omit status
+  addCourse: (name: string) => void;
   submitQuizAttempt: (attempt: Omit<QuizAttempt, 'id' | 'timestamp'>) => void;
   getQuestionsForQuiz: (quizId: string) => Question[];
   getQuizById: (quizId: string) => Quiz | undefined;
@@ -89,7 +84,7 @@ const mapSupabaseQuizToLocal = (sQuiz: SupabaseQuiz): Quiz => ({
   startTime: sQuiz.start_time,
   endTime: sQuiz.end_time,
   negativeMarksValue: sQuiz.negative_marks_value,
-  status: sQuiz.status, 
+  status: sQuiz.status,
   difficulty: sQuiz.difficulty, // Mapped new field
 });
 
@@ -105,12 +100,30 @@ const mapSupabaseQuestionToLocal = (sQuestion: SupabaseQuestion): Question => ({
 
 export const QuizProvider = ({ children }: QuizProviderProps) => {
   const queryClient = useQueryClient();
-  
+
   // Fetch Quizzes using Supabase hook
   const { data: supabaseQuizzes = [], isLoading: isQuizzesLoading } = useQuizzes();
   const quizzes = supabaseQuizzes.map(mapSupabaseQuizToLocal);
 
   const [localQuestionPool, setLocalQuestionPool] = useState<Question[]>([]);
+  const [availableCourses, setAvailableCourses] = useState<string[]>([]);
+
+  // Effect to sync availableCourses from quizzes with local additions preserved
+  useEffect(() => {
+    const quizCourses = quizzes.map(q => q.courseName).filter(Boolean);
+    setAvailableCourses(prev => {
+      const combined = Array.from(new Set([...quizCourses, ...prev]));
+      return combined;
+    });
+  }, [quizzes]);
+
+  const addCourse = (name: string) => {
+    const trimmedName = name.trim();
+    if (trimmedName && !availableCourses.some(course => course.toLowerCase() === trimmedName.toLowerCase())) {
+      setAvailableCourses(prev => [...prev, trimmedName]);
+    }
+  };
+
   const [quizAttempts, setQuizAttempts] = useState<QuizAttempt[]>(() => {
     // Load attempts from localStorage (keeping this local for now)
     try {
@@ -172,7 +185,7 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
   };
 
   const getQuestionsForQuiz = (quizId: string): Question[] => {
-    return []; 
+    return [];
   };
 
   const getQuizById = (quizId: string): Quiz | undefined => {
@@ -182,8 +195,8 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
   // Mock AI Question Generation (remains local)
   const generateAIQuestions = (coursePaperName: string, difficulty: 'Easy' | 'Medium' | 'Hard', numQuestions: number, numOptions: number): Question[] => {
     const generated: Question[] = [];
-    const baseMarks = 1; 
-    const baseTimeLimit = 1; 
+    const baseMarks = 1;
+    const baseTimeLimit = 1;
 
     for (let i = 0; i < numQuestions; i++) {
       const questionId = `ai-q-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 4)}`;
@@ -195,7 +208,7 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
       switch (difficulty) {
         case 'Easy':
           questionText = `What is the capital of ${coursePaperName.split(' ')[0] || 'France'}?`;
-          baseOptions = ['Paris', 'London', 'Berlin', 'Rome', 'Madrid', 'Tokyo']; 
+          baseOptions = ['Paris', 'London', 'Berlin', 'Rome', 'Madrid', 'Tokyo'];
           correctAnswer = 'Paris';
           break;
         case 'Medium':
@@ -235,12 +248,12 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
 
       generated.push({
         id: questionId,
-        quizId: 'ai-generated', 
+        quizId: 'ai-generated',
         questionText: questionText.replace(coursePaperName.split(' ')[0] || 'France', coursePaperName),
         options,
         correctAnswer,
-        marks: baseMarks, 
-        timeLimitMinutes: baseTimeLimit, 
+        marks: baseMarks,
+        timeLimitMinutes: baseTimeLimit,
       });
     }
     toast.info(`Mock AI generated ${numQuestions} questions for "${coursePaperName}" (${difficulty}).`);
@@ -254,9 +267,11 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
         quizzes,
         quizAttempts,
         isQuizzesLoading,
-        isQuestionsLoading: false, // We handle question loading locally in QuizPage now
+        isQuestionsLoading: false,
+        availableCourses,
         addQuestion,
         addQuiz,
+        addCourse,
         submitQuizAttempt,
         getQuestionsForQuiz,
         getQuizById,
