@@ -61,6 +61,9 @@ export const useQuestionsByQuizId = (quizId: string) => {
   return useQuery<SupabaseQuestion[], Error>({
     queryKey: ["questions", quizId],
     queryFn: async () => {
+      // Double check inside fn to be safe, though enabled should handle it
+      if (quizId.startsWith('qz-')) return [];
+
       const { data, error } = await supabase
         .from("questions")
         .select("*")
@@ -73,7 +76,8 @@ export const useQuestionsByQuizId = (quizId: string) => {
       }
       return data;
     },
-    enabled: !!quizId,
+    // Only run query for valid database UUIDs (local IDs start with 'qz-')
+    enabled: !!quizId && !quizId.startsWith('qz-'),
   });
 };
 
@@ -82,6 +86,9 @@ export const useQuestionCount = (quizId: string) => {
   return useQuery<number, Error>({
     queryKey: ["questionCount", quizId],
     queryFn: async () => {
+      // Local IDs return 0 here, but usually component should handle it or context
+      if (quizId.startsWith('qz-')) return 0;
+
       const { count, error } = await supabase
         .from("questions")
         .select("id", { count: 'exact', head: true })
@@ -93,15 +100,16 @@ export const useQuestionCount = (quizId: string) => {
       }
       return count || 0;
     },
-    enabled: !!quizId,
+    // Only run query for valid database UUIDs (local IDs start with 'qz-')
+    enabled: !!quizId && !quizId.startsWith('qz-'),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
 
 // --- Mutation Hooks (Teacher Actions) ---
 
-interface QuizInsertData extends Omit<SupabaseQuiz, 'id' | 'teacher_id' | 'created_at' | 'status'> {}
-interface QuestionInsertData extends Omit<SupabaseQuestion, 'id' | 'teacher_id' | 'created_at'> {}
+interface QuizInsertData extends Omit<SupabaseQuiz, 'id' | 'teacher_id' | 'created_at' | 'status'> { }
+interface QuestionInsertData extends Omit<SupabaseQuestion, 'id' | 'teacher_id' | 'created_at'> { }
 
 export const useCreateQuiz = () => {
   const queryClient = useQueryClient();

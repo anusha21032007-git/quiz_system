@@ -1,17 +1,22 @@
-"use client";
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Trophy, Clock, MinusCircle, Users, Loader2 } from 'lucide-react';
-import { Quiz, useQuiz } from '@/context/QuizContext'; // Import useQuiz
+import { Button } from '@/components/ui/button';
+import { Trophy, Clock, MinusCircle, Users, Loader2, Trash } from 'lucide-react';
+import { Quiz, useQuiz } from '@/context/QuizContext';
 
 interface AvailableQuizzesListProps {
   quizzes: Quiz[];
 }
 
 const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
-  const { isQuizzesLoading } = useQuiz();
+  const { isQuizzesLoading, deleteQuiz } = useQuiz();
+
+  const handleDelete = (id: string, title: string) => {
+    if (window.confirm(`Are you sure you want to delete "${title}"?`)) {
+      deleteQuiz(id);
+    }
+  };
 
   if (isQuizzesLoading) {
     return (
@@ -44,7 +49,7 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
               <li key={quiz.id} className="flex justify-between items-center p-3 border rounded-md bg-white shadow-sm">
                 <div>
                   {/* Note: We cannot easily display question count here without an extra query per quiz. */}
-                  <span className="font-medium">{quiz.title} (Questions: N/A)</span> 
+                  <span className="font-medium">{quiz.title} (Questions: N/A)</span>
                   <p className="text-sm text-gray-700 mb-1">Course: {quiz.courseName}</p>
                   <p className="text-sm text-gray-600 flex items-center gap-1">
                     <Clock className="h-4 w-4 inline-block" /> {quiz.timeLimitMinutes} min
@@ -54,9 +59,20 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
                     {quiz.competitionMode && <span className="text-purple-600 text-xs">Competition Mode</span>}
                   </p>
                 </div>
-                <Link to={`/quiz-preview/${quiz.id}`} className="text-sm text-blue-600 hover:underline">
-                  Preview Quiz
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link to={`/quiz-preview/${quiz.id}`} className="text-sm text-blue-600 hover:underline">
+                    Preview Quiz
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(quiz.id, quiz.title)}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2"
+                    title="Delete Quiz"
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                </div>
               </li>
             ))}
           </ul>

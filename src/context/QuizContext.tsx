@@ -12,28 +12,38 @@ import {
 } from '@/integrations/supabase/quizzes';
 import { supabase } from '@/integrations/supabase/client';
 
-// --- Type Definitions (Simplified for Context) ---
+// --- Type Definitions ---
 
 // Map Supabase types to local context types
-export interface Question extends Omit<SupabaseQuestion, 'teacher_id' | 'created_at' | 'question_text' | 'correct_answer' | 'quiz_id' | 'time_limit_minutes'> {
+export interface Question extends Omit<SupabaseQuestion, 'teacher_id' | 'created_at' | 'question_text' | 'correct_answer' | 'quiz_id'> {
   questionText: string;
+  options: string[];
   correctAnswer: string;
   quizId: string;
-  timeLimitMinutes: number;
 }
 
-export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | 'course_name' | 'time_limit_minutes' | 'scheduled_date' | 'start_time' | 'end_time' | 'negative_marks_value' | 'status' | 'difficulty' | 'negative_marking' | 'competition_mode'> {
+<<<<<<< HEAD
+export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | 'course_name' | 'time_limit_minutes' | 'scheduled_date' | 'start_time' | 'end_time' | 'negative_marks_value' | 'status' | 'difficulty'> {
   courseName: string;
   timeLimitMinutes: number;
+  negativeMarking: boolean;
+  competitionMode: boolean;
   scheduledDate: string;
   startTime: string;
   endTime: string;
   negativeMarksValue: number;
   status: 'draft' | 'published';
   difficulty: 'Easy' | 'Medium' | 'Hard'; // NEW FIELD
-  negativeMarking: boolean;
-  competitionMode: boolean;
   // Note: questionIds is derived from fetching questions separately now, not stored on the quiz object itself.
+=======
+export interface Quiz {
+  id: string;
+  title: string;
+  questionIds: string[]; // IDs of questions belonging to this quiz
+  timeLimitMinutes: number; // New field for quiz time limit
+  negativeMarking: boolean; // New field for negative marking
+  negativeMarks?: string | number; // Added negative marks field
+>>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
 }
 
 export interface QuizAttempt {
@@ -42,15 +52,14 @@ export interface QuizAttempt {
   studentName: string;
   score: number;
   totalQuestions: number;
-  answers: { questionId: string; selectedAnswer: string; isCorrect: boolean }[];
+  answers: { questionId: string; selectedAnswer: string; isCorrect: boolean; marksObtained: number }[];
   timestamp: number;
   timeTakenSeconds: number;
 }
 
 interface QuizContextType {
-  // Data accessors
   quizzes: Quiz[];
-  questions: Question[]; // All questions fetched across all quizzes (for simplicity in context)
+  questions: Question[];
   quizAttempts: QuizAttempt[];
   isQuizzesLoading: boolean;
   isQuestionsLoading: boolean;
@@ -59,20 +68,17 @@ interface QuizContextType {
   // Mutations/Actions
   addQuestion: (question: Omit<Question, 'id'>) => string; // Kept for QuestionCreator draft flow
   addQuiz: (quiz: Omit<Quiz, 'id' | 'status'>, questionsData: Omit<Question, 'id'>[]) => void; // Updated signature to omit status
-  addCourse: (name: string) => void;
   submitQuizAttempt: (attempt: Omit<QuizAttempt, 'id' | 'timestamp'>) => void;
   getQuestionsForQuiz: (quizId: string) => Question[];
   getQuizById: (quizId: string) => Quiz | undefined;
   generateAIQuestions: (coursePaperName: string, difficulty: 'Easy' | 'Medium' | 'Hard', numQuestions: number, numOptions: number) => Question[];
+  deleteQuiz: (quizId: string) => void;
 }
 
 const QuizContext = createContext<QuizContextType | undefined>(undefined);
 
-interface QuizProviderProps {
-  children: ReactNode;
-}
+// --- Helpers ---
 
-// Helper to map Supabase data structure to local context structure
 const mapSupabaseQuizToLocal = (sQuiz: SupabaseQuiz): Quiz => ({
   id: sQuiz.id,
   title: sQuiz.title,
@@ -88,100 +94,158 @@ const mapSupabaseQuizToLocal = (sQuiz: SupabaseQuiz): Quiz => ({
   difficulty: sQuiz.difficulty, // Mapped new field
 });
 
-const mapSupabaseQuestionToLocal = (sQuestion: SupabaseQuestion): Question => ({
-  id: sQuestion.id,
-  quizId: sQuestion.quiz_id,
-  questionText: sQuestion.question_text,
-  options: sQuestion.options,
-  correctAnswer: sQuestion.correct_answer,
-  marks: sQuestion.marks,
-  timeLimitMinutes: sQuestion.time_limit_minutes,
-});
-
-export const QuizProvider = ({ children }: QuizProviderProps) => {
+export const QuizProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient();
 
   // Fetch Quizzes using Supabase hook
   const { data: supabaseQuizzes = [], isLoading: isQuizzesLoading } = useQuizzes();
-  const quizzes = supabaseQuizzes.map(mapSupabaseQuizToLocal);
-
-  const [localQuestionPool, setLocalQuestionPool] = useState<Question[]>([]);
-  const [availableCourses, setAvailableCourses] = useState<string[]>([]);
-
-  // Effect to sync availableCourses from quizzes with local additions preserved
-  useEffect(() => {
-    const quizCourses = quizzes.map(q => q.courseName).filter(Boolean);
-    setAvailableCourses(prev => {
-      const combined = Array.from(new Set([...quizCourses, ...prev]));
-      return combined;
-    });
-  }, [quizzes]);
-
-  const addCourse = (name: string) => {
-    const trimmedName = name.trim();
-    if (trimmedName && !availableCourses.some(course => course.toLowerCase() === trimmedName.toLowerCase())) {
-      setAvailableCourses(prev => [...prev, trimmedName]);
-    }
-  };
-
-  const [quizAttempts, setQuizAttempts] = useState<QuizAttempt[]>(() => {
-    // Load attempts from localStorage (keeping this local for now)
+  const [localQuizzes, setLocalQuizzes] = useState<Quiz[]>(() => {
     try {
-      const storedAttempts = localStorage.getItem('quiz_attempts');
-      return storedAttempts ? JSON.parse(storedAttempts) : [];
+      const storedQuizzes = localStorage.getItem('local_quizzes');
+      return storedQuizzes ? JSON.parse(storedQuizzes) : [];
     } catch (error) {
-      console.error("Failed to load quiz attempts from localStorage", error);
+      console.error("Failed to load local quizzes", error);
       return [];
     }
   });
 
-  // Save attempts to localStorage whenever it changes
+  const [localQuestionPool, setLocalQuestionPool] = useState<Question[]>([]);
+  const [quizAttempts, setQuizAttempts] = useState<QuizAttempt[]>(() => {
+    try {
+      const storedAttempts = localStorage.getItem('quiz_attempts');
+      return storedAttempts ? JSON.parse(storedAttempts) : [];
+    } catch (error) {
+      console.error("Failed to load quiz attempts", error);
+      return [];
+    }
+  });
+
+  // Merge Supabase quizzes with Local Quizzes
+  // We prioritize Supabase, but if not available, we show local.
+  // In a real scenario, we might want to de-duplicate by ID, but since local IDs are different, concatenation is fine.
+  const quizzes = [...supabaseQuizzes.map(mapSupabaseQuizToLocal), ...localQuizzes];
+
   useEffect(() => {
     localStorage.setItem('quiz_attempts', JSON.stringify(quizAttempts));
   }, [quizAttempts]);
 
+  useEffect(() => {
+    localStorage.setItem('local_quizzes', JSON.stringify(localQuizzes));
+  }, [localQuizzes]);
+
+  useEffect(() => {
+    localStorage.setItem('local_questions', JSON.stringify(localQuestionPool));
+  }, [localQuestionPool]);
+
+  // Listen for changes from other tabs
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'local_quizzes' && e.newValue) {
+        setLocalQuizzes(JSON.parse(e.newValue));
+      }
+      if (e.key === 'local_questions' && e.newValue) {
+        setLocalQuestionPool(JSON.parse(e.newValue));
+      }
+      if (e.key === 'quiz_attempts' && e.newValue) {
+        setQuizAttempts(JSON.parse(e.newValue));
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   const createQuizMutation = useCreateQuiz();
 
-  // This function is now only used by QuestionCreator for its local pool (not synced to Supabase)
   const addQuestion = (question: Omit<Question, 'id'>): string => {
-    const newQuestion: Question = { ...question, id: `q-local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` };
+    const newQuestion: Question = { ...question, id: `q-local-${Date.now()}` };
     setLocalQuestionPool((prev) => [...prev, newQuestion]);
-    toast.success("Question added to local pool!");
     return newQuestion.id;
   };
 
-  // This function handles inserting the quiz and its questions into Supabase
   const addQuiz = (quiz: Omit<Quiz, 'id' | 'status'>, questionsData: Omit<Question, 'id'>[]) => {
-    // Note: We omit 'status' here because the mutation hook sets it to 'published' automatically.
-    const quizInsertData = {
-      title: quiz.title,
-      course_name: quiz.courseName,
-      time_limit_minutes: quiz.timeLimitMinutes,
-      negative_marking: quiz.negativeMarking,
-      competition_mode: quiz.competitionMode,
-      scheduled_date: quiz.scheduledDate,
-      start_time: quiz.startTime,
-      end_time: quiz.endTime,
-      negative_marks_value: quiz.negativeMarksValue,
-      difficulty: quiz.difficulty, // Pass difficulty
+    // 1. Create Local Fallback Quiz
+    const localId = `qz-local-${Date.now()}`;
+    const newLocalQuiz: Quiz = {
+      ...quiz,
+      id: localId,
+      status: 'published',
     };
 
-    const questionsInsertData = questionsData.map(q => ({
-      quiz_id: 'placeholder', // Will be replaced by mutation function
-      question_text: q.questionText,
-      options: q.options,
-      correct_answer: q.correctAnswer,
-      marks: q.marks,
-      time_limit_minutes: q.timeLimitMinutes,
+    const newLocalQuestions = questionsData.map((q, index) => ({
+      ...q,
+      id: `q-local-${localId}-${index}`,
+      quizId: localId,
     }));
 
-    createQuizMutation.mutate({ quizData: quizInsertData, questionsData: questionsInsertData });
+    // Update Local State immediately (Optimistic UI for the user)
+    setLocalQuizzes(prev => [...prev, newLocalQuiz]);
+    setLocalQuestionPool(prev => [...prev, ...newLocalQuestions]);
+    toast.success("Quiz created locally! (Syncing to cloud...)");
+
+    // 2. Try Sync to Supabase
+    createQuizMutation.mutate({
+      quizData: {
+        title: quiz.title,
+        course_name: quiz.courseName,
+        time_limit_minutes: quiz.timeLimitMinutes,
+        negative_marking: quiz.negativeMarking,
+        competition_mode: quiz.competitionMode,
+        scheduled_date: quiz.scheduledDate,
+        start_time: quiz.startTime,
+        end_time: quiz.endTime,
+        negative_marks_value: quiz.negativeMarksValue,
+        difficulty: quiz.difficulty,
+      },
+      questionsData: questionsData.map(q => ({
+        quiz_id: 'temp',
+        question_text: q.questionText,
+        options: q.options,
+        correct_answer: q.correctAnswer,
+        marks: q.marks,
+        time_limit_minutes: q.timeLimitMinutes,
+      }))
+    }, {
+      onSuccess: () => {
+        // Optionally remove the local fallback if we want to rely solely on Supabase,
+        // but for this hybrid approach, keeping it is safer unless we implement strict sync logic.
+        // For now, we just let the cloud version eventually appear (potentially as a duplicate if we don't handle it, 
+        // but since IDs differ, they'll just be two quizzes). 
+        // ideally we would replace the local one, but that requires more complex state management.
+        toast.success("Quiz synced to cloud successfully!");
+      },
+      onError: (err) => {
+        console.error("Cloud sync failed (using local copy):", err);
+        toast.info("Offline Mode: Quiz saved to this device only.");
+      }
+    });
+  };
+
+  const deleteQuiz = async (quizId: string) => {
+    // 1. Delete from Local State
+    setLocalQuizzes(prev => prev.filter(q => q.id !== quizId));
+    setLocalQuestionPool(prev => prev.filter(q => q.quizId !== quizId));
+
+    // 2. Delete from Supabase if it's a cloud quiz
+    if (!quizId.startsWith('qz-')) {
+      try {
+        const { error } = await supabase.from('quizzes').delete().eq('id', quizId);
+        if (error) throw error;
+        toast.success("Quiz deleted from cloud.");
+        queryClient.invalidateQueries({ queryKey: ["quizzes"] });
+      } catch (error) {
+        console.error("Failed to delete from cloud:", error);
+        toast.error("Failed to delete quiz from cloud.");
+      }
+    } else {
+      toast.success("Local quiz deleted.");
+    }
   };
 
   const submitQuizAttempt = (attempt: Omit<QuizAttempt, 'id' | 'timestamp'>) => {
-    const newAttempt: QuizAttempt = { ...attempt, id: `att-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, timestamp: Date.now() };
+    const newAttempt: QuizAttempt = { ...attempt, id: `att-${Date.now()}`, timestamp: Date.now() };
     setQuizAttempts((prev) => [...prev, newAttempt]);
-    toast.success("Quiz submitted successfully!");
+    toast.success("Quiz submitted!");
   };
 
   const getQuestionsForQuiz = (quizId: string): Question[] => {
@@ -192,7 +256,6 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
     return quizzes.find(q => q.id === quizId);
   };
 
-  // Mock AI Question Generation (remains local)
   const generateAIQuestions = (coursePaperName: string, difficulty: 'Easy' | 'Medium' | 'Hard', numQuestions: number, numOptions: number): Question[] => {
     const generated: Question[] = [];
     const baseMarks = 1;
@@ -256,22 +319,19 @@ export const QuizProvider = ({ children }: QuizProviderProps) => {
         timeLimitMinutes: baseTimeLimit,
       });
     }
-    toast.info(`Mock AI generated ${numQuestions} questions for "${coursePaperName}" (${difficulty}).`);
     return generated;
   };
 
   return (
     <QuizContext.Provider
       value={{
-        questions: localQuestionPool, // Expose local pool for QuestionCreator
+        questions: localQuestionPool,
         quizzes,
         quizAttempts,
         isQuizzesLoading,
-        isQuestionsLoading: false,
-        availableCourses,
+        isQuestionsLoading: false, // We handle question loading locally in QuizPage now
         addQuestion,
         addQuiz,
-        addCourse,
         submitQuizAttempt,
         getQuestionsForQuiz,
         getQuizById,

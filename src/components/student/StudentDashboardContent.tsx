@@ -6,12 +6,11 @@ import DashboardWelcome from './DashboardWelcome';
 import OverviewCards from './OverviewCards';
 import MyCourses from './MyCourses';
 import PerformanceOverview from './PerformanceOverview';
-import RecentActivitySection from './RecentActivitySection';
-import QuizStatusTimeline from './QuizStatusTimeline'; // NEW: Timeline component
-import NextActionCard from './NextActionCard'; // NEW: Next Action Card
-import InstructorNoticeCard from './InstructorNoticeCard'; // NEW: Instructor Notice Card
-import QuizHistoryDownload from './QuizHistoryDownload'; // NEW: Download Component
-import ScheduledQuizAlert from './ScheduledQuizAlert'; 
+import StudentResultsList from './StudentResultsList';
+import QuizStatusTimeline from './QuizStatusTimeline';
+import NextActionCard from './NextActionCard';
+import InstructorNoticeCard from './InstructorNoticeCard';
+import ScheduledQuizAlert from './ScheduledQuizAlert';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -23,15 +22,34 @@ interface StudentDashboardContentProps {
   registerNumber: string;
 }
 
-// Mock Course Data (since we don't have a dedicated course context)
-const MOCK_COURSES = [
-  { id: 'c1', name: 'CS 101: Introduction to Programming', progress: 75 },
-  { id: 'c2', name: 'Math 202: Calculus II', progress: 40 },
-  { id: 'c3', name: 'Physics 101: Mechanics', progress: 90 },
-];
+
 
 const StudentDashboardContent = ({ activeView, studentName, registerNumber }: StudentDashboardContentProps) => {
-  const { quizAttempts } = useQuiz();
+  const { quizAttempts, quizzes } = useQuiz();
+
+  // Derive courses from available quizzes
+  const dynamicCourses = useMemo(() => {
+    const uniqueCourseNames = Array.from(new Set(quizzes.map(q => q.courseName)));
+
+    return uniqueCourseNames.map((name, index) => {
+      // Calculate simple progress based on attempts for this course
+      const attemptsForCourse = quizAttempts.filter(a => {
+        const quiz = quizzes.find(q => q.id === a.quizId);
+        return quiz?.courseName === name;
+      });
+      const quizzesForCourse = quizzes.filter(q => q.courseName === name);
+
+      const progress = quizzesForCourse.length > 0
+        ? Math.round((attemptsForCourse.length / quizzesForCourse.length) * 100)
+        : 0;
+
+      return {
+        id: `course-${index}`,
+        name: name,
+        progress: Math.min(progress, 100)
+      };
+    });
+  }, [quizzes, quizAttempts]);
 
   // Filter attempts relevant to the current student
   const studentAttempts = useMemo(() => {
@@ -41,7 +59,7 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
   // Calculate Overview Stats
   const { totalQuizzesAttempted, quizzesPassed, averageScore, currentRank } = useMemo(() => {
     const totalQuizzesAttempted = studentAttempts.length;
-    
+
     if (totalQuizzesAttempted === 0) {
       return { totalQuizzesAttempted: 0, quizzesPassed: 0, averageScore: 0, currentRank: 0 };
     }
@@ -52,7 +70,7 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
 
     studentAttempts.forEach(attempt => {
       totalScoreSum += attempt.score;
-      totalMaxScoreSum += attempt.totalQuestions; 
+      totalMaxScoreSum += attempt.totalQuestions;
 
       // Calculate passing based on 50% score ratio
       const scorePercentage = (attempt.score / attempt.totalQuestions) * 100;
@@ -65,7 +83,7 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
 
     // Mock Rank Calculation (Highly simplified: based on overall average score compared to all attempts)
     // This is a placeholder for a real ranking system.
-    const mockRank = Math.max(1, Math.floor(100 - overallAverageScore) % 20); 
+    const mockRank = Math.max(1, Math.floor(100 - overallAverageScore) % 20);
 
     return {
       totalQuizzesAttempted,
@@ -79,7 +97,7 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
   const renderDashboard = () => (
     <div className="space-y-8">
       <DashboardWelcome studentName={studentName} registerNumber={registerNumber} />
-      
+
       {/* Top Row: Next Action & Notice Card */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
@@ -94,11 +112,10 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
         averageScore={averageScore}
         currentRank={currentRank}
       />
-      
+
       {/* Main Content Grid */}
       <div className="space-y-8">
-        <MyCourses courses={MOCK_COURSES} />
-        <PerformanceOverview recentAttempts={studentAttempts} />
+        <MyCourses courses={dynamicCourses} />
       </div>
     </div>
   );
@@ -106,7 +123,7 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
   const renderMyCourses = () => (
     <div className="space-y-8">
       <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2"><BookOpen className="h-7 w-7 text-green-600" /> My Courses</h2>
-      <MyCourses courses={MOCK_COURSES} />
+      <MyCourses courses={dynamicCourses} />
     </div>
   );
 
@@ -118,15 +135,9 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
 
   const renderMyResults = () => (
     <div className="space-y-8">
-      <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2"><BarChart className="h-7 w-7 text-purple-600" /> My Results & Performance</h2>
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <PerformanceOverview recentAttempts={studentAttempts} />
-        </div>
-        <div className="space-y-6">
-          <RecentActivitySection studentAttempts={studentAttempts} />
-          <QuizHistoryDownload studentAttempts={studentAttempts} />
-        </div>
+      <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2"><BarChart className="h-7 w-7 text-purple-600" /> My Quiz History</h2>
+      <div className="space-y-6">
+        <StudentResultsList studentAttempts={studentAttempts} quizzes={quizzes} />
       </div>
     </div>
   );

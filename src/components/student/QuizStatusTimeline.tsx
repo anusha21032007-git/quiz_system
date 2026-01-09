@@ -26,12 +26,7 @@ interface QuizStatusTimelineProps {
 }
 
 // Mock Course Data (Must match the names used in StudentDashboardContent)
-const MOCK_STUDENT_COURSES = [
-  'CS 101: Introduction to Programming',
-  'Math 202: Calculus II',
-  'Physics 101: Mechanics',
-  'General Studies'
-];
+
 
 // Utility function to combine date and time strings into a Date object
 const createDateTime = (dateStr: string, timeStr: string): Date => {
@@ -152,7 +147,7 @@ const QuizItem = ({ quiz, studentName, handleStartQuiz }: { quiz: QuizTimelineIt
           {getDifficultyBadge(quiz.difficulty)}
         </div>
         <p className="text-sm text-gray-700">Course: <span className="font-medium">{quiz.courseName}</span></p>
-        
+
         <div className="flex flex-wrap items-center text-sm text-gray-600 gap-x-4 gap-y-1 mt-1">
           <span className="flex items-center gap-1">
             <Calendar className="h-4 w-4 text-indigo-500" />
@@ -160,7 +155,7 @@ const QuizItem = ({ quiz, studentName, handleStartQuiz }: { quiz: QuizTimelineIt
           </span>
           <span className="flex items-center gap-1">
             <Clock className="h-4 w-4 text-indigo-500" />
-            {quiz.startTime} - {quiz.endTime}
+            {quiz.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {quiz.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </span>
           <span className="flex items-center gap-1">
             <ListChecks className="h-4 w-4 text-indigo-500" />
@@ -183,21 +178,21 @@ const QuizItem = ({ quiz, studentName, handleStartQuiz }: { quiz: QuizTimelineIt
 const QuizStatusTimeline = ({ studentName }: QuizStatusTimelineProps) => {
   const { quizzes, quizAttempts, isQuizzesLoading } = useQuiz();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = React.useState<'Live' | 'Upcoming' | 'Completed' | 'Expired'>('Live');
 
   const processedQuizzes = useMemo(() => {
     if (isQuizzesLoading) return [];
     const now = new Date();
 
     return quizzes
-      .filter(quiz => MOCK_STUDENT_COURSES.includes(quiz.courseName)) // Course Filtering
       .map((quiz) => {
         const startTime = createDateTime(quiz.scheduledDate, quiz.startTime);
         const endTime = createDateTime(quiz.scheduledDate, quiz.endTime);
-        
+
         const latestAttempt = quizAttempts
           .filter(a => a.quizId === quiz.id && a.studentName === studentName)
           .sort((a, b) => b.timestamp - a.timestamp)[0];
-        
+
         const isCompleted = !!latestAttempt;
 
         let status: QuizTimelineItem['status'];
@@ -214,14 +209,9 @@ const QuizStatusTimeline = ({ studentName }: QuizStatusTimelineProps) => {
           status = 'Live';
           statusColor = 'success';
         } else {
-          // Expired/Missed logic
           status = 'Expired';
           statusColor = 'destructive';
-          
-          // Rule 3: Missed Reason Display
-          // Since we don't track if a student *started* but didn't finish (which would result in an attempt),
-          // we simplify: if it's expired and no attempt exists, it was 'Not Attempted'.
-          missedReason = 'Not Attempted'; 
+          missedReason = 'Not Attempted';
         }
 
         return {
@@ -249,21 +239,28 @@ const QuizStatusTimeline = ({ studentName }: QuizStatusTimelineProps) => {
       groups[quiz.status].push(quiz);
     });
 
-    // Sort Upcoming by start time ascending
     groups.Upcoming.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
-    // Sort Completed and Expired by end time descending (most recent first)
     groups.Completed.sort((a, b) => b.endTime.getTime() - a.endTime.getTime());
     groups.Expired.sort((a, b) => b.endTime.getTime() - a.endTime.getTime());
 
     return groups;
   }, [processedQuizzes]);
 
+  // Set initial tab if there are no live quizzes but there are upcoming ones
+  React.useEffect(() => {
+    if (!isQuizzesLoading && groupedQuizzes.Live.length === 0 && groupedQuizzes.Upcoming.length > 0) {
+      // Only switch if we are default 'Live' and it's empty
+      setActiveTab((prev) => prev === 'Live' ? 'Upcoming' : prev);
+    }
+  }, [isQuizzesLoading, groupedQuizzes]);
+
+
   const handleStartQuiz = (quiz: Quiz) => {
     if (!studentName.trim()) {
       toast.error("Please ensure your name is entered in the Profile/Dashboard section before starting a quiz.");
       return;
     }
-    
+
     const now = new Date();
     const start = createDateTime(quiz.scheduledDate, quiz.startTime);
     const end = createDateTime(quiz.scheduledDate, quiz.endTime);
@@ -277,55 +274,7 @@ const QuizStatusTimeline = ({ studentName }: QuizStatusTimelineProps) => {
       return;
     }
 
-    // If live and not completed, navigate to quiz page
     navigate(`/quiz/${quiz.id}`, { state: { studentName } });
-  };
-
-  const renderGroup = (status: keyof typeof groupedQuizzes, title: string, Icon: React.ElementType, color: string) => {
-    const quizzes = groupedQuizzes[status];
-    const isEmpty = quizzes.length === 0;
-
-    // Rule 6: Meaningful Empty State Messages
-    const emptyMessage = status === 'Upcoming' 
-      ? "No upcoming quizzes scheduled. You're all caught up!"
-      : status === 'Live'
-      ? "No quizzes are currently live. Check back soon."
-      : status === 'Completed'
-      ? "You haven't completed any quizzes yet. Start your first one!"
-      : "No recent missed quizzes.";
-
-    return (
-      <div className="relative pl-8 pb-8">
-        {/* Vertical Line */}
-        {status !== 'Expired' && (
-          <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700" />
-        )}
-        
-        {/* Icon Marker */}
-        <div className={cn(
-          "absolute left-0 top-0 h-8 w-8 rounded-full flex items-center justify-center border-4 border-gray-50 dark:border-gray-900 z-10",
-          color
-        )}>
-          <Icon className="h-4 w-4 text-white" />
-        </div>
-
-        <h3 className="text-2xl font-bold text-gray-800 mb-4 pt-1 flex items-center gap-2">
-          {title} ({quizzes.length})
-        </h3>
-
-        {isEmpty ? (
-          <Card className="p-6 shadow-sm border-dashed border-gray-300 bg-gray-50">
-            <p className="text-gray-500">{emptyMessage}</p>
-          </Card>
-        ) : (
-          <ul className="space-y-4">
-            {quizzes.map(quiz => (
-              <QuizItem key={quiz.id} quiz={quiz} studentName={studentName} handleStartQuiz={handleStartQuiz} />
-            ))}
-          </ul>
-        )}
-      </div>
-    );
   };
 
   if (isQuizzesLoading) {
@@ -339,18 +288,82 @@ const QuizStatusTimeline = ({ studentName }: QuizStatusTimelineProps) => {
     );
   }
 
-  return (
-    <Card className="shadow-lg p-6">
-      <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-        <ListChecks className="h-7 w-7 text-indigo-600" /> Quiz Status Timeline
-      </h2>
-      <div className="space-y-6">
-        {renderGroup('Live', 'Live Quizzes', Clock, 'bg-green-600')}
-        {renderGroup('Upcoming', 'Upcoming Quizzes', Calendar, 'bg-blue-600')}
-        {renderGroup('Completed', 'Completed Quizzes', CheckCircle, 'bg-purple-600')}
-        {renderGroup('Expired', 'Missed/Expired Quizzes', XCircle, 'bg-red-600')}
+  const renderContent = () => {
+    const quizzes = groupedQuizzes[activeTab];
+    const isEmpty = quizzes.length === 0;
+
+    const emptyMessage = activeTab === 'Upcoming'
+      ? "No upcoming quizzes scheduled."
+      : activeTab === 'Live'
+        ? "No quizzes are currently live."
+        : activeTab === 'Completed'
+          ? "No completed quizzes yet."
+          : "No missed quizzes.";
+
+    if (isEmpty) {
+      return (
+        <Card className="p-12 shadow-sm border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center text-center">
+          <div className="h-12 w-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            {activeTab === 'Live' && <Clock className="h-6 w-6 text-gray-400" />}
+            {activeTab === 'Upcoming' && <Calendar className="h-6 w-6 text-gray-400" />}
+            {activeTab === 'Completed' && <CheckCircle className="h-6 w-6 text-gray-400" />}
+            {activeTab === 'Expired' && <XCircle className="h-6 w-6 text-gray-400" />}
+          </div>
+          <p className="text-gray-500 font-medium">{emptyMessage}</p>
+        </Card>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {quizzes.map(quiz => (
+          <QuizItem key={quiz.id} quiz={quiz} studentName={studentName} handleStartQuiz={handleStartQuiz} />
+        ))}
       </div>
-    </Card>
+    );
+  };
+
+  const TabButton = ({ id, label, icon: Icon, colorClass }: { id: typeof activeTab, label: string, icon: any, colorClass: string }) => {
+    const isActive = activeTab === id;
+    const count = groupedQuizzes[id].length;
+
+    return (
+      <button
+        onClick={() => setActiveTab(id)}
+        className={cn(
+          "flex items-center gap-2 px-4 py-3 rounded-md transition-all font-medium text-sm relative",
+          isActive
+            ? `bg-indigo-600 text-white shadow-md`
+            : "bg-white text-gray-600 hover:bg-gray-50 border border-transparent hover:border-gray-200"
+        )}
+      >
+        <Icon className={cn("h-4 w-4", isActive ? "text-white" : "text-gray-500")} />
+        {label}
+        {count > 0 && (
+          <span className={cn(
+            "ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold",
+            isActive ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"
+          )}>
+            {count}
+          </span>
+        )}
+      </button>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap gap-2 pb-2">
+        <TabButton id="Live" label="Live Quizzes" icon={Clock} colorClass="bg-green-600" />
+        <TabButton id="Upcoming" label="Upcoming" icon={Calendar} colorClass="bg-blue-600" />
+        <TabButton id="Completed" label="Completed" icon={CheckCircle} colorClass="bg-purple-600" />
+        <TabButton id="Expired" label="Missed" icon={XCircle} colorClass="bg-red-600" />
+      </div>
+
+      <div className="min-h-[300px]">
+        {renderContent()}
+      </div>
+    </div>
   );
 };
 

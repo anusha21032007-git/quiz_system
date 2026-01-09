@@ -617,11 +617,34 @@ const QuestionCreator = () => {
                 <Send className="h-4 w-4" />
                 Add Questions to Pool
               </Button>
+              <Button
+                onClick={() => {
+                  const invalid = draftQuestions.some(q =>
+                    !q.questionText.trim() || q.options.some(o => !o.trim()) || !q.correctAnswer.trim() || q.marks === '' || q.timeLimitMinutes === ''
+                  );
+                  if (invalid) {
+                    setCreationStatus({ type: 'error', message: "Please fill all fields before creating a quiz." });
+                    return;
+                  }
+
+                  sessionStorage.setItem('draft_quiz_params', JSON.stringify({
+                    questions: draftQuestions,
+                    source: 'question_creator'
+                  }));
+                  // Force a hard navigation or ensure the parent re-renders if using query params in the same component tree
+                  window.location.href = '/teacher?view=create-quiz';
+                }}
+                className="flex-1 h-12 font-bold bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2 text-white shadow-indigo-200 shadow-lg"
+              >
+                <Settings2 className="h-4 w-4" />
+                Create Quiz Now
+              </Button>
             </div>
           </CardFooter>
         </Card>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 };
 

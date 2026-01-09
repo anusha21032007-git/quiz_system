@@ -7,81 +7,82 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ListChecks, PlusCircle, Trash2, Eye, Save, Brain } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { useQuiz, Quiz, Question } from '@/context/QuizContext'; // Import Quiz and Question types
+import { useQuiz, Quiz, Question } from '@/context/QuizContext';
 
-// Define a type for questions in local draft state
 interface LocalQuestion {
   questionText: string;
   options: string[];
-  correctAnswerIndex: number | null; // Index of the correct option, or null if none selected
+  correctAnswerIndex: number | null;
   marks: number | '';
-  timeLimitMinutes: number | ''; // Allow timeLimitMinutes to be an empty string
+  timeLimitMinutes: number | '';
 }
 
-// Define a type for the entire quiz data managed locally
 interface LocalQuizData {
   quizTitle: string;
-  courseName: string; // ADDED
-  totalQuestions: number | ''; // Allow empty string for input flexibility
+  courseName: string;
+  totalQuestions: number | '';
   optionsPerQuestion: number;
   questions: LocalQuestion[];
-  // NEW SCHEDULING FIELDS
-  scheduledDate: string; // YYYY-MM-DD
-  startTime: string;     // HH:MM
-  endTime: string;       // HH:MM
+  scheduledDate: string;
+  startTime: string;
+  endTime: string;
 }
 
-// Define the structure for a quiz stored in session storage (compatible with QuizContext types for preview)
 interface StoredQuiz {
   id: string;
   title: string;
-  courseName: string; // ADDED
+  courseName: string;
   questionIds: string[];
   timeLimitMinutes: number;
   negativeMarking: boolean;
+<<<<<<< HEAD
   negativeMarksValue: number; // Updated field name for consistency
   competitionMode: boolean;
   scheduledDate: string; // ADDED
   startTime: string;     // ADDED
   endTime: string;       // ADDED
   difficulty: 'Easy' | 'Medium' | 'Hard'; // ADDED DIFFICULTY
-
+=======
+  negativeMarks: string | number; // Added negativeMarks to stored quiz
+>>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
   _questionsData: {
     id: string;
     quizId: string;
     questionText: string;
     options: string[];
-    correctAnswer: string; // Converted from index
+    correctAnswer: string;
     marks: number;
-    timeLimitMinutes: number; // Added timeLimitMinutes for stored questions
+    timeLimitMinutes: number;
   }[];
 }
 
 const QuizCreator = () => {
   const navigate = useNavigate();
-  const { generateAIQuestions, addQuiz, addCourse } = useQuiz(); // Removed addQuestion
+  const { generateAIQuestions, addQuiz } = useQuiz(); // Removed addQuestion
 
-  // Consolidated quiz data state
   const [quizData, setQuizData] = useState<LocalQuizData>({
     quizTitle: '',
-    courseName: '', // Initialize courseName
-    totalQuestions: 0, // Start with 0 as requested
-    optionsPerQuestion: 4, // Default to 4 options as requested
-    questions: [], // Start with empty list if 0 questions
+    courseName: '',
+    totalQuestions: 0,
+    optionsPerQuestion: 4,
+    questions: [],
     scheduledDate: '',
     startTime: '',
     endTime: '',
   });
 
-  // Other quiz details not explicitly part of the 'Quiz' structure provided by user, but still needed
   const [negativeMarking, setNegativeMarking] = useState<boolean>(false);
+<<<<<<< HEAD
   const [negativeMarksValue, setNegativeMarksValue] = useState<string | number>(''); // State for negative marks value
   const [competitionMode, setCompetitionMode] = useState<boolean>(false);
-
+=======
+  const [negativeMarks, setNegativeMarks] = useState<string | number>(''); // State for negative marks value
+>>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
   const [defaultTimePerQuestion, setDefaultTimePerQuestion] = useState<number | null>(null); // New state for optional default time
   const [enableTimePerQuestion, setEnableTimePerQuestion] = useState<boolean>(false); // Toggle for time per question
   const [totalCalculatedQuizTime, setTotalCalculatedQuizTime] = useState<number>(0); // New state for total quiz time
@@ -90,147 +91,104 @@ const QuizCreator = () => {
   // AI Question Generation State (now local to QuizCreator)
   const [aiCoursePaperName, setAiCoursePaperName] = useState('');
   const [aiDifficulty, setAiDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Easy');
-
-  /* New state for wizard step */
   const [step, setStep] = useState<number>(1);
 
-  // Effect to synchronize quizData.questions with totalQuestions and optionsPerQuestion
+  useEffect(() => {
+    const draftData = sessionStorage.getItem('draft_quiz_params');
+    if (draftData) {
+      try {
+        const { questions, source } = JSON.parse(draftData);
+        if (questions && Array.isArray(questions)) {
+          const mappedQuestions: LocalQuestion[] = questions.map((q: any) => ({
+            questionText: q.questionText,
+            options: q.options,
+            correctAnswerIndex: q.options.indexOf(q.correctAnswer),
+            marks: typeof q.marks === 'number' ? q.marks : 1,
+            timeLimitMinutes: typeof q.timeLimitMinutes === 'number' ? q.timeLimitMinutes : 1
+          }));
+
+          setQuizData(prev => ({
+            ...prev,
+            questions: mappedQuestions,
+            totalQuestions: mappedQuestions.length,
+            // optional: infer options count
+            optionsPerQuestion: mappedQuestions[0]?.options?.length || 4
+          }));
+
+          toast.success("Loaded questions from Question Bank!");
+          // Clean up
+          sessionStorage.removeItem('draft_quiz_params');
+        }
+      } catch (e) {
+        console.error("Failed to load draft quiz", e);
+      }
+    }
+  }, []); // Run once on mount
+
   useEffect(() => {
     setQuizData((prev) => {
-      const newQuestions = [...prev.questions];
+      // If we have questions loaded from draft (length > 0) and totalMatches, don't wipe them out.
+      // Only regenerate if the lengths mismatch significantly or if it's a fresh init.
+      // Logic: If user manually changes 'totalQuestions', we adjust. 
+
+      const currentCount = prev.questions.length;
       const targetCount = prev.totalQuestions === '' ? 0 : prev.totalQuestions;
 
-      // Adjust number of questions
+      if (currentCount === targetCount && currentCount > 0) return prev; // Stability check
+
+      const newQuestions = [...prev.questions];
+
       while (newQuestions.length < targetCount) {
         newQuestions.push({
           questionText: '',
           options: Array(prev.optionsPerQuestion).fill(''),
           correctAnswerIndex: null,
-          marks: 0,
+          marks: 1,
           timeLimitMinutes: defaultTimePerQuestion !== null ? defaultTimePerQuestion : 1,
         });
       }
+
+      // If reducing count
       const slicedQuestions = newQuestions.slice(0, targetCount);
 
-      // Adjust options count for all questions
       const updatedQuestions = slicedQuestions.map(q => {
+        // Ensure options count matches config
         const newOptions = [...q.options];
         while (newOptions.length < prev.optionsPerQuestion) {
           newOptions.push('');
         }
-        const adjustedOptions = newOptions.slice(0, prev.optionsPerQuestion);
-
-        let newCorrectAnswerIndex = q.correctAnswerIndex;
-        // If the correct answer index is now out of bounds or the option at that index is empty, reset it
-        if (newCorrectAnswerIndex !== null && (newCorrectAnswerIndex >= adjustedOptions.length || !adjustedOptions[newCorrectAnswerIndex])) {
-          newCorrectAnswerIndex = null;
-        }
-
         return {
           ...q,
-          options: adjustedOptions,
-          correctAnswerIndex: newCorrectAnswerIndex,
+          options: newOptions.slice(0, prev.optionsPerQuestion),
         };
       });
 
-      return {
-        ...prev,
-        questions: updatedQuestions,
-      };
+      return { ...prev, questions: updatedQuestions };
     });
   }, [quizData.totalQuestions, quizData.optionsPerQuestion, defaultTimePerQuestion]);
 
-  // Effect to calculate total quiz time whenever questions change
   useEffect(() => {
     const sumOfTimes = quizData.questions.reduce((sum, q) => {
-      // Only sum if timeLimitMinutes is a valid number
       return sum + (typeof q.timeLimitMinutes === 'number' && q.timeLimitMinutes > 0 ? q.timeLimitMinutes : 0);
     }, 0);
     setTotalCalculatedQuizTime(sumOfTimes);
   }, [quizData.questions]);
 
-  // Calculate total marks dynamically
   const totalQuizMarks = quizData.questions.reduce((sum, q) => sum + (typeof q.marks === 'number' ? q.marks : 0), 0);
 
-  // Helper validation function
   const validateQuizDraft = (): boolean => {
-    if (!quizData.quizTitle.trim()) {
-      toast.error("Please provide a quiz title.");
-      return false;
-    }
-    if (!quizData.courseName.trim()) {
-      toast.error("Please provide a course name.");
-      return false;
-    }
-    if (!quizData.scheduledDate || !quizData.startTime || !quizData.endTime) {
-      toast.error("Please set the scheduled date, start time, and end time.");
-      return false;
-    }
-    if (new Date(`${quizData.scheduledDate}T${quizData.startTime}`) >= new Date(`${quizData.scheduledDate}T${quizData.endTime}`)) {
-      toast.error("Start time must be before end time.");
-      return false;
-    }
-    if (enableTimePerQuestion && totalCalculatedQuizTime <= 0) {
-      toast.error("Total quiz time must be at least 1 minute. Please ensure all questions have a valid time limit.");
-      return false;
-    }
-    if (quizData.questions.length === 0) {
-      toast.error("Please add at least one question to the quiz.");
-      return false;
-    }
-    // Check global negative marks setting
-    if (negativeMarking && (negativeMarksValue === '' || Number(negativeMarksValue) < 0)) {
-      toast.error("Please enter a valid value for negative marks.");
-      return false;
-    }
-
-    for (const [index, q] of quizData.questions.entries()) {
-      if (!q.questionText.trim()) {
-        toast.error(`Question ${index + 1}: Question text cannot be empty.`);
-        return false;
-      }
-      if (q.options.some(opt => !opt.trim())) {
-        toast.error(`Question ${index + 1}: All options must be filled.`);
-        return false;
-      }
-      if (q.correctAnswerIndex === null || q.correctAnswerIndex < 0 || q.correctAnswerIndex >= q.options.length) {
-        toast.error(`Question ${index + 1}: Please select the correct answer`);
-        return false;
-      }
-      if (q.marks === '' || q.marks < 1 || q.marks > 10) {
-        toast.error(`Question ${index + 1}: Please enter marks (1 to 10)`);
-        return false;
-      }
-      // New validation for individual question time: check for empty string OR non-positive number
-      if (enableTimePerQuestion && (q.timeLimitMinutes === '' || (typeof q.timeLimitMinutes === 'number' && q.timeLimitMinutes <= 0))) {
-        toast.error(`Question ${index + 1}: Please enter time per question`);
-        return false;
-      }
-    }
+    if (!quizData.quizTitle.trim()) { toast.error("Please provide a quiz title."); return false; }
+    if (!quizData.courseName.trim()) { toast.error("Please provide a course name."); return false; }
+    if (!quizData.scheduledDate || !quizData.startTime || !quizData.endTime) { toast.error("Please set the full schedule."); return false; }
     return true;
   };
 
-  const handleDeleteQuestionFromDraft = (questionIndex: number) => {
-    setQuizData((prev) => {
-      const filteredQuestions = prev.questions.filter((_, idx) => idx !== questionIndex);
-      return {
-        ...prev,
-        questions: filteredQuestions, // Update the questions array directly
-        totalQuestions: filteredQuestions.length, // Update totalQuestions to match the new array length
-      };
-    });
-    toast.info("Question removed from draft.");
-  };
-
   const handleUpdateQuizDetails = (field: keyof LocalQuizData, value: string | number) => {
-    setQuizData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setQuizData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleUpdateCorrectAnswerIndex = (questionIndex: number, selectedOptionValue: string) => {
-    setQuizData((prev) => {
+    setQuizData(prev => {
       const newQuestions = [...prev.questions];
       const question = newQuestions[questionIndex];
       const newIndex = question.options.findIndex(opt => opt === selectedOptionValue);
@@ -243,90 +201,50 @@ const QuizCreator = () => {
     });
   };
 
-
-  const handleUpdateDraftQuestion = (
-    questionIndex: number,
-    field: 'questionText' | 'marks' | 'timeLimitMinutes', // Added timeLimitMinutes
-    value: string | number
-  ) => {
-    setQuizData((prev) => {
+  const handleUpdateDraftQuestion = (questionIndex: number, field: any, value: any) => {
+    setQuizData(prev => {
       const newQuestions = [...prev.questions];
-      if (field === 'marks' || field === 'timeLimitMinutes') {
-        // If value is empty string, store as empty string. Otherwise, parse to int.
-        const parsedValue = value === '' ? '' : parseInt(value as string);
-        newQuestions[questionIndex] = { ...newQuestions[questionIndex], [field]: parsedValue };
-      } else {
-        newQuestions[questionIndex] = { ...newQuestions[questionIndex], [field]: value as string };
-      }
+      newQuestions[questionIndex] = { ...newQuestions[questionIndex], [field]: value };
       return { ...prev, questions: newQuestions };
     });
   };
 
   const handleGenerateAIQuestions = () => {
-    if (!aiCoursePaperName.trim()) {
-      toast.error("Please enter a course/paper name for AI generation.");
-      return;
-    }
-
-    const generatedQuestions = generateAIQuestions(
-      aiCoursePaperName,
-      aiDifficulty,
-      quizData.totalQuestions === '' ? 0 : quizData.totalQuestions, // Use totalQuestions from quiz setup
-      quizData.optionsPerQuestion // Use optionsPerQuestion from quiz setup
-    );
-
-    // Map generated questions to LocalQuestion format
-    const newDraftQuestions: LocalQuestion[] = generatedQuestions.map(q => ({
-      questionText: q.questionText,
-      options: q.options,
-      correctAnswerIndex: q.options.indexOf(q.correctAnswer), // Find index of correct answer
-      marks: 0, // Default marks 0, as per requirement
-      timeLimitMinutes: defaultTimePerQuestion !== null ? defaultTimePerQuestion : 1, // Use default or 1
-    }));
-
-    setQuizData((prev) => ({
+    if (!aiCoursePaperName.trim()) { toast.error("Enter a topic."); return; }
+    const generated = generateAIQuestions(aiCoursePaperName, aiDifficulty, quizData.totalQuestions as number || 5, quizData.optionsPerQuestion);
+    setQuizData(prev => ({
       ...prev,
-      questions: newDraftQuestions,
-      totalQuestions: newDraftQuestions.length, // Update totalQuestions to match generated count
-      courseName: prev.courseName || aiCoursePaperName, // Optionally set course name if empty
-    }));
-    toast.success("AI generated questions loaded into draft. Please review and set marks.");
-  };
-
-  // Helper to prepare quiz data for storage/logging/context
-  const prepareQuizForOutput = (isForPreview: boolean = false): StoredQuiz | null => {
-    if (!validateQuizDraft()) {
-      return null;
-    }
-
-    const quizId = `qz-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const questionsForOutput = quizData.questions.map((q, qIndex) => {
-      const questionId = `q-${Date.now()}-${qIndex}-${Math.random().toString(36).substr(2, 4)}`;
-      return {
-        id: questionId,
-        quizId: quizId, // Assign the quizId to questions
+      questions: generated.map(q => ({
         questionText: q.questionText,
         options: q.options,
-        correctAnswer: q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : '',
-        marks: typeof q.marks === 'number' ? q.marks : 1,
-        timeLimitMinutes: typeof q.timeLimitMinutes === 'number' ? q.timeLimitMinutes : 1, // Ensure it's a number for output
-      };
-    });
+        correctAnswerIndex: q.options.indexOf(q.correctAnswer),
+        marks: 1,
+        timeLimitMinutes: 1
+      })),
+      totalQuestions: generated.length
+    }));
+  };
 
+  const prepareQuizForOutput = (): StoredQuiz | null => {
+    if (!validateQuizDraft()) return null;
+    const quizId = `qz-${Date.now()}`;
     return {
       id: quizId,
       title: quizData.quizTitle,
       courseName: quizData.courseName,
-      questionIds: questionsForOutput.map(q => q.id),
+      questionIds: [],
       timeLimitMinutes: totalCalculatedQuizTime,
       negativeMarking: negativeMarking,
+<<<<<<< HEAD
       negativeMarksValue: negativeMarking ? Number(negativeMarksValue) : 0, // Use negativeMarksValue
       competitionMode: competitionMode,
       scheduledDate: quizData.scheduledDate,
       startTime: quizData.startTime,
       endTime: quizData.endTime,
       difficulty: quizDifficulty, // Include difficulty
-
+=======
+      negativeMarks: negativeMarking ? negativeMarks : 0, // Store negative marks if enabled
+>>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
       _questionsData: questionsForOutput, // Include full question data for easy retrieval
     };
   };
@@ -394,9 +312,11 @@ const QuizCreator = () => {
       endTime: '',
     });
     setNegativeMarking(false);
+<<<<<<< HEAD
     setNegativeMarksValue('');
     setCompetitionMode(false);
-
+=======
+>>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
     setDefaultTimePerQuestion(null);
     setTotalCalculatedQuizTime(0);
     setAiCoursePaperName('');
@@ -422,12 +342,6 @@ const QuizCreator = () => {
       toast.error("Please set the scheduled date, start time, and end time.");
       return;
     }
-
-    // Add course only when proceeding
-    if (quizData.courseName.trim()) {
-      addCourse(quizData.courseName.trim());
-    }
-
     setStep(2);
   };
 
@@ -435,8 +349,7 @@ const QuizCreator = () => {
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-2xl">
-          <ListChecks className="h-6 w-6" /> Generate New Quiz
-          {step === 2 && <span className="text-sm font-normal text-muted-foreground ml-2">(Step 2: Manage Questions)</span>}
+          <ListChecks className="h-6 w-6" /> {step === 1 ? 'Configure Quiz' : 'Manage Questions'}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -461,10 +374,7 @@ const QuizCreator = () => {
             placeholder="e.g., 'CS 101: Introduction to Programming'"
             value={quizData.courseName}
             disabled={step === 2} // Lock
-            onChange={(e) => {
-              const val = e.target.value;
-              handleUpdateQuizDetails('courseName', val);
-            }}
+            onChange={(e) => handleUpdateQuizDetails('courseName', e.target.value)}
             className="mt-1"
           />
         </div>
@@ -480,56 +390,7 @@ const QuizCreator = () => {
                 type="date"
                 value={quizData.scheduledDate}
                 disabled={step === 2}
-                onChange={(e) => {
-                  const dateValue = e.target.value;
-
-                  // If empty, allow it (for clearing the field)
-                  if (!dateValue) {
-                    handleUpdateQuizDetails('scheduledDate', dateValue);
-                    return;
-                  }
-
-                  // Validate date format and value
-                  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-                  if (!dateRegex.test(dateValue)) {
-                    toast.error("Invalid date format. Please use the date picker.");
-                    return;
-                  }
-
-                  // Parse the date components
-                  const [year, month, day] = dateValue.split('-').map(Number);
-
-                  // Validate month (1-12)
-                  if (month < 1 || month > 12) {
-                    toast.error(`Invalid month: ${month}. Month must be between 1 and 12.`);
-                    return;
-                  }
-
-                  // Validate day for the given month and year
-                  const daysInMonth = new Date(year, month, 0).getDate();
-                  if (day < 1 || day > daysInMonth) {
-                    toast.error(`Invalid day: ${day}. This month has only ${daysInMonth} days.`);
-                    return;
-                  }
-
-                  // Create a date object and verify it matches the input
-                  const dateObj = new Date(dateValue);
-                  if (isNaN(dateObj.getTime())) {
-                    toast.error("Invalid date. Please select a valid date.");
-                    return;
-                  }
-
-                  // Verify the date components match (prevents auto-correction)
-                  if (dateObj.getFullYear() !== year ||
-                    dateObj.getMonth() + 1 !== month ||
-                    dateObj.getDate() !== day) {
-                    toast.error("Invalid date. Please select a valid date.");
-                    return;
-                  }
-
-                  // All validations passed, update the value
-                  handleUpdateQuizDetails('scheduledDate', dateValue);
-                }}
+                onChange={(e) => handleUpdateQuizDetails('scheduledDate', e.target.value)}
                 className="mt-1"
               />
             </div>
@@ -540,40 +401,7 @@ const QuizCreator = () => {
                 type="time"
                 value={quizData.startTime}
                 disabled={step === 2}
-                onChange={(e) => {
-                  const timeValue = e.target.value;
-
-                  // If empty, allow it (for clearing the field)
-                  if (!timeValue) {
-                    handleUpdateQuizDetails('startTime', timeValue);
-                    return;
-                  }
-
-                  // Validate time format (HH:MM)
-                  const timeRegex = /^\d{2}:\d{2}$/;
-                  if (!timeRegex.test(timeValue)) {
-                    toast.error("Invalid time format. Please use the time picker.");
-                    return;
-                  }
-
-                  // Parse hours and minutes
-                  const [hours, minutes] = timeValue.split(':').map(Number);
-
-                  // Validate hours (0-23)
-                  if (hours < 0 || hours > 23) {
-                    toast.error(`Invalid hour: ${hours}. Hours must be between 0 and 23.`);
-                    return;
-                  }
-
-                  // Validate minutes (0-59)
-                  if (minutes < 0 || minutes > 59) {
-                    toast.error(`Invalid minutes: ${minutes}. Minutes must be between 0 and 59.`);
-                    return;
-                  }
-
-                  // All validations passed, update the value
-                  handleUpdateQuizDetails('startTime', timeValue);
-                }}
+                onChange={(e) => handleUpdateQuizDetails('startTime', e.target.value)}
                 className="mt-1"
               />
             </div>
@@ -584,40 +412,7 @@ const QuizCreator = () => {
                 type="time"
                 value={quizData.endTime}
                 disabled={step === 2}
-                onChange={(e) => {
-                  const timeValue = e.target.value;
-
-                  // If empty, allow it (for clearing the field)
-                  if (!timeValue) {
-                    handleUpdateQuizDetails('endTime', timeValue);
-                    return;
-                  }
-
-                  // Validate time format (HH:MM)
-                  const timeRegex = /^\d{2}:\d{2}$/;
-                  if (!timeRegex.test(timeValue)) {
-                    toast.error("Invalid time format. Please use the time picker.");
-                    return;
-                  }
-
-                  // Parse hours and minutes
-                  const [hours, minutes] = timeValue.split(':').map(Number);
-
-                  // Validate hours (0-23)
-                  if (hours < 0 || hours > 23) {
-                    toast.error(`Invalid hour: ${hours}. Hours must be between 0 and 23.`);
-                    return;
-                  }
-
-                  // Validate minutes (0-59)
-                  if (minutes < 0 || minutes > 59) {
-                    toast.error(`Invalid minutes: ${minutes}. Minutes must be between 0 and 59.`);
-                    return;
-                  }
-
-                  // All validations passed, update the value
-                  handleUpdateQuizDetails('endTime', timeValue);
-                }}
+                onChange={(e) => handleUpdateQuizDetails('endTime', e.target.value)}
                 className="mt-1"
               />
             </div>
@@ -820,74 +615,78 @@ const QuizCreator = () => {
                             ))}
                           </RadioGroup>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor={`q-marks-${index}`}>Marks (1-10)</Label>
+                          <Input
+                            id={`q-marks-${index}`}
+                            type="number"
+                            min="0"
+                            max="10"
+                            value={q.marks}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? '' : parseInt(e.target.value);
+                              if (val === '' || (val >= 0 && val <= 10)) {
+                                handleUpdateDraftQuestion(index, 'marks', val === '' ? '' : val);
+                              }
+                            }}
+                            className="mt-1"
+                          />
+                        </div>
+<<<<<<< HEAD
+                      )}
+                    </div >
+                  </Card >
+                ))
+              )}
+            </div >
+          </>
+        )}
+      </CardContent >
+=======
+                        {enableTimePerQuestion && (
                           <div>
-                            <Label htmlFor={`q-marks-${index}`}>Marks (1-10)</Label>
+                            <Label htmlFor={`q-time-${index}`}>Time for this Question (minutes)</Label>
                             <Input
-                              id={`q-marks-${index}`}
+                              id={`q-time-${index}`}
                               type="number"
-                              min="0"
-                              max="10"
-                              value={q.marks}
-                              onChange={(e) => {
-                                const val = e.target.value === '' ? '' : parseInt(e.target.value);
-                                if (val === '' || (val >= 0 && val <= 10)) {
-                                  handleUpdateDraftQuestion(index, 'marks', val);
-                                }
-                              }}
-                              onKeyDown={(e) => e.preventDefault()}
+                              min="1"
+                              value={q.timeLimitMinutes}
+                              onChange={(e) => handleUpdateDraftQuestion(index, 'timeLimitMinutes', e.target.value)}
                               className="mt-1"
                             />
                           </div>
-                          {enableTimePerQuestion && (
-                            <div>
-                              <Label htmlFor={`q-time-${index}`}>Time (minutes)</Label>
-                              <Input
-                                id={`q-time-${index}`}
-                                type="number"
-                                min="1"
-                                value={q.timeLimitMinutes}
-                                onChange={(e) => {
-                                  const val = e.target.value === '' ? '' : parseInt(e.target.value);
-                                  if (val === '' || val > 0) {
-                                    handleUpdateDraftQuestion(index, 'timeLimitMinutes', val);
-                                  }
-                                }}
-                                onKeyDown={(e) => e.preventDefault()}
-                                className="mt-1"
-                              />
-                            </div>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </Card>
                   ))
                 )}
               </div>
+              {/* Manual 'Add Question' removed per requirement */}
             </>
-          )}
-      </CardContent>
+          )
+        }
+      </CardContent >
+>>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
 
-
-      <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 mt-6">
-        {step === 1 ? (
-          <Button onClick={handleProceed} className="w-full bg-blue-600 hover:bg-blue-700">
-            Proceed
-          </Button>
-        ) : (
-          <>
-            <Button variant="outline" onClick={() => setStep(1)} className="w-[100px]">
-              Back
-            </Button>
-            <Button onClick={handlePreviewQuiz} variant="outline" className="w-full sm:w-auto">
-              <Eye className="h-4 w-4 mr-2" /> Preview Quiz
-            </Button>
-            <Button onClick={handleCreateQuiz} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
-              <Save className="h-4 w-4 mr-2" /> Create & Schedule Quiz
-            </Button>
-          </>
-        )}
-      </CardFooter>
+  <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 mt-6">
+    {step === 1 ? (
+      <Button onClick={handleProceed} className="w-full bg-blue-600 hover:bg-blue-700">
+        Proceed
+      </Button>
+    ) : (
+      <>
+        <Button variant="outline" onClick={() => setStep(1)} className="w-[100px]">
+          Back
+        </Button>
+        <Button onClick={handlePreviewQuiz} variant="outline" className="w-full sm:w-auto">
+          <Eye className="h-4 w-4 mr-2" /> Preview Quiz
+        </Button>
+        <Button onClick={handleCreateQuiz} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
+          <Save className="h-4 w-4 mr-2" /> Create & Schedule Quiz
+        </Button>
+      </>
+    )}
+  </CardFooter>
     </Card >
   );
 };
