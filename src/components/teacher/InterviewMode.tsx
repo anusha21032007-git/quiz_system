@@ -12,7 +12,12 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
+import { useNavigate } from 'react-router-dom';
+import { useQuiz, Quiz, Question } from '@/context/QuizContext';
+
 const InterviewMode = () => {
+    const navigate = useNavigate();
+    const { addQuiz } = useQuiz();
     const [interviewMode, setInterviewMode] = useState<boolean>(false);
     const [creationMode, setCreationMode] = useState<'selection' | 'manual' | 'pdf'>('selection');
     const [pdfSubMode, setPdfSubMode] = useState<'selection' | 'ai' | 'extract'>('selection');
@@ -170,6 +175,48 @@ const InterviewMode = () => {
             setRemainingTime(interviewTimerSeconds);
         }
         toast.success(`Interview Session Started!`);
+    };
+
+    const handlePublishToStudents = () => {
+        let questionsToPublish: any[] = [];
+        if (creationMode === 'manual') {
+            questionsToPublish = manualQuestions;
+        } else if (creationMode === 'pdf') {
+            questionsToPublish = pdfQuestions;
+        }
+
+        if (questionsToPublish.length === 0) {
+            toast.error("No questions to publish.");
+            return;
+        }
+
+        const quizTitle = `INT: ${creationMode === 'pdf' ? selectedFile?.name : 'Manual Interview'} - ${new Date().toLocaleDateString()}`;
+
+        const quizToAdd: Omit<Quiz, 'id' | 'status'> = {
+            title: quizTitle,
+            courseName: 'Interview Selection',
+            timeLimitMinutes: interviewTimerEnabled ? (interviewTimerSeconds * questionsToPublish.length) / 60 : 0,
+            negativeMarking: false,
+            competitionMode: false,
+            scheduledDate: new Date().toISOString().split('T')[0],
+            startTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+            endTime: '23:59',
+            negativeMarksValue: 0,
+            difficulty: 'Medium',
+            isInterview: true, // Mark as interview
+        };
+
+        const questionsData: Omit<Question, 'id'>[] = questionsToPublish.map(q => ({
+            quizId: 'temp',
+            questionText: q.questionText,
+            options: q.options || [],
+            correctAnswer: q.correctAnswer || q.hints || 'No answer provided',
+            marks: 1,
+            timeLimitMinutes: interviewTimerEnabled ? interviewTimerSeconds / 60 : 0,
+        }));
+
+        addQuiz(quizToAdd, questionsData);
+        toast.success("Interview session published to students!");
     };
 
     const handleSaveManualQuestion = () => {
@@ -385,6 +432,13 @@ const InterviewMode = () => {
                                     >
                                         Start Interview with {manualQuestions.length} Questions
                                     </Button>
+                                    <Button
+                                        onClick={handlePublishToStudents}
+                                        variant="outline"
+                                        className="w-full border-purple-200 text-purple-700 hover:bg-purple-50"
+                                    >
+                                        <Save className="h-4 w-4 mr-2" /> Publish to Students
+                                    </Button>
                                 </div>
                             )}
                         </div>
@@ -484,6 +538,13 @@ const InterviewMode = () => {
                                     >
                                         Start Interview Session
                                     </Button>
+                                    <Button
+                                        onClick={handlePublishToStudents}
+                                        variant="outline"
+                                        className="w-full border-purple-200 text-purple-700 hover:bg-purple-50"
+                                    >
+                                        <Save className="h-4 w-4 mr-2" /> Publish to Students
+                                    </Button>
                                 </div>
                             )}
                         </div>
@@ -495,4 +556,3 @@ const InterviewMode = () => {
 };
 
 export default InterviewMode;
->>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49

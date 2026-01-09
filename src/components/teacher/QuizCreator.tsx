@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ListChecks, PlusCircle, Trash2, Eye, Save, Brain } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
@@ -40,16 +39,12 @@ interface StoredQuiz {
   questionIds: string[];
   timeLimitMinutes: number;
   negativeMarking: boolean;
-<<<<<<< HEAD
   negativeMarksValue: number; // Updated field name for consistency
   competitionMode: boolean;
   scheduledDate: string; // ADDED
   startTime: string;     // ADDED
   endTime: string;       // ADDED
   difficulty: 'Easy' | 'Medium' | 'Hard'; // ADDED DIFFICULTY
-=======
-  negativeMarks: string | number; // Added negativeMarks to stored quiz
->>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
   _questionsData: {
     id: string;
     quizId: string;
@@ -77,12 +72,8 @@ const QuizCreator = () => {
   });
 
   const [negativeMarking, setNegativeMarking] = useState<boolean>(false);
-<<<<<<< HEAD
   const [negativeMarksValue, setNegativeMarksValue] = useState<string | number>(''); // State for negative marks value
   const [competitionMode, setCompetitionMode] = useState<boolean>(false);
-=======
-  const [negativeMarks, setNegativeMarks] = useState<string | number>(''); // State for negative marks value
->>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
   const [defaultTimePerQuestion, setDefaultTimePerQuestion] = useState<number | null>(null); // New state for optional default time
   const [enableTimePerQuestion, setEnableTimePerQuestion] = useState<boolean>(false); // Toggle for time per question
   const [totalCalculatedQuizTime, setTotalCalculatedQuizTime] = useState<number>(0); // New state for total quiz time
@@ -228,6 +219,17 @@ const QuizCreator = () => {
   const prepareQuizForOutput = (): StoredQuiz | null => {
     if (!validateQuizDraft()) return null;
     const quizId = `qz-${Date.now()}`;
+
+    const questionsForOutput = quizData.questions.map((q, index) => ({
+      id: `q-${quizId}-${index}`,
+      quizId: quizId,
+      questionText: q.questionText,
+      options: q.options,
+      correctAnswer: q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : '',
+      marks: typeof q.marks === 'number' ? q.marks : 1,
+      timeLimitMinutes: typeof q.timeLimitMinutes === 'number' ? q.timeLimitMinutes : 1,
+    }));
+
     return {
       id: quizId,
       title: quizData.quizTitle,
@@ -235,16 +237,12 @@ const QuizCreator = () => {
       questionIds: [],
       timeLimitMinutes: totalCalculatedQuizTime,
       negativeMarking: negativeMarking,
-<<<<<<< HEAD
       negativeMarksValue: negativeMarking ? Number(negativeMarksValue) : 0, // Use negativeMarksValue
       competitionMode: competitionMode,
       scheduledDate: quizData.scheduledDate,
       startTime: quizData.startTime,
       endTime: quizData.endTime,
       difficulty: quizDifficulty, // Include difficulty
-=======
-      negativeMarks: negativeMarking ? negativeMarks : 0, // Store negative marks if enabled
->>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
       _questionsData: questionsForOutput, // Include full question data for easy retrieval
     };
   };
@@ -312,11 +310,8 @@ const QuizCreator = () => {
       endTime: '',
     });
     setNegativeMarking(false);
-<<<<<<< HEAD
     setNegativeMarksValue('');
     setCompetitionMode(false);
-=======
->>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
     setDefaultTimePerQuestion(null);
     setTotalCalculatedQuizTime(0);
     setAiCoursePaperName('');
@@ -632,17 +627,6 @@ const QuizCreator = () => {
                             className="mt-1"
                           />
                         </div>
-<<<<<<< HEAD
-                      )}
-                    </div >
-                  </Card >
-                ))
-              )}
-            </div >
-          </>
-        )}
-      </CardContent >
-=======
                         {enableTimePerQuestion && (
                           <div>
                             <Label htmlFor={`q-time-${index}`}>Time for this Question (minutes)</Label>
@@ -661,32 +645,30 @@ const QuizCreator = () => {
                   ))
                 )}
               </div>
-              {/* Manual 'Add Question' removed per requirement */}
             </>
           )
         }
-      </CardContent >
->>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
+      </CardContent>
 
-  <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 mt-6">
-    {step === 1 ? (
-      <Button onClick={handleProceed} className="w-full bg-blue-600 hover:bg-blue-700">
-        Proceed
-      </Button>
-    ) : (
-      <>
-        <Button variant="outline" onClick={() => setStep(1)} className="w-[100px]">
-          Back
-        </Button>
-        <Button onClick={handlePreviewQuiz} variant="outline" className="w-full sm:w-auto">
-          <Eye className="h-4 w-4 mr-2" /> Preview Quiz
-        </Button>
-        <Button onClick={handleCreateQuiz} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
-          <Save className="h-4 w-4 mr-2" /> Create & Schedule Quiz
-        </Button>
-      </>
-    )}
-  </CardFooter>
+      <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 mt-6">
+        {step === 1 ? (
+          <Button onClick={handleProceed} className="w-full bg-blue-600 hover:bg-blue-700">
+            Proceed
+          </Button>
+        ) : (
+          <>
+            <Button variant="outline" onClick={() => setStep(1)} className="w-[100px]">
+              Back
+            </Button>
+            <Button onClick={handlePreviewQuiz} variant="outline" className="w-full sm:w-auto">
+              <Eye className="h-4 w-4 mr-2" /> Preview Quiz
+            </Button>
+            <Button onClick={handleCreateQuiz} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
+              <Save className="h-4 w-4 mr-2" /> Create & Schedule Quiz
+            </Button>
+          </>
+        )}
+      </CardFooter>
     </Card >
   );
 };

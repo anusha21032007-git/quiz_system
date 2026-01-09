@@ -19,8 +19,11 @@ const createDateTime = (dateStr: string, timeStr: string): Date => {
 };
 
 const NextActionCard = ({ studentName, averageScore }: NextActionCardProps) => {
-  const { quizzes, quizAttempts } = useQuiz();
+  const { quizzes: allQuizzes, quizAttempts } = useQuiz();
   const now = new Date();
+
+  // Filter out interviews from the next action card
+  const quizzes = useMemo(() => allQuizzes.filter(q => !q.isInterview), [allQuizzes]);
 
   const recommendation = useMemo(() => {
     // Rule 1: No quiz attempted yet
@@ -68,14 +71,14 @@ const NextActionCard = ({ studentName, averageScore }: NextActionCardProps) => {
 
     // Rule 3: Quiz is scheduled today (upcoming)
     if (upcomingQuiz && upcomingQuiz.scheduledDate === now.toISOString().split('T')[0]) {
-        const startTime = upcomingQuiz.startTime;
-        return {
-            title: "Today's Assessment",
-            message: `${upcomingQuiz.title} starts today at ${startTime}. Be prepared.`,
-            icon: Clock,
-            color: "bg-indigo-600",
-            action: <Link to="/student?view=quizzes"><Button className="w-full bg-indigo-700 hover:bg-indigo-800">View Schedule</Button></Link>
-        };
+      const startTime = upcomingQuiz.startTime;
+      return {
+        title: "Today's Assessment",
+        message: `${upcomingQuiz.title} starts today at ${startTime}. Be prepared.`,
+        icon: Clock,
+        color: "bg-indigo-600",
+        action: <Link to="/student?view=quizzes"><Button className="w-full bg-indigo-700 hover:bg-indigo-800">View Schedule</Button></Link>
+      };
     }
 
     // Rule 4: Average score is low (below 60%)
@@ -88,7 +91,7 @@ const NextActionCard = ({ studentName, averageScore }: NextActionCardProps) => {
         action: <Link to="/student?view=my-results"><Button className="w-full bg-red-700 hover:bg-red-800">Review Results</Button></Link>
       };
     }
-    
+
     // Default: All caught up
     return {
       title: "All Caught Up!",

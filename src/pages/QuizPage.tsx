@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuiz, Question as LocalQuestionType } from '@/context/QuizContext';
-import { useQuestionsByQuizId } from '@/integrations/supabase/quizzes';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -37,10 +36,26 @@ const QuizPage = () => {
   const { getQuizById, submitQuizAttempt, getQuestionsForQuiz } = useQuiz();
   const quiz = quizId ? getQuizById(quizId) : undefined;
 
-  // Fetch questions using Supabase hook
-  const { data: supabaseQuestions, isLoading: isQuestionsLoading, error: questionsError } = useQuestionsByQuizId(quizId || '');
+  const [questions, setQuestions] = useState<LocalQuestionType[]>([]);
+  const [isQuestionsLoading, setIsQuestionsLoading] = useState(true);
 
-  const questions: LocalQuestionType[] = (supabaseQuestions || []).map(mapSupabaseQuestionToLocal);
+  // Unified question fetching (handles local and cloud)
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      if (!quizId) return;
+      setIsQuestionsLoading(true);
+      try {
+        const q = await getQuestionsForQuiz(quizId);
+        setQuestions(q);
+      } catch (error) {
+        console.error("Failed to load questions:", error);
+        toast.error("Failed to load quiz questions.");
+      } finally {
+        setIsQuestionsLoading(false);
+      }
+    };
+    fetchQuestions();
+  }, [quizId, getQuestionsForQuiz]);
 
   const isMobile = useIsMobile();
 
@@ -66,15 +81,6 @@ const QuizPage = () => {
       setTimeLeft(totalDuration);
     }
   }, [quizId, quiz, questions.length, navigate]);
-
-  // Handle errors during question fetching
-  useEffect(() => {
-    if (questionsError) {
-      toast.error(`Failed to load quiz questions: ${questionsError.message}`);
-      navigate('/student');
-    }
-  }, [questionsError, navigate]);
-
 
   // Timer logic
   useEffect(() => {

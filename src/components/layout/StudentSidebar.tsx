@@ -4,7 +4,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { PanelLeft, LayoutDashboard, BookOpen, ListChecks, Trophy, User, LogOut, BarChart, ArrowLeft } from 'lucide-react';
+import { PanelLeft, LayoutDashboard, BookOpen, ListChecks, Trophy, User, LogOut, BarChart, ArrowLeft, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'; // Import Avatar components
 // Removed import for ScheduledQuizAlert
@@ -22,6 +22,7 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile, studentName, regi
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'my-courses', label: 'My Courses', icon: BookOpen },
     { id: 'quizzes', label: 'Quizzes', icon: ListChecks },
+    { id: 'interview-mode', label: 'Interview Mode', icon: Brain },
     { id: 'my-results', label: 'My Results', icon: BarChart },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
     // Removed 'profile' item
@@ -41,12 +42,12 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile, studentName, regi
 
   const renderNav = () => (
     <nav className="flex flex-col h-full">
-      
+
       {/* TOP SECTION: Home Button (Fixed) */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700 space-y-3">
         <Link to="/">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon"
             className="justify-start text-gray-600 hover:text-gray-800"
           >
@@ -77,8 +78,8 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile, studentName, regi
 
       {/* BOTTOM SECTION: Logout (Fixed) */}
       <div className="mt-auto p-4 border-t border-gray-200 dark:border-gray-700">
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           className="justify-start gap-3 w-full text-red-500 hover:text-red-600"
           onClick={handleLogout}
         >

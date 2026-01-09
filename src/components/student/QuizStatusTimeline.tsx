@@ -185,6 +185,7 @@ const QuizStatusTimeline = ({ studentName }: QuizStatusTimelineProps) => {
     const now = new Date();
 
     return quizzes
+      .filter(q => !q.isInterview) // FILTER: Exclude interview sessions from standard timeline
       .map((quiz) => {
         const startTime = createDateTime(quiz.scheduledDate, quiz.startTime);
         const endTime = createDateTime(quiz.scheduledDate, quiz.endTime);

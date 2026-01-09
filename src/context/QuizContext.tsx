@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -15,14 +15,14 @@ import { supabase } from '@/integrations/supabase/client';
 // --- Type Definitions ---
 
 // Map Supabase types to local context types
-export interface Question extends Omit<SupabaseQuestion, 'teacher_id' | 'created_at' | 'question_text' | 'correct_answer' | 'quiz_id'> {
+export interface Question extends Omit<SupabaseQuestion, 'teacher_id' | 'created_at' | 'question_text' | 'correct_answer' | 'quiz_id' | 'time_limit_minutes'> {
   questionText: string;
   options: string[];
   correctAnswer: string;
   quizId: string;
+  timeLimitMinutes: number;
 }
 
-<<<<<<< HEAD
 export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | 'course_name' | 'time_limit_minutes' | 'scheduled_date' | 'start_time' | 'end_time' | 'negative_marks_value' | 'status' | 'difficulty'> {
   courseName: string;
   timeLimitMinutes: number;
@@ -34,16 +34,8 @@ export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | '
   negativeMarksValue: number;
   status: 'draft' | 'published';
   difficulty: 'Easy' | 'Medium' | 'Hard'; // NEW FIELD
+  isInterview?: boolean; // NEW: Distinguish interview sessions from regular quizzes
   // Note: questionIds is derived from fetching questions separately now, not stored on the quiz object itself.
-=======
-export interface Quiz {
-  id: string;
-  title: string;
-  questionIds: string[]; // IDs of questions belonging to this quiz
-  timeLimitMinutes: number; // New field for quiz time limit
-  negativeMarking: boolean; // New field for negative marking
-  negativeMarks?: string | number; // Added negative marks field
->>>>>>> 17bbe4ee1cb839a767eff48d901361d1bfb78b49
 }
 
 export interface QuizAttempt {
@@ -69,7 +61,7 @@ interface QuizContextType {
   addQuestion: (question: Omit<Question, 'id'>) => string; // Kept for QuestionCreator draft flow
   addQuiz: (quiz: Omit<Quiz, 'id' | 'status'>, questionsData: Omit<Question, 'id'>[]) => void; // Updated signature to omit status
   submitQuizAttempt: (attempt: Omit<QuizAttempt, 'id' | 'timestamp'>) => void;
-  getQuestionsForQuiz: (quizId: string) => Question[];
+  getQuestionsForQuiz: (quizId: string) => Promise<Question[]>;
   getQuizById: (quizId: string) => Quiz | undefined;
   generateAIQuestions: (coursePaperName: string, difficulty: 'Easy' | 'Medium' | 'Hard', numQuestions: number, numOptions: number) => Question[];
   deleteQuiz: (quizId: string) => void;
@@ -92,6 +84,7 @@ const mapSupabaseQuizToLocal = (sQuiz: SupabaseQuiz): Quiz => ({
   negativeMarksValue: sQuiz.negative_marks_value,
   status: sQuiz.status,
   difficulty: sQuiz.difficulty, // Mapped new field
+  isInterview: sQuiz.title.startsWith('INT:') || sQuiz.course_name.includes('Interview'), // Fallback detection for Supabase
 });
 
 export const QuizProvider = ({ children }: { children: ReactNode }) => {
@@ -109,7 +102,15 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     }
   });
 
-  const [localQuestionPool, setLocalQuestionPool] = useState<Question[]>([]);
+  const [localQuestionPool, setLocalQuestionPool] = useState<Question[]>(() => {
+    try {
+      const storedQuestions = localStorage.getItem('local_questions');
+      return storedQuestions ? JSON.parse(storedQuestions) : [];
+    } catch (error) {
+      console.error("Failed to load local questions", error);
+      return [];
+    }
+  });
   const [quizAttempts, setQuizAttempts] = useState<QuizAttempt[]>(() => {
     try {
       const storedAttempts = localStorage.getItem('quiz_attempts');
@@ -179,8 +180,16 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     }));
 
     // Update Local State immediately (Optimistic UI for the user)
-    setLocalQuizzes(prev => [...prev, newLocalQuiz]);
-    setLocalQuestionPool(prev => [...prev, ...newLocalQuestions]);
+    setLocalQuizzes(prev => {
+      const updatedQuizzes = [...prev, newLocalQuiz];
+      localStorage.setItem('local_quizzes', JSON.stringify(updatedQuizzes)); // Ensure immediate save
+      return updatedQuizzes;
+    });
+    setLocalQuestionPool(prev => {
+      const updatedQuestions = [...prev, ...newLocalQuestions];
+      localStorage.setItem('local_questions', JSON.stringify(updatedQuestions)); // Ensure immediate save
+      return updatedQuestions;
+    });
     toast.success("Quiz created locally! (Syncing to cloud...)");
 
     // 2. Try Sync to Supabase
@@ -248,9 +257,51 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     toast.success("Quiz submitted!");
   };
 
-  const getQuestionsForQuiz = (quizId: string): Question[] => {
-    return [];
-  };
+  const getQuestionsForQuiz = useCallback(async (quizId: string): Promise<Question[]> => {
+    // 1. Check local pool
+    // Note: We use the localQuestionPool state here.
+    const localQuestions = localQuestionPool.filter(q => q.quizId === quizId);
+    if (localQuestions.length > 0) return localQuestions;
+
+    // 2. Fallback: Check localStorage directly in case state hasn't synced yet (e.g. across tabs)
+    try {
+      const stored = localStorage.getItem('local_questions');
+      if (stored) {
+        const parsed: Question[] = JSON.parse(stored);
+        const found = parsed.filter(q => q.quizId === quizId);
+        if (found.length > 0) return found;
+      }
+    } catch (e) {
+      console.error("Manual localStorage check failed", e);
+    }
+
+    // 3. If it's a local ID and not found, it's truly empty
+    if (quizId.startsWith('qz-local-')) return [];
+
+    // 4. Fetch from Supabase
+    try {
+      const { data, error } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('quiz_id', quizId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      return (data || []).map(sQ => ({
+        id: sQ.id,
+        quizId: sQ.quiz_id,
+        questionText: sQ.question_text,
+        options: sQ.options,
+        correctAnswer: sQ.correct_answer,
+        marks: sQ.marks,
+        timeLimitMinutes: sQ.time_limit_minutes,
+      }));
+    } catch (error) {
+      console.error("Error fetching questions for quiz:", quizId, error);
+      return [];
+    }
+  }, [localQuestionPool]);
 
   const getQuizById = (quizId: string): Quiz | undefined => {
     return quizzes.find(q => q.id === quizId);
