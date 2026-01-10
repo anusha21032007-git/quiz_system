@@ -15,15 +15,17 @@ import { supabase } from '@/integrations/supabase/client';
 // --- Type Definitions ---
 
 // Map Supabase types to local context types
-export interface Question extends Omit<SupabaseQuestion, 'teacher_id' | 'created_at' | 'question_text' | 'correct_answer' | 'quiz_id' | 'time_limit_minutes'> {
+// Note: We omit snake_case fields that we map to camelCase to avoid type conflicts/requirements
+export interface Question extends Omit<SupabaseQuestion, 'teacher_id' | 'created_at' | 'question_text' | 'correct_answer' | 'quiz_id' | 'time_limit_minutes' | 'marks'> {
   questionText: string;
   options: string[];
   correctAnswer: string;
   quizId: string;
+  marks: number;
   timeLimitMinutes: number;
 }
 
-export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | 'course_name' | 'time_limit_minutes' | 'scheduled_date' | 'start_time' | 'end_time' | 'negative_marks_value' | 'status' | 'difficulty'> {
+export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | 'course_name' | 'time_limit_minutes' | 'scheduled_date' | 'start_time' | 'end_time' | 'negative_marks_value' | 'status' | 'difficulty' | 'negative_marking' | 'competition_mode'> {
   courseName: string;
   timeLimitMinutes: number;
   negativeMarking: boolean;
@@ -33,7 +35,7 @@ export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | '
   endTime: string;
   negativeMarksValue: number;
   status: 'draft' | 'published';
-  difficulty: 'Easy' | 'Medium' | 'Hard'; // NEW FIELD
+  difficulty: 'Easy' | 'Medium' | 'Hard';
   isInterview?: boolean; // NEW: Distinguish interview sessions from regular quizzes
   // Note: questionIds is derived from fetching questions separately now, not stored on the quiz object itself.
 }
@@ -58,8 +60,9 @@ interface QuizContextType {
   availableCourses: string[];
 
   // Mutations/Actions
-  addQuestion: (question: Omit<Question, 'id'>) => string; // Kept for QuestionCreator draft flow
-  addQuiz: (quiz: Omit<Quiz, 'id' | 'status'>, questionsData: Omit<Question, 'id'>[]) => void; // Updated signature to omit status
+  addQuestion: (question: Omit<Question, 'id'>) => string;
+  addQuiz: (quiz: Omit<Quiz, 'id' | 'status'>, questionsData: Omit<Question, 'id'>[]) => void;
+  addCourse: (courseName: string) => void; // Restored
   submitQuizAttempt: (attempt: Omit<QuizAttempt, 'id' | 'timestamp'>) => void;
   getQuestionsForQuiz: (quizId: string) => Promise<Question[]>;
   getQuizById: (quizId: string) => Quiz | undefined;
@@ -83,7 +86,7 @@ const mapSupabaseQuizToLocal = (sQuiz: SupabaseQuiz): Quiz => ({
   endTime: sQuiz.end_time,
   negativeMarksValue: sQuiz.negative_marks_value,
   status: sQuiz.status,
-  difficulty: sQuiz.difficulty, // Mapped new field
+  difficulty: sQuiz.difficulty,
   isInterview: sQuiz.title.startsWith('INT:') || sQuiz.course_name.includes('Interview'), // Fallback detection for Supabase
 });
 
@@ -121,10 +124,24 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     }
   });
 
+  // State for manually added courses
+  const [manualCourses, setManualCourses] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem('manual_courses');
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      return [];
+    }
+  });
+
   // Merge Supabase quizzes with Local Quizzes
-  // We prioritize Supabase, but if not available, we show local.
-  // In a real scenario, we might want to de-duplicate by ID, but since local IDs are different, concatenation is fine.
   const quizzes = [...supabaseQuizzes.map(mapSupabaseQuizToLocal), ...localQuizzes];
+
+  // Derive available courses (from both quizzes and manual additions)
+  const availableCourses = Array.from(new Set([
+    ...quizzes.map(q => q.courseName),
+    ...manualCourses
+  ])).filter(Boolean);
 
   useEffect(() => {
     localStorage.setItem('quiz_attempts', JSON.stringify(quizAttempts));
@@ -138,6 +155,10 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('local_questions', JSON.stringify(localQuestionPool));
   }, [localQuestionPool]);
 
+  useEffect(() => {
+    localStorage.setItem('manual_courses', JSON.stringify(manualCourses));
+  }, [manualCourses]);
+
   // Listen for changes from other tabs
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
@@ -149,6 +170,9 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
       }
       if (e.key === 'quiz_attempts' && e.newValue) {
         setQuizAttempts(JSON.parse(e.newValue));
+      }
+      if (e.key === 'manual_courses' && e.newValue) {
+        setManualCourses(JSON.parse(e.newValue));
       }
     };
 
@@ -162,6 +186,15 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     const newQuestion: Question = { ...question, id: `q-local-${Date.now()}` };
     setLocalQuestionPool((prev) => [...prev, newQuestion]);
     return newQuestion.id;
+  };
+
+  const addCourse = (courseName: string) => {
+    setManualCourses(prev => {
+      if (!prev.includes(courseName)) {
+        return [...prev, courseName];
+      }
+      return prev;
+    });
   };
 
   const addQuiz = (quiz: Omit<Quiz, 'id' | 'status'>, questionsData: Omit<Question, 'id'>[]) => {
@@ -190,6 +223,9 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('local_questions', JSON.stringify(updatedQuestions)); // Ensure immediate save
       return updatedQuestions;
     });
+
+    // Also add the course to manual courses to ensure it persists immediately
+    addCourse(quiz.courseName);
     toast.success("Quiz created locally! (Syncing to cloud...)");
 
     // 2. Try Sync to Supabase
@@ -216,11 +252,6 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
       }))
     }, {
       onSuccess: () => {
-        // Optionally remove the local fallback if we want to rely solely on Supabase,
-        // but for this hybrid approach, keeping it is safer unless we implement strict sync logic.
-        // For now, we just let the cloud version eventually appear (potentially as a duplicate if we don't handle it, 
-        // but since IDs differ, they'll just be two quizzes). 
-        // ideally we would replace the local one, but that requires more complex state management.
         toast.success("Quiz synced to cloud successfully!");
       },
       onError: (err) => {
@@ -380,9 +411,12 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
         quizzes,
         quizAttempts,
         isQuizzesLoading,
-        isQuestionsLoading: false, // We handle question loading locally in QuizPage now
+        isQuestionsLoading: false,
+        availableCourses,
         addQuestion,
         addQuiz,
+        addCourse, // Restored
+        deleteQuiz,
         submitQuizAttempt,
         getQuestionsForQuiz,
         getQuizById,

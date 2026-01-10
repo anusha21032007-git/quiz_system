@@ -41,46 +41,47 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile, studentName, regi
   // };
 
   const renderNav = () => (
-    <nav className="flex flex-col h-full">
+    <nav className="flex flex-col h-full bg-white text-black p-4 gap-2">
 
-      {/* TOP SECTION: Home Button (Fixed) */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700 space-y-3">
+      {/* TOP SECTION: Home Button */}
+      <div className="pb-4 border-b-2 border-gray-100 mb-2">
         <Link to="/">
           <Button
             variant="ghost"
-            size="icon"
-            className="justify-start text-gray-600 hover:text-gray-800"
+            size="sm"
+            className="w-full justify-start text-gray-600 hover:text-black hover:bg-gray-50 border border-transparent hover:border-gray-200"
           >
-            <ArrowLeft className="h-5 w-5" />
-            <span className="sr-only">Go Home</span>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Home
           </Button>
         </Link>
-        {/* Profile display removed from here */}
       </div>
 
-      {/* MIDDLE SECTION: Main Navigation (Scrollable) */}
-      <div className="flex-grow overflow-y-auto p-4 space-y-1">
+      {/* MIDDLE SECTION: Main Navigation */}
+      <div className="flex-grow overflow-y-auto space-y-2">
         {navItems.map((item) => (
           <Button
             key={item.id}
-            variant={activeView === item.id ? 'secondary' : 'ghost'}
+            variant="ghost"
             className={cn(
-              "justify-start gap-3 w-full",
-              activeView === item.id && "bg-accent text-accent-foreground"
+              "justify-start gap-3 w-full transition-all duration-200 border-2 rounded-lg",
+              activeView === item.id
+                ? "bg-black text-white border-black shadow-none hover:bg-gray-800 hover:text-white"
+                : "bg-white text-gray-700 border-transparent hover:border-gray-300 hover:bg-gray-50"
             )}
             onClick={() => setActiveView(item.id)}
           >
-            <item.icon className="h-5 w-5" />
+            <item.icon className={cn("h-5 w-5", activeView === item.id ? "text-white" : "text-gray-500")} />
             {item.label}
           </Button>
         ))}
       </div>
 
-      {/* BOTTOM SECTION: Logout (Fixed) */}
-      <div className="mt-auto p-4 border-t border-gray-200 dark:border-gray-700">
+      {/* BOTTOM SECTION: Logout */}
+      <div className="mt-auto pt-4 border-t-2 border-gray-100">
         <Button
-          variant="ghost"
-          className="justify-start gap-3 w-full text-red-500 hover:text-red-600"
+          variant="outline"
+          className="justify-start gap-3 w-full border-2 border-gray-200 hover:border-red-500 hover:text-red-600 hover:bg-red-50 text-gray-600 transition-colors"
           onClick={handleLogout}
         >
           <LogOut className="h-5 w-5" />
@@ -94,12 +95,12 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile, studentName, regi
     return (
       <Sheet>
         <SheetTrigger asChild>
-          <Button size="icon" variant="outline" className="lg:hidden">
+          <Button size="icon" variant="outline" className="lg:hidden border-2 border-black">
             <PanelLeft className="h-5 w-5" />
             <span className="sr-only">Toggle Menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="sm:max-w-xs">
+        <SheetContent side="left" className="sm:max-w-xs p-0 bg-white border-r-2 border-black">
           {renderNav()}
         </SheetContent>
       </Sheet>
@@ -107,7 +108,7 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile, studentName, regi
   }
 
   return (
-    <div className="flex flex-col h-full border-r bg-sidebar text-sidebar-foreground">
+    <div className="flex flex-col h-full border-r-2 border-gray-200 bg-white text-gray-900">
       {renderNav()}
     </div>
   );

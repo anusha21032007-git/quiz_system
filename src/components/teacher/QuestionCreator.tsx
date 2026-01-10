@@ -55,12 +55,13 @@ const QuestionCreator = () => {
     const session = localStorage.getItem('activeCreationSession');
     if (session) {
       try {
-        const { numQuestions: sq, numOptions: so, draftQuestions: sd, step: ss, questionSetName: sn } = JSON.parse(session);
+        const { numQuestions: sq, numOptions: so, draftQuestions: sd, step: ss, questionSetName: sn, currentSetId: si } = JSON.parse(session);
         if (sq !== undefined) setNumQuestions(sq);
         if (so !== undefined) setNumOptions(so);
         if (sd !== undefined) setDraftQuestions(sd);
         if (sn !== undefined) setQuestionSetName(sn);
         if (ss !== undefined) setStep(ss);
+        if (si !== undefined) setCurrentSetId(si);
       } catch (e) {
         console.error("Failed to restore creation session", e);
       }
@@ -78,10 +79,11 @@ const QuestionCreator = () => {
       numOptions,
       draftQuestions,
       questionSetName,
-      step
+      step,
+      currentSetId
     };
     localStorage.setItem('activeCreationSession', JSON.stringify(sessionData));
-  }, [numQuestions, numOptions, draftQuestions, questionSetName, step]);
+  }, [numQuestions, numOptions, draftQuestions, questionSetName, step, currentSetId]);
 
   // Sync Polls
   useEffect(() => {
@@ -112,13 +114,29 @@ const QuestionCreator = () => {
     const count = typeof numQuestions === 'number' ? numQuestions : 0;
     const optionsCount = typeof numOptions === 'number' ? numOptions : 0;
 
-    const newDraft: DraftQuestion[] = Array(count).fill(null).map(() => ({
-      questionText: '',
-      options: Array(optionsCount).fill(''),
-      correctAnswer: '',
-      marks: 1,
-      timeLimitMinutes: 1,
-    }));
+    const newDraft: DraftQuestion[] = Array(count).fill(null).map((_, i) => {
+      // PRESERVE: If we have existing data for this index, keep it
+      if (draftQuestions[i]) {
+        const existing = draftQuestions[i];
+        let options = [...existing.options];
+        // Adjust options count if it changed
+        if (options.length < optionsCount) {
+          options = [...options, ...Array(optionsCount - options.length).fill('')];
+        } else if (options.length > optionsCount) {
+          options = options.slice(0, optionsCount);
+        }
+        return { ...existing, options };
+      }
+
+      // Default for new blocks
+      return {
+        questionText: '',
+        options: Array(optionsCount).fill(''),
+        correctAnswer: '',
+        marks: 1,
+        timeLimitMinutes: 1,
+      };
+    });
 
     setDraftQuestions(newDraft);
     return newDraft;
@@ -128,23 +146,32 @@ const QuestionCreator = () => {
     if (isConfigValid) {
       const generatedDraft = generateDraftBlocks();
 
-      // Save poll data to localStorage history
-      const pollId = `poll_${Date.now()}`;
-      const newPoll: Poll = {
-        pollId,
-        numberOfQuestions: numQuestions as number,
-        mcqCount: numOptions as number,
-        createdAt: Date.now(),
-        status: 'pending',
-        draftQuestions: generatedDraft,
-        questionSetName: ''
-      };
-      setPolls(prev => {
-        const updated = [newPoll, ...prev];
-        localStorage.setItem('polls', JSON.stringify(updated));
-        return updated;
-      });
-      setCurrentSetId(pollId); // Use pollId as sessionId
+      if (currentSetId) {
+        // UPDATE: If editing, update the existing entry in history
+        setPolls(prev => {
+          const updated = prev.map(p => p.pollId === currentSetId ? {
+            ...p,
+            numberOfQuestions: numQuestions as number,
+            mcqCount: numOptions as number,
+            draftQuestions: generatedDraft
+          } : p);
+          return updated;
+        });
+      } else {
+        // CREATE: If new, create a fresh entry in history
+        const pollId = `poll_${Date.now()}`;
+        const newPoll: Poll = {
+          pollId,
+          numberOfQuestions: numQuestions as number,
+          mcqCount: numOptions as number,
+          createdAt: Date.now(),
+          status: 'pending',
+          draftQuestions: generatedDraft,
+          questionSetName: ''
+        };
+        setPolls(prev => [newPoll, ...prev]);
+        setCurrentSetId(pollId);
+      }
 
       setIsSetupVisible(false);
       setStep(2);
@@ -171,9 +198,10 @@ const QuestionCreator = () => {
     if (poll) {
       logQuestionAction(pollId, poll.numberOfQuestions, 'Completed');
     }
-    const updated = polls.map(p => p.pollId === pollId ? { ...p, status: 'completed' as const } : p);
+    const updated = polls.filter(p => p.pollId !== pollId);
     setPolls(updated);
     localStorage.setItem('polls', JSON.stringify(updated));
+    toast.success("Question set marked as completed and moved to History.");
   };
 
   const handleDeletePoll = (pollId: string) => {
@@ -184,6 +212,7 @@ const QuestionCreator = () => {
     const updated = polls.filter(p => p.pollId !== pollId);
     setPolls(updated);
     localStorage.setItem('polls', JSON.stringify(updated));
+    toast.error("Question set deleted and moved to History.");
   };
 
   const handleUpdateQuestion = (index: number, field: keyof DraftQuestion, value: any) => {
@@ -225,7 +254,7 @@ const QuestionCreator = () => {
     setTimeout(() => setCreationStatus(null), 3000);
   };
 
-  const handleResumePoll = (poll: Poll) => {
+  const handleEditPoll = (poll: Poll) => {
     setNumQuestions(poll.numberOfQuestions);
     setNumOptions(poll.mcqCount);
     setDraftQuestions(poll.draftQuestions || []);
@@ -300,7 +329,6 @@ const QuestionCreator = () => {
                   setNumQuestions(numVal);
                   if (showErrors) setShowErrors(false);
                 }}
-                onKeyDown={(e) => e.preventDefault()}
                 className={`h-14 text-xl bg-gray-50/50 focus:bg-white transition-all shadow-sm ${showErrors && (numQuestions === '' || numQuestions <= 0) ? 'border-red-500 ring-red-50' : 'border-blue-100 focus:border-blue-500'}`}
               />
               {showErrors && (numQuestions === '' || numQuestions <= 0) && (
@@ -332,7 +360,6 @@ const QuestionCreator = () => {
                   setNumOptions(numVal);
                   if (showErrors) setShowErrors(false);
                 }}
-                onKeyDown={(e) => e.preventDefault()}
                 className={`h-14 text-xl bg-gray-50/50 focus:bg-white transition-all shadow-sm ${showErrors && (numOptions === '' || numOptions < 1 || numOptions > 6) ? 'border-red-500 ring-red-50' : 'border-blue-100 focus:border-blue-500'}`}
               />
               <div className="flex justify-between items-center px-1">
@@ -403,10 +430,10 @@ const QuestionCreator = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleResumePoll(poll)}
+                              onClick={() => handleEditPoll(poll)}
                               className="h-7 px-2 text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                             >
-                              Resume
+                              Edit
                             </Button>
                             <Button
                               variant="ghost"
@@ -450,6 +477,11 @@ const QuestionCreator = () => {
               <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
                 <PlusCircle className="h-6 w-6 text-blue-600" />
                 Question Creator
+                {currentSetId && (
+                  <span className="ml-2 px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-600 text-[10px] uppercase font-black rounded tracking-widest animate-pulse">
+                    Editing Question Set
+                  </span>
+                )}
               </CardTitle>
               <div className="text-sm font-black text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full uppercase tracking-widest border border-blue-100">
                 {draftQuestions.length} Blocks
@@ -503,7 +535,6 @@ const QuestionCreator = () => {
                             }
                             handleUpdateQuestion(qIndex, 'marks', val);
                           }}
-                          onKeyDown={(e) => e.preventDefault()}
                           className="font-bold text-blue-600 border-gray-200"
                         />
                       </div>
@@ -521,7 +552,6 @@ const QuestionCreator = () => {
                             }
                             handleUpdateQuestion(qIndex, 'timeLimitMinutes', val);
                           }}
-                          onKeyDown={(e) => e.preventDefault()}
                           className="font-bold text-blue-600 border-gray-200"
                         />
                       </div>

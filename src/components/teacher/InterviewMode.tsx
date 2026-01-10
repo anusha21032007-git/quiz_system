@@ -33,10 +33,11 @@ const InterviewMode = () => {
     const [manualStep, setManualStep] = useState<'setup' | 'input'>('setup');
 
     /* Manual Setup Criteria */
-    const [setupNumQuestions, setSetupNumQuestions] = useState<number>(5);
-    const [setupNumOptions, setSetupNumOptions] = useState<number>(4);
+    const [setupNumQuestions, setSetupNumQuestions] = useState<number>(0);
+    const [setupNumOptions, setSetupNumOptions] = useState<number>(0);
     const [setupTimePerQuestion, setSetupTimePerQuestion] = useState<number>(30);
-    const [setupMarksPerQuestion, setSetupMarksPerQuestion] = useState<number>(1);
+    const [setupMarksPerQuestion, setSetupMarksPerQuestion] = useState<number>(0);
+    const [setupNegativeMarks, setSetupNegativeMarks] = useState<number>(0);
 
     /* Manual Question Form State */
     const [manualQuestionText, setManualQuestionText] = useState<string>('');
@@ -46,6 +47,48 @@ const InterviewMode = () => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [pdfQuestions, setPdfQuestions] = useState<any[]>([]);
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
+
+    // Persistence logic for InterviewMode
+    useEffect(() => {
+        const saved = localStorage.getItem('interviewModeState');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (parsed.creationMode) setCreationMode(parsed.creationMode);
+                if (parsed.pdfSubMode) setPdfSubMode(parsed.pdfSubMode);
+                if (parsed.manualStep) setManualStep(parsed.manualStep);
+                if (parsed.setupNumQuestions) setSetupNumQuestions(parsed.setupNumQuestions);
+                if (parsed.setupNumOptions) setSetupNumOptions(parsed.setupNumOptions);
+                if (parsed.setupTimePerQuestion) setSetupTimePerQuestion(parsed.setupTimePerQuestion);
+                if (parsed.setupMarksPerQuestion) setSetupMarksPerQuestion(parsed.setupMarksPerQuestion);
+                if (parsed.setupNegativeMarks) setSetupNegativeMarks(parsed.setupNegativeMarks);
+                if (parsed.manualQuestions) setManualQuestions(parsed.manualQuestions);
+                if (parsed.pdfQuestions) setPdfQuestions(parsed.pdfQuestions);
+            } catch (e) {
+                console.error("Failed to restore InterviewMode session", e);
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        const stateToSave = {
+            creationMode,
+            pdfSubMode,
+            manualStep,
+            setupNumQuestions,
+            setupNumOptions,
+            setupTimePerQuestion,
+            setupMarksPerQuestion,
+            setupNegativeMarks,
+            manualQuestions,
+            pdfQuestions
+        };
+        localStorage.setItem('interviewModeState', JSON.stringify(stateToSave));
+    }, [
+        creationMode, pdfSubMode, manualStep, setupNumQuestions, setupNumOptions,
+        setupTimePerQuestion, setupMarksPerQuestion, setupNegativeMarks,
+        manualQuestions, pdfQuestions
+    ]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -101,11 +144,25 @@ const InterviewMode = () => {
     };
 
     const handleManualSetupSubmit = () => {
+        if (setupNumQuestions <= 0) {
+            toast.error("Number of questions must be greater than 0.");
+            return;
+        }
+        if (setupNumOptions < 2) {
+            toast.error("Options per question must be at least 2.");
+            return;
+        }
+        if (setupMarksPerQuestion <= 0) {
+            toast.error("Marks per question must be greater than 0.");
+            return;
+        }
+
         const questions = Array.from({ length: setupNumQuestions }).map(() => ({
             questionText: '',
             options: Array.from({ length: setupNumOptions }).map(() => ''),
             correctAnswer: '',
             marks: setupMarksPerQuestion,
+            negativeMarks: setupNegativeMarks,
             timeLimit: setupTimePerQuestion
         }));
         setManualQuestions(questions);
@@ -119,6 +176,14 @@ const InterviewMode = () => {
             updatedQuestions[qIdx].questionText = value;
         } else if (field === 'option' && optIdx !== undefined) {
             updatedQuestions[qIdx].options[optIdx] = value;
+            // If the modified option was the selected answer, update it? 
+            // Better to match by value if we store value strings. 
+            // But if we change the text of the selected option, we should update the correct answer too?
+            // For simplicity, let's assume user selects radio AFTER typing.
+            // If they change text of selected answer, we might need to re-select.
+            if (updatedQuestions[qIdx].correctAnswer === manualQuestions[qIdx].options[optIdx]) {
+                updatedQuestions[qIdx].correctAnswer = value;
+            }
         } else if (field === 'correctAnswer') {
             updatedQuestions[qIdx].correctAnswer = value;
         }
@@ -139,7 +204,19 @@ const InterviewMode = () => {
 
         setInterviewQuestions(manualQuestions);
         startSession(setupTimePerQuestion);
-        toast.success("Manual Interview Started!");
+        toast.success("Manual Competitive Session Started!");
+    };
+
+    // Helper to start session logic extracted and reused
+    const startSession = (timeLimit: number) => {
+        setCurrentInterviewIndex(0);
+        setShowInterviewAnswer(false);
+        setInterviewMode(true);
+        setIsFinished(false);
+        setAnswersRevealedCount(0);
+        setInterviewTimerEnabled(true);
+        setInterviewTimerSeconds(timeLimit);
+        setRemainingTime(timeLimit);
     };
 
     const handleStartInterview = () => {
@@ -149,12 +226,17 @@ const InterviewMode = () => {
                 return;
             }
             setInterviewQuestions(manualQuestions);
+            startSession(setupTimePerQuestion); // Use setup time for manual
+            toast.success(`Manual Competitive Session Started!`);
+            return; // Early return as we started manually above logic might duplicate or differ
         } else if (creationMode === 'pdf') {
             if (pdfQuestions.length === 0) {
                 toast.error("Please generate questions from the PDF first.");
                 return;
             }
             setInterviewQuestions(pdfQuestions);
+            startSession(30); // Default for PDF
+            toast.success(`Competitive Session Started!`);
         } else {
             // Fallback for selection mode start (though usually blocked by UI)
             setInterviewQuestions([
@@ -165,16 +247,6 @@ const InterviewMode = () => {
                 }
             ]);
         }
-
-        setCurrentInterviewIndex(0);
-        setShowInterviewAnswer(false);
-        setInterviewMode(true);
-        setIsFinished(false);
-        setAnswersRevealedCount(0);
-        if (interviewTimerEnabled) {
-            setRemainingTime(interviewTimerSeconds);
-        }
-        toast.success(`Interview Session Started!`);
     };
 
     const handlePublishToStudents = () => {
@@ -249,7 +321,8 @@ const InterviewMode = () => {
             setIsFinished(true);
             setInterviewMode(false);
             setRemainingTime(null);
-            toast.info("Interview Completed!");
+            localStorage.removeItem('interviewModeState');
+            toast.info("Competitive Session Completed!");
         }
     };
 
@@ -266,28 +339,28 @@ const InterviewMode = () => {
 
     return (
         <div className="space-y-6">
-            <Card className="shadow-lg border-purple-200 bg-purple-50/30">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Brain className="h-6 w-6 text-purple-600" />
-                        Interview Mode
+            <Card className="shadow-none border-2 border-black bg-white rounded-xl">
+                <CardHeader className="border-b-2 border-gray-100 pb-4">
+                    <CardTitle className="flex items-center gap-2 text-xl font-bold text-black">
+                        <Brain className="h-6 w-6 text-black" />
+                        Competitive Mode
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
                     {interviewMode ? (
-                        <div className="bg-white p-6 rounded-md shadow-sm border border-purple-100">
-                            <div className="flex justify-between items-center mb-4">
-                                <span className="text-sm font-semibold text-purple-700">
+                        <div className="bg-white p-6 rounded-lg border-2 border-gray-200">
+                            <div className="flex justify-between items-center mb-6">
+                                <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">
                                     Question {currentInterviewIndex + 1} of {interviewQuestions.length}
                                 </span>
                                 <div className="flex items-center gap-3">
                                     {interviewTimerEnabled && remainingTime !== null && (
-                                        <div className={`px-3 py-1 rounded-full font-bold text-lg ${remainingTime <= 5 ? 'bg-red-100 text-red-700 animate-pulse' : 'bg-blue-100 text-blue-700'}`}>
+                                        <div className={`px-4 py-1.5 rounded-full font-mono font-bold text-lg border-2 ${remainingTime <= 5 ? 'border-red-500 text-red-600 bg-red-50' : 'border-black text-black bg-white'}`}>
                                             {remainingTime}s
                                         </div>
                                     )}
-                                    <Button variant="ghost" size="sm" onClick={() => setInterviewMode(false)} className="text-gray-500 hover:text-red-500">
-                                        Exit Interview
+                                    <Button variant="ghost" size="sm" onClick={() => { setInterviewMode(false); localStorage.removeItem('interviewModeState'); }} className="text-gray-500 hover:text-red-500">
+                                        Exit Session
                                     </Button>
                                 </div>
                             </div>
@@ -307,20 +380,20 @@ const InterviewMode = () => {
                                 )}
                             </div>
 
-                            <div className="mt-8">
+                            <div className="mt-8 border-t-2 border-gray-100 pt-6">
                                 {!showInterviewAnswer ? (
-                                    <Button onClick={() => { setShowInterviewAnswer(true); setAnswersRevealedCount(prev => prev + 1); }} className="w-full py-6 text-lg bg-purple-600 hover:bg-purple-700">
+                                    <Button onClick={() => { setShowInterviewAnswer(true); setAnswersRevealedCount(prev => prev + 1); }} className="w-full py-6 text-lg font-bold bg-black text-white hover:bg-gray-800 border-2 border-transparent hover:border-black rounded-lg transition-all">
                                         Reveal Answer
                                     </Button>
                                 ) : (
                                     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                                        <div className="bg-green-50 border border-green-200 p-4 rounded-md">
-                                            <p className="text-sm text-green-800 font-semibold mb-1">Answer Reference:</p>
-                                            <p className="text-lg text-green-900">
+                                        <div className="bg-gray-50 border-2 border-gray-200 p-6 rounded-xl">
+                                            <p className="text-xs text-gray-500 font-bold uppercase mb-2 tracking-wide">Correct Answer</p>
+                                            <p className="text-lg text-gray-900 font-medium leading-relaxed">
                                                 {interviewQuestions[currentInterviewIndex]?.correctAnswer}
                                             </p>
                                         </div>
-                                        <Button onClick={handleNextInterviewQuestion} className="w-full py-4 bg-gray-900 hover:bg-gray-800">
+                                        <Button onClick={handleNextInterviewQuestion} className="w-full py-6 text-lg font-bold border-2 border-black bg-white text-black hover:bg-black hover:text-white transition-all rounded-lg">
                                             {currentInterviewIndex < interviewQuestions.length - 1 ? "Next Question" : "Finish Interview"}
                                         </Button>
                                     </div>
@@ -328,43 +401,49 @@ const InterviewMode = () => {
                             </div>
                         </div>
                     ) : isFinished ? (
-                        <div className="bg-white p-8 rounded-md shadow-sm border border-purple-100 text-center animate-in zoom-in-95">
-                            <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center justify-center gap-2">
-                                <Trophy className="h-8 w-8 text-yellow-500" />
-                                Interview Summary
+                        <div className="bg-white p-8 rounded-xl border-2 border-gray-200 text-center animate-in zoom-in-95">
+                            <h3 className="text-2xl font-bold text-black mb-8 flex items-center justify-center gap-3">
+                                <Trophy className="h-8 w-8 text-black" />
+                                Session Completed
                             </h3>
-                            <div className="grid grid-cols-2 gap-4 mb-8">
-                                <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
-                                    <p className="text-sm text-purple-600 font-semibold mb-1 uppercase tracking-wider">Attempted</p>
-                                    <p className="text-3xl font-bold text-purple-900">{interviewQuestions.length}</p>
+                            <div className="grid grid-cols-2 gap-6 mb-8">
+                                <div className="p-6 bg-white rounded-xl border-2 border-gray-200 hover:border-black transition-colors">
+                                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-2">Total Questions</p>
+                                    <p className="text-4xl font-bold text-black">{interviewQuestions.length}</p>
                                 </div>
-                                <div className="p-4 bg-green-50 rounded-lg border border-green-100">
-                                    <p className="text-sm text-green-600 font-semibold mb-1 uppercase tracking-wider">Answers Shown</p>
-                                    <p className="text-3xl font-bold text-green-900">{answersRevealedCount}</p>
+                                <div className="p-6 bg-white rounded-xl border-2 border-gray-200 hover:border-black transition-colors">
+                                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-2">Answers Revealed</p>
+                                    <p className="text-4xl font-bold text-black">{answersRevealedCount}</p>
                                 </div>
                             </div>
-                            <Button onClick={() => { setInterviewMode(false); setIsFinished(false); setCreationMode('selection'); setManualQuestions([]); }} className="w-full py-4 bg-purple-600 hover:bg-purple-700">
-                                Back to Selection
+                            <Button onClick={() => {
+                                setInterviewMode(false);
+                                setIsFinished(false);
+                                setCreationMode('selection');
+                                setManualQuestions([]);
+                                localStorage.removeItem('interviewModeState');
+                            }} className="min-w-[200px] py-6 font-bold bg-black text-white hover:bg-gray-800 rounded-lg">
+                                Return to Menu
                             </Button>
                         </div>
                     ) : creationMode === 'selection' ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                            <Card className="group hover:border-purple-400 hover:bg-purple-50 cursor-pointer transition-all duration-300 p-8 flex flex-col items-center gap-4 text-center border-2 border-dashed border-gray-200" onClick={() => setCreationMode('manual')}>
-                                <div className="p-4 bg-purple-100 rounded-full group-hover:bg-purple-200 transition-colors">
-                                    <PlusCircle className="h-10 w-10 text-purple-600" />
+                            <Card className="group cursor-pointer p-8 flex flex-col items-center gap-6 text-center border-2 border-dashed border-gray-300 hover:border-black hover:bg-gray-50 transition-all duration-300 rounded-xl" onClick={() => setCreationMode('manual')}>
+                                <div className="p-5 bg-white border-2 border-gray-200 rounded-full group-hover:border-black transition-colors shadow-sm">
+                                    <PlusCircle className="h-10 w-10 text-gray-700 group-hover:text-black" />
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-bold text-gray-800 mb-2">Create Manual Questions</h3>
-                                    <p className="text-sm text-gray-500">Add questions and MCQ options manually.</p>
+                                    <h3 className="text-lg font-bold text-black mb-2">Manual Entry</h3>
+                                    <p className="text-sm text-gray-500 font-medium">Create custom questions one by one.</p>
                                 </div>
                             </Card>
-                            <Card className="group hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition-all duration-300 p-8 flex flex-col items-center gap-4 text-center border-2 border-dashed border-gray-200" onClick={() => setCreationMode('pdf')}>
-                                <div className="p-4 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
-                                    <FileText className="h-10 w-10 text-blue-600" />
+                            <Card className="group cursor-pointer p-8 flex flex-col items-center gap-6 text-center border-2 border-dashed border-gray-300 hover:border-black hover:bg-gray-50 transition-all duration-300 rounded-xl" onClick={() => setCreationMode('pdf')}>
+                                <div className="p-5 bg-white border-2 border-gray-200 rounded-full group-hover:border-black transition-colors shadow-sm">
+                                    <FileText className="h-10 w-10 text-gray-700 group-hover:text-black" />
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-bold text-gray-800 mb-2">Generate by PDF</h3>
-                                    <p className="text-sm text-gray-500">Upload a PDF to automatically extract questions (Coming Soon).</p>
+                                    <h3 className="text-lg font-bold text-black mb-2">PDF Generation</h3>
+                                    <p className="text-sm text-gray-500 font-medium">Auto-generate questions from documents.</p>
                                 </div>
                             </Card>
                         </div>
@@ -373,72 +452,182 @@ const InterviewMode = () => {
                             <div className="flex items-center justify-between">
                                 <Button
                                     variant="ghost"
-                                    onClick={() => setCreationMode('selection')}
+                                    onClick={() => {
+                                        setCreationMode('selection');
+                                        setManualStep('setup');
+                                        setManualQuestions([]);
+                                    }}
                                     className="gap-2 text-gray-600"
                                 >
                                     <ArrowLeft className="h-4 w-4" />
                                     Back to Options
                                 </Button>
+                                {manualStep === 'input' && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setManualStep('setup')}
+                                        className="gap-2"
+                                    >
+                                        Adjust Setup
+                                    </Button>
+                                )}
                             </div>
 
-                            <div className="bg-white p-6 rounded-lg border border-gray-200 space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="manualQuestion">Question Text</Label>
-                                    <Textarea
-                                        id="manualQuestion"
-                                        placeholder="Enter the question you want to ask..."
-                                        value={manualQuestionText}
-                                        onChange={(e) => setManualQuestionText(e.target.value)}
-                                        className="min-h-[100px]"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="manualHints">Optional Hints / Answer Key</Label>
-                                    <Textarea
-                                        id="manualHints"
-                                        placeholder="Enter hints or the expected answer for reference..."
-                                        value={manualHints}
-                                        onChange={(e) => setManualHints(e.target.value)}
-                                        className="min-h-[80px]"
-                                    />
-                                </div>
-                                <Button
-                                    id="save-manual-question"
-                                    onClick={handleSaveManualQuestion}
-                                    className="w-full bg-blue-600 hover:bg-blue-700 gap-2"
-                                >
-                                    <Save className="h-4 w-4" />
-                                    Save Question
-                                </Button>
-                            </div>
-
-                            {manualQuestions.length > 0 && (
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="font-semibold text-gray-800">Added Questions ({manualQuestions.length})</h4>
-                                    </div>
-                                    <div className="space-y-3">
-                                        {manualQuestions.map((q, idx) => (
-                                            <div key={idx} className="p-4 bg-white border rounded-md text-sm">
-                                                <p className="font-medium text-gray-900 mb-1">Q{idx + 1}: {q.questionText}</p>
-                                                {q.hints && <p className="text-gray-500 italic">Hint: {q.hints}</p>}
+                            {manualStep === 'setup' ? (
+                                <Card className="border-2 border-gray-200 shadow-none rounded-xl">
+                                    <CardHeader className="border-b border-gray-100 bg-gray-50/50">
+                                        <CardTitle className="text-lg font-bold text-black">Step 1: Configuration</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-2">
+                                                <Label>Number of Questions</Label>
+                                                <Input
+                                                    type="number"
+                                                    min={0}
+                                                    max={50}
+                                                    value={setupNumQuestions}
+                                                    onChange={(e) => setSetupNumQuestions(parseInt(e.target.value) || 0)}
+                                                    className={cn(setupNumQuestions === 0 ? "border-red-300 focus:border-red-500" : "")}
+                                                />
+                                                {setupNumQuestions === 0 && <p className="text-xs text-red-500">At least 1 question is required.</p>}
                                             </div>
+                                            <div className="space-y-2">
+                                                <Label>Options per Question</Label>
+                                                <Input
+                                                    type="number"
+                                                    min={2}
+                                                    max={6}
+                                                    value={setupNumOptions}
+                                                    onChange={(e) => setSetupNumOptions(parseInt(e.target.value) || 0)}
+                                                    className={cn(setupNumOptions < 2 ? "border-red-300 focus:border-red-500" : "")}
+                                                />
+                                                {setupNumOptions < 2 && <p className="text-xs text-red-500">Minimum 2 options required.</p>}
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label>Time per Question (seconds)</Label>
+                                                <Input
+                                                    type="number"
+                                                    min={5}
+                                                    value={setupTimePerQuestion}
+                                                    onChange={(e) => setSetupTimePerQuestion(parseInt(e.target.value) || 30)}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label>Marks per Question</Label>
+                                                <Input
+                                                    type="number"
+                                                    min={0}
+                                                    value={setupMarksPerQuestion}
+                                                    onChange={(e) => setSetupMarksPerQuestion(parseInt(e.target.value) || 0)}
+                                                    className={cn(setupMarksPerQuestion === 0 ? "border-red-300 focus:border-red-500" : "")}
+                                                />
+                                                {setupMarksPerQuestion === 0 && <p className="text-xs text-red-500">Marks must be greater than 0.</p>}
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label>Negative Marks (Optional)</Label>
+                                                <Input
+                                                    type="number"
+                                                    min={0}
+                                                    value={setupNegativeMarks}
+                                                    onChange={(e) => setSetupNegativeMarks(parseFloat(e.target.value) || 0)}
+                                                    step="0.25"
+                                                    placeholder="e.g. 0.25 (Default: 0)"
+                                                />
+                                            </div>
+                                        </div>
+                                        <Button
+                                            onClick={handleManualSetupSubmit}
+                                            className="w-full bg-black hover:bg-gray-800 text-white font-bold py-6 text-lg mt-4 rounded-lg shadow-none"
+                                            disabled={setupNumQuestions <= 0 || setupNumOptions < 2 || setupMarksPerQuestion <= 0}
+                                        >
+                                            Proceed to Question Entry
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                                <div className="space-y-8">
+                                    <div className="bg-white p-6 rounded-xl border-2 border-black flex flex-col sm:flex-row justify-between items-center sticky top-0 z-10 shadow-sm gap-4">
+                                        <div>
+                                            <h3 className="font-bold text-xl text-black">Step 2: Enter Questions</h3>
+                                            <p className="text-sm text-gray-500 font-medium">
+                                                {setupNumQuestions} Questions • {setupNumOptions} Options Each • {setupTimePerQuestion}s Limit
+                                            </p>
+                                        </div>
+                                        <Button
+                                            onClick={handleStartManualInterview}
+                                            className="bg-black hover:bg-gray-800 text-white font-bold py-6 px-8 rounded-lg"
+                                        >
+                                            Start Session
+                                        </Button>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        {manualQuestions.map((q, qIdx) => (
+                                            <Card key={qIdx} className="overflow-hidden border-2 border-gray-100 hover:border-purple-200 transition-colors">
+                                                <CardHeader className="bg-gray-50/50 py-3 border-b border-gray-100">
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="font-bold text-gray-500">Question {qIdx + 1}</span>
+                                                    </div>
+                                                </CardHeader>
+                                                <CardContent className="p-6 space-y-6">
+                                                    <div className="space-y-2">
+                                                        <Label>Question Text <span className="text-red-500">*</span></Label>
+                                                        <Textarea
+                                                            value={q.questionText}
+                                                            onChange={(e) => handleManualQuestionChange(qIdx, 'questionText', e.target.value)}
+                                                            placeholder={`Enter question ${qIdx + 1}...`}
+                                                            className="resize-none"
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-3">
+                                                        <Label>Options & Correct Answer <span className="text-red-500">*</span></Label>
+                                                        <RadioGroup
+                                                            value={q.correctAnswer}
+                                                            onValueChange={(val) => handleManualQuestionChange(qIdx, 'correctAnswer', val)}
+                                                        >
+                                                            {q.options.map((opt: string, optIdx: number) => (
+                                                                <div key={optIdx} className="flex items-center gap-3">
+                                                                    <div className="flex items-center h-10 w-10 justify-center">
+                                                                        <RadioGroupItem value={opt || `idx-${optIdx}`} id={`q${qIdx}-opt${optIdx}`} disabled={!opt} />
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <Input
+                                                                            value={opt}
+                                                                            onChange={(e) => handleManualQuestionChange(qIdx, 'option', e.target.value, optIdx)}
+                                                                            placeholder={`Option ${optIdx + 1}`}
+                                                                            className={cn(
+                                                                                q.correctAnswer === opt && opt !== '' ? "border-green-500 bg-green-50" : ""
+                                                                            )}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </RadioGroup>
+                                                        <p className="text-xs text-gray-500 ml-12">
+                                                            * Type an option first, then select the radio button to mark it as correct.
+                                                        </p>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
                                         ))}
                                     </div>
-                                    <Button
-                                        id="start-manual-interview"
-                                        onClick={handleStartInterview}
-                                        className="w-full bg-purple-600 hover:bg-purple-700 py-6 text-lg"
-                                    >
-                                        Start Interview with {manualQuestions.length} Questions
-                                    </Button>
-                                    <Button
-                                        onClick={handlePublishToStudents}
-                                        variant="outline"
-                                        className="w-full border-purple-200 text-purple-700 hover:bg-purple-50"
-                                    >
-                                        <Save className="h-4 w-4 mr-2" /> Publish to Students
-                                    </Button>
+                                    <div className="flex flex-col gap-4 pt-8 pb-12">
+                                        <Button
+                                            onClick={handleStartManualInterview}
+                                            className="w-full bg-green-600 hover:bg-green-700 py-6 text-xl font-bold shadow-lg hover:shadow-green-200 transition-all rounded-lg"
+                                        >
+                                            Start Create Competitive Session
+                                        </Button>
+                                        <Button
+                                            onClick={handlePublishToStudents}
+                                            variant="outline"
+                                            className="w-full border-green-200 text-green-700 hover:bg-green-50 shadow-sm"
+                                        >
+                                            <Save className="h-4 w-4 mr-2" /> Publish to Students
+                                        </Button>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -536,7 +725,7 @@ const InterviewMode = () => {
                                         onClick={handleStartInterview}
                                         className="w-full bg-purple-600 hover:bg-purple-700 py-6 text-lg shadow-lg hover:shadow-purple-200 transition-all font-bold"
                                     >
-                                        Start Interview Session
+                                        Start Competitive Session
                                     </Button>
                                     <Button
                                         onClick={handlePublishToStudents}

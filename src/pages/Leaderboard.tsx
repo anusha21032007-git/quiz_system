@@ -6,7 +6,8 @@ import { useQuiz, QuizAttempt } from '@/context/QuizContext';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Trophy, Users, Clock, ChevronLeft } from 'lucide-react';
+import { Trophy, Users, Clock } from 'lucide-react';
+import BackButton from '@/components/ui/BackButton';
 
 const Leaderboard = () => {
   const { quizAttempts, quizzes } = useQuiz();
@@ -37,20 +38,15 @@ const Leaderboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <header className="relative flex items-center justify-center mb-10">
-        <div className="absolute left-0">
-          <Link to="/student">
-            <Button
-              variant="ghost"
-              className="group flex items-center gap-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-            >
-              <ChevronLeft className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
-              <span className="font-medium text-lg">Back to Dashboard</span>
-            </Button>
-          </Link>
+    <div className="min-h-screen bg-white p-8">
+      <header className="max-w-4xl mx-auto space-y-4 mb-10">
+        <BackButton />
+        <div className="pb-4 border-b-2 border-gray-100 flex items-center justify-between">
+          <h1 className="text-4xl font-bold text-black tracking-tight">Leaderboard</h1>
+          <div className="px-4 py-1 bg-gray-50 border border-gray-200 rounded-full text-xs font-mono text-gray-500">
+            Live Ranking
+          </div>
         </div>
-        <h1 className="text-4xl font-extrabold text-gray-800 tracking-tight">Leaderboard</h1>
       </header>
 
       <div className="max-w-4xl mx-auto space-y-8">

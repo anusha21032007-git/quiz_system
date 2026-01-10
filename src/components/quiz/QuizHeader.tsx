@@ -3,6 +3,7 @@
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Clock } from 'lucide-react';
+import BackButton from '@/components/ui/BackButton';
 
 interface QuizHeaderProps {
   quizTitle: string;
@@ -22,20 +23,27 @@ const QuizHeader = ({ quizTitle, currentQuestionIndex, totalQuestions, timeLeft,
   };
 
   return (
-    <header className="w-full bg-white shadow-md p-4 border-b sticky top-0 z-10">
-      <div className="max-w-4xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-        <h1 className="text-2xl font-bold text-gray-800 text-center sm:text-left">{quizTitle}</h1>
-        <div className="flex items-center gap-4">
-          <div className="text-gray-600">
-            Question {currentQuestionIndex + 1} of {totalQuestions}
-          </div>
-          <div className={`flex items-center gap-1 font-semibold ${timeLeft <= 60 ? 'text-red-500' : 'text-gray-700'}`}>
-            <Clock className="h-5 w-5" /> {formatTime(timeLeft)}
+    <header className="w-full bg-white p-4 border-b-2 border-gray-100 sticky top-0 z-10">
+      <div className="max-w-4xl mx-auto space-y-4">
+        <div className="flex items-center justify-between w-full">
+          <BackButton />
+          <div className="flex items-center gap-4">
+            <div className="text-gray-600 font-medium">
+              Question {currentQuestionIndex + 1} of {totalQuestions}
+            </div>
+            <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${timeLeft <= 60 ? 'text-red-600 border-red-100 bg-red-50' : 'text-gray-700 border-gray-200 bg-gray-50'}`}>
+              <Clock className="h-4 w-4" />
+              <span className="font-mono font-bold">{formatTime(timeLeft)}</span>
+            </div>
           </div>
         </div>
-      </div>
-      <div className="max-w-4xl mx-auto mt-2">
-        <Progress value={progress} className="w-full" />
+
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-black tracking-tight">{quizTitle}</h1>
+          <div className="w-1/2 max-w-[200px]">
+            <Progress value={progress} className="h-2" />
+          </div>
+        </div>
       </div>
     </header>
   );

@@ -84,6 +84,36 @@ const QuizCreator = () => {
   const [aiDifficulty, setAiDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Easy');
   const [step, setStep] = useState<number>(1);
 
+  // Persistence logic for QuizCreator
+  useEffect(() => {
+    const saved = localStorage.getItem('quizCreatorState');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.quizData) setQuizData(parsed.quizData);
+        if (parsed.negativeMarking !== undefined) setNegativeMarking(parsed.negativeMarking);
+        if (parsed.negativeMarksValue !== undefined) setNegativeMarksValue(parsed.negativeMarksValue);
+        if (parsed.competitionMode !== undefined) setCompetitionMode(parsed.competitionMode);
+        if (parsed.quizDifficulty) setQuizDifficulty(parsed.quizDifficulty);
+        if (parsed.step) setStep(parsed.step);
+      } catch (e) {
+        console.error("Failed to restore QuizCreator session", e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const stateToSave = {
+      quizData,
+      negativeMarking,
+      negativeMarksValue,
+      competitionMode,
+      quizDifficulty,
+      step
+    };
+    localStorage.setItem('quizCreatorState', JSON.stringify(stateToSave));
+  }, [quizData, negativeMarking, negativeMarksValue, competitionMode, quizDifficulty, step]);
+
   useEffect(() => {
     const draftData = sessionStorage.getItem('draft_quiz_params');
     if (draftData) {
@@ -192,6 +222,18 @@ const QuizCreator = () => {
     });
   };
 
+  const handleDeleteQuestionFromDraft = (index: number) => {
+    setQuizData(prev => {
+      const newQuestions = [...prev.questions];
+      newQuestions.splice(index, 1);
+      return {
+        ...prev,
+        questions: newQuestions,
+        totalQuestions: (typeof prev.totalQuestions === 'number' ? prev.totalQuestions : 0) - 1,
+      };
+    });
+  };
+
   const handleUpdateDraftQuestion = (questionIndex: number, field: any, value: any) => {
     setQuizData(prev => {
       const newQuestions = [...prev.questions];
@@ -219,7 +261,6 @@ const QuizCreator = () => {
   const prepareQuizForOutput = (): StoredQuiz | null => {
     if (!validateQuizDraft()) return null;
     const quizId = `qz-${Date.now()}`;
-
     const questionsForOutput = quizData.questions.map((q, index) => ({
       id: `q-${quizId}-${index}`,
       quizId: quizId,
@@ -284,7 +325,7 @@ const QuizCreator = () => {
   };
 
   const handlePreviewQuiz = () => {
-    const quizToPreview = prepareQuizForOutput(true);
+    const quizToPreview = prepareQuizForOutput();
     if (quizToPreview) {
       try {
         // We use the StoredQuiz structure for preview, which includes question data
@@ -318,6 +359,7 @@ const QuizCreator = () => {
     setAiDifficulty('Easy');
     setQuizDifficulty('Medium'); // Reset difficulty
     setStep(1); // Reset step to 1
+    localStorage.removeItem('quizCreatorState');
   };
 
   const handleProceed = () => {
@@ -669,7 +711,7 @@ const QuizCreator = () => {
           </>
         )}
       </CardFooter>
-    </Card >
+    </Card>
   );
 };
 
