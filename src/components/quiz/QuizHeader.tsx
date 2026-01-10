@@ -11,9 +11,10 @@ interface QuizHeaderProps {
   totalQuestions: number;
   timeLeft: number;
   isMobile: boolean;
+  onBack?: () => void;
 }
 
-const QuizHeader = ({ quizTitle, currentQuestionIndex, totalQuestions, timeLeft, isMobile }: QuizHeaderProps) => {
+const QuizHeader = ({ quizTitle, currentQuestionIndex, totalQuestions, timeLeft, isMobile, onBack }: QuizHeaderProps) => {
   const progress = (currentQuestionIndex / totalQuestions) * 100;
 
   const formatTime = (seconds: number) => {
@@ -26,7 +27,7 @@ const QuizHeader = ({ quizTitle, currentQuestionIndex, totalQuestions, timeLeft,
     <header className="w-full bg-white p-4 border-b-2 border-gray-100 sticky top-0 z-10">
       <div className="max-w-4xl mx-auto space-y-4">
         <div className="flex items-center justify-between w-full">
-          <BackButton />
+          <BackButton onClick={onBack} />
           <div className="flex items-center gap-4">
             <div className="text-gray-600 font-medium">
               Question {currentQuestionIndex + 1} of {totalQuestions}

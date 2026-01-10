@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { PlusCircle, Trash2, History, X, Settings2, Save, Send, CheckCircle2 } from 'lucide-react';
+import { PlusCircle, Trash2, History, X, Settings2, Save, Send, CheckCircle2, Calendar, Clock, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuiz } from '@/context/QuizContext';
 
@@ -16,9 +16,10 @@ interface Poll {
   numberOfQuestions: number;
   mcqCount: number;
   createdAt: number;
-  status: 'pending' | 'completed';
+  status: 'pending' | 'completed' | 'scheduled';
   draftQuestions?: DraftQuestion[];
   questionSetName?: string;
+  scheduledAt?: number;
 }
 
 interface DraftQuestion {
@@ -47,6 +48,11 @@ const QuestionCreator = () => {
   // History State
   const [polls, setPolls] = useState<Poll[]>([]);
   const [currentSetId, setCurrentSetId] = useState<string | null>(null);
+
+  // Scheduling State
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('');
 
   // NEW: Session Persistence State (Current active work)
   // Load session and history from local storage on initial mount
@@ -102,12 +108,52 @@ const QuestionCreator = () => {
     setIsSetupVisible(false);
     setShowErrors(false);
     setCreationStatus(null);
+    setShowSchedule(false);
+    setScheduledDate('');
+    setScheduledTime('');
   };
+
+  // Background Worker: Process Scheduled Polls
+  useEffect(() => {
+    const worker = setInterval(() => {
+      const now = Date.now();
+      const scheduledPolls = polls.filter(p => p.status === 'scheduled' && p.scheduledAt && p.scheduledAt <= now);
+
+      if (scheduledPolls.length > 0) {
+        scheduledPolls.forEach(poll => {
+          if (poll.draftQuestions) {
+            poll.draftQuestions.forEach(q => {
+              addQuestion({
+                quizId: 'unassigned',
+                questionText: q.questionText,
+                options: q.options,
+                correctAnswer: q.correctAnswer,
+                marks: q.marks as number,
+                timeLimitMinutes: q.timeLimitMinutes as number
+              });
+            });
+            toast.success(`Question set "${poll.questionSetName || poll.pollId}" posted automatically!`);
+            logQuestionAction(poll.pollId, poll.numberOfQuestions, 'Completed');
+          }
+        });
+
+        // Mark them as completed and remove from active list if needed, or just update status
+        setPolls(prev => prev.map(p => {
+          if (p.status === 'scheduled' && p.scheduledAt && p.scheduledAt <= now) {
+            return { ...p, status: 'completed' } as Poll;
+          }
+          return p;
+        }).filter(p => p.status !== 'completed')); // Filter out completed for the main history view if desired
+      }
+    }, 10000); // Check every 10 seconds
+
+    return () => clearInterval(worker);
+  }, [polls, addQuestion]);
 
   // Validation for Step 1
   const isConfigValid =
     typeof numQuestions === 'number' && numQuestions > 0 &&
-    typeof numOptions === 'number' && numOptions >= 1 && numOptions <= 6;
+    typeof numOptions === 'number' && numOptions >= 2 && numOptions <= 6;
 
   // Generate Questions based on Config
   const generateDraftBlocks = () => {
@@ -243,15 +289,39 @@ const QuestionCreator = () => {
         const updated = prev.map(p => p.pollId === currentSetId ? {
           ...p,
           questionSetName,
-          draftQuestions
+          draftQuestions,
+          numberOfQuestions: numQuestions as number,
+          mcqCount: numOptions as number,
         } : p);
         localStorage.setItem('polls', JSON.stringify(updated));
         return updated;
       });
+    } else {
+      // CREATE: If somehow currentSetId is lost but we have draft work
+      const pollId = `poll_${Date.now()}`;
+      const newPoll: Poll = {
+        pollId,
+        numberOfQuestions: numQuestions as number,
+        mcqCount: numOptions as number,
+        createdAt: Date.now(),
+        status: 'pending',
+        draftQuestions,
+        questionSetName,
+      };
+      setPolls(prev => [newPoll, ...prev]);
+      setCurrentSetId(pollId);
     }
     setCreationStatus({ type: 'success', message: "Draft saved successfully" });
     // Remove status message after some time
     setTimeout(() => setCreationStatus(null), 3000);
+  };
+
+  const handleSaveAndExit = () => {
+    handleSaveDraft();
+    setTimeout(() => {
+      clearActiveSession();
+      setStep(1);
+    }, 500);
   };
 
   const handleEditPoll = (poll: Poll) => {
@@ -260,6 +330,25 @@ const QuestionCreator = () => {
     setDraftQuestions(poll.draftQuestions || []);
     setQuestionSetName(poll.questionSetName || '');
     setCurrentSetId(poll.pollId);
+
+    // Restore scheduling state if applicable
+    if (poll.status === 'scheduled' && poll.scheduledAt) {
+      const date = new Date(poll.scheduledAt);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const mins = String(date.getMinutes()).padStart(2, '0');
+
+      setScheduledDate(`${year}-${month}-${day}`);
+      setScheduledTime(`${hours}:${mins}`);
+      setShowSchedule(true);
+    } else {
+      setShowSchedule(false);
+      setScheduledDate('');
+      setScheduledTime('');
+    }
+
     setStep(2);
     setIsSetupVisible(false);
     setCreationStatus(null);
@@ -280,19 +369,46 @@ const QuestionCreator = () => {
       return;
     }
 
-    draftQuestions.forEach(q => {
-      addQuestion({
-        quizId: 'unassigned',
-        questionText: q.questionText,
-        options: q.options,
-        correctAnswer: q.correctAnswer,
-        marks: q.marks as number,
-        timeLimitMinutes: q.timeLimitMinutes as number
+    if (!scheduledDate || !scheduledTime) {
+      setCreationStatus({ type: 'error', message: "Please select both date and time for scheduling." });
+      return;
+    }
+
+    const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`).getTime();
+    if (scheduledDateTime <= Date.now()) {
+      setCreationStatus({ type: 'error', message: "Scheduled time must be in the future." });
+      return;
+    }
+
+    // Save as scheduled poll
+    if (currentSetId) {
+      setPolls(prev => {
+        const updated = prev.map(p => p.pollId === currentSetId ? {
+          ...p,
+          questionSetName,
+          draftQuestions,
+          status: 'scheduled',
+          scheduledAt: scheduledDateTime
+        } as Poll : p);
+        return updated;
       });
-    });
+    } else {
+      const pollId = `poll_${Date.now()}`;
+      const newPoll: Poll = {
+        pollId,
+        numberOfQuestions: numQuestions as number,
+        mcqCount: numOptions as number,
+        createdAt: Date.now(),
+        status: 'scheduled',
+        draftQuestions,
+        questionSetName,
+        scheduledAt: scheduledDateTime
+      };
+      setPolls(prev => [newPoll, ...prev]);
+    }
 
     clearActiveSession();
-    setCreationStatus({ type: 'success', message: `${draftQuestions.length} question(s) added to the pool!` });
+    setCreationStatus({ type: 'success', message: `Question set scheduled for ${scheduledDate} ${scheduledTime}` });
     setTimeout(() => setCreationStatus(null), 3000);
   };
 
@@ -343,7 +459,7 @@ const QuestionCreator = () => {
               <Input
                 id="numOptions"
                 type="number"
-                min="0"
+                min="2"
                 max="6"
                 value={numOptions}
                 onChange={(e) => {
@@ -353,18 +469,18 @@ const QuestionCreator = () => {
                     return;
                   }
                   const numVal = parseInt(val);
-                  if (numVal < 0 || numVal > 6) {
-                    toast.error("Options per question must be between 1 and 6.");
+                  if (numVal < 2 || numVal > 6) {
+                    toast.error("Options per question must be between 2 and 6.");
                     return;
                   }
                   setNumOptions(numVal);
                   if (showErrors) setShowErrors(false);
                 }}
-                className={`h-14 text-xl bg-gray-50/50 focus:bg-white transition-all shadow-sm ${showErrors && (numOptions === '' || numOptions < 1 || numOptions > 6) ? 'border-red-500 ring-red-50' : 'border-blue-100 focus:border-blue-500'}`}
+                className={`h-14 text-xl bg-gray-50/50 focus:bg-white transition-all shadow-sm ${showErrors && (numOptions === '' || numOptions < 2 || numOptions > 6) ? 'border-red-500 ring-red-50' : 'border-blue-100 focus:border-blue-500'}`}
               />
               <div className="flex justify-between items-center px-1">
-                <p className="text-sm text-gray-400 font-medium">Range: 1 to 6 options</p>
-                {showErrors && (numOptions === '' || numOptions < 1 || numOptions > 6) && (
+                <p className="text-sm text-gray-400 font-medium">Range: 2 to 6 options</p>
+                {showErrors && (numOptions === '' || numOptions < 2 || numOptions > 6) && (
                   <p className="text-sm text-red-500 font-bold">Invalid range!</p>
                 )}
               </div>
@@ -414,35 +530,49 @@ const QuestionCreator = () => {
               </div>
 
               <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                {polls.filter(p => p.status === 'pending').length > 0 ? (
-                  polls.filter(p => p.status === 'pending').map(poll => (
+                {polls.filter(p => p.status === 'pending' || p.status === 'scheduled').length > 0 ? (
+                  polls.filter(p => p.status === 'pending' || p.status === 'scheduled').map(poll => (
                     <div key={poll.pollId} className="group flex items-center p-4 bg-gray-50 rounded-xl border border-transparent hover:border-blue-200 hover:bg-white hover:shadow-sm transition-all text-sm">
                       <div className="w-1/3 flex items-center gap-3">
-                        <div className={`h-1.5 w-1.5 rounded-full ${poll.status === 'pending' ? 'bg-violet-400' : 'bg-green-500'}`} />
-                        <span className="font-mono font-bold text-gray-500">ID: {poll.pollId.split('_')[1]}</span>
+                        <div className={`h-1.5 w-1.5 rounded-full ${poll.status === 'pending' ? 'bg-violet-400' : poll.status === 'scheduled' ? 'bg-amber-400' : 'bg-green-500'}`} />
+                        <div className="flex flex-col">
+                          <span className="font-mono font-bold text-gray-500 text-[10px]">ID: {poll.pollId.split('_')[1]}</span>
+                          {poll.questionSetName && <span className="font-bold text-gray-800 truncate max-w-[150px]">{poll.questionSetName}</span>}
+                        </div>
                       </div>
-                      <div className="w-1/3 text-center font-bold text-gray-600">
-                        {poll.numberOfQuestions} Questions
+                      <div className="w-1/3 text-center flex flex-col">
+                        <span className="font-bold text-gray-600">{poll.numberOfQuestions} Questions</span>
+                        {poll.status === 'scheduled' && poll.scheduledAt && (
+                          <span className="text-[10px] text-amber-600 font-bold flex items-center justify-center gap-1">
+                            <Clock className="h-3 w-3" /> {new Date(poll.scheduledAt).toLocaleString()}
+                          </span>
+                        )}
                       </div>
                       <div className="w-1/3 flex justify-end items-center gap-4">
-                        {poll.status === 'pending' && (
+                        {(poll.status === 'pending' || poll.status === 'scheduled') && (
                           <>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleEditPoll(poll)}
-                              className="h-7 px-2 text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditPoll(poll);
+                              }}
+                              className="h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                             >
+                              <Edit className="h-4 w-4 mr-1" />
                               Edit
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCompletePoll(poll.pollId)}
-                              className="h-7 px-2 text-[11px] font-bold text-green-600 hover:text-green-700 hover:bg-green-50"
-                            >
-                              Complete
-                            </Button>
+                            {poll.status === 'pending' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCompletePoll(poll.pollId)}
+                                className="h-7 px-2 text-[11px] font-bold text-green-600 hover:text-green-700 hover:bg-green-50"
+                              >
+                                Complete
+                              </Button>
+                            )}
                           </>
                         )}
                         <Button
@@ -453,7 +583,7 @@ const QuestionCreator = () => {
                         >
                           Delete
                         </Button>
-                        <span className={`text-[11px] font-bold uppercase tracking-wider ${poll.status === 'pending' ? 'text-violet-600' : 'text-green-600'
+                        <span className={`text-[11px] font-bold uppercase tracking-wider ${poll.status === 'pending' ? 'text-violet-600' : poll.status === 'scheduled' ? 'text-amber-600' : 'text-green-600'
                           }`}>
                           {poll.status}
                         </span>
@@ -462,7 +592,7 @@ const QuestionCreator = () => {
                   ))
                 ) : (
                   <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
-                    <p className="text-gray-400 font-medium">No pending question sets available.</p>
+                    <p className="text-gray-400 font-medium">No pending or scheduled question sets.</p>
                   </div>
                 )}
               </div>
@@ -624,6 +754,60 @@ const QuestionCreator = () => {
               </div>
             )}
 
+            <div className="w-full flex items-center justify-between p-4 bg-white rounded-xl border border-blue-100 shadow-sm">
+              <div className="flex items-center gap-3">
+                <Calendar className="h-5 w-5 text-blue-600" />
+                <span className="font-bold text-gray-700">Add to Question Pool (Schedule)</span>
+              </div>
+              <Button
+                variant={showSchedule ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowSchedule(!showSchedule)}
+                className={`transition-all ${showSchedule ? 'bg-blue-600' : 'text-blue-600 border-blue-200'}`}
+              >
+                {showSchedule ? "Cancel Scheduling" : "Schedule Now"}
+              </Button>
+            </div>
+
+            {showSchedule && (
+              <div className="w-full p-4 bg-blue-50/30 rounded-xl border border-blue-100/50 space-y-4 animate-in slide-in-from-top-2 duration-200">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-bold text-gray-600 flex items-center gap-2">
+                      <Calendar className="h-4 w-4" /> Date
+                    </Label>
+                    <Input
+                      type="date"
+                      min={new Date().toISOString().split('T')[0]}
+                      value={scheduledDate}
+                      onChange={(e) => setScheduledDate(e.target.value)}
+                      onKeyDown={(e) => e.preventDefault()}
+                      className="h-10 border-blue-100 focus:border-blue-500 bg-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-bold text-gray-600 flex items-center gap-2">
+                      <Clock className="h-4 w-4" /> Time
+                    </Label>
+                    <Input
+                      type="time"
+                      value={scheduledTime}
+                      onChange={(e) => setScheduledTime(e.target.value)}
+                      onKeyDown={(e) => e.preventDefault()}
+                      className="h-10 border-blue-100 focus:border-blue-500 bg-white"
+                    />
+                  </div>
+                </div>
+                <Button
+                  onClick={handleAddToPool}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-10 flex items-center justify-center gap-2"
+                >
+                  <Send className="h-4 w-4" />
+                  Confirm & Schedule for Pool
+                </Button>
+              </div>
+            )}
+
             <div className="flex gap-4 w-full">
               <Button
                 variant="outline"
@@ -633,19 +817,12 @@ const QuestionCreator = () => {
                 Back to Config
               </Button>
               <Button
-                variant="secondary"
-                onClick={handleSaveDraft}
-                className="flex-1 h-12 font-bold flex items-center gap-2"
+                variant="outline"
+                onClick={handleSaveAndExit}
+                className="flex-1 h-12 font-bold border-blue-200 text-blue-600 hover:bg-blue-50 flex items-center gap-2"
               >
-                <Save className="h-4 w-4" />
-                Save Draft
-              </Button>
-              <Button
-                onClick={handleAddToPool}
-                className="flex-1 h-12 font-bold bg-green-600 hover:bg-green-700 flex items-center gap-2"
-              >
-                <Send className="h-4 w-4" />
-                Add Questions to Pool
+                <CheckCircle2 className="h-4 w-4" />
+                Save & Exit
               </Button>
               <Button
                 onClick={() => {
