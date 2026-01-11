@@ -261,6 +261,17 @@ const QuizPage = () => {
     }
   };
 
+  const handleBack = () => {
+    if (!showResults) {
+      const confirmed = window.confirm("Are you sure you want to leave the quiz? Your progress will be lost.");
+      if (confirmed) {
+        navigate('/student');
+      }
+    } else {
+      navigate('/student');
+    }
+  };
+
   if (showResults) {
     const finalScore = answers.reduce((sum, ans) => sum + ans.marksObtained, 0);
     const totalPossibleMarks = questions.reduce((sum, q) => sum + q.marks, 0);
@@ -364,6 +375,7 @@ const QuizPage = () => {
         totalQuestions={questions.length}
         timeLeft={timeLeft}
         isMobile={isMobile}
+        onBack={handleBack}
       />
       <main className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-2xl shadow-xl">

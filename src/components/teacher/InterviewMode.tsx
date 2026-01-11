@@ -18,17 +18,13 @@ import { useQuiz, Quiz, Question } from '@/context/QuizContext';
 const InterviewMode = () => {
     const navigate = useNavigate();
     const { addQuiz } = useQuiz();
-    const [interviewMode, setInterviewMode] = useState<boolean>(false);
     const [creationMode, setCreationMode] = useState<'selection' | 'manual' | 'pdf'>('selection');
     const [pdfSubMode, setPdfSubMode] = useState<'selection' | 'ai' | 'extract'>('selection');
-    const [interviewQuestions, setInterviewQuestions] = useState<any[]>([]);
-    const [currentInterviewIndex, setCurrentInterviewIndex] = useState<number>(0);
-    const [showInterviewAnswer, setShowInterviewAnswer] = useState<boolean>(false);
-    const [interviewTimerEnabled, setInterviewTimerEnabled] = useState<boolean>(false);
-    const [interviewTimerSeconds, setInterviewTimerSeconds] = useState<number>(30);
-    const [remainingTime, setRemainingTime] = useState<number | null>(null);
-    const [isFinished, setIsFinished] = useState<boolean>(false);
-    const [answersRevealedCount, setAnswersRevealedCount] = useState<number>(0);
+
+    // Scheduling state
+    const [scheduledDate, setScheduledDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [startTime, setStartTime] = useState<string>(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }));
+    const [endTime, setEndTime] = useState<string>('23:59');
 
     const [manualStep, setManualStep] = useState<'setup' | 'input'>('setup');
 
@@ -64,6 +60,9 @@ const InterviewMode = () => {
                 if (parsed.setupNegativeMarks) setSetupNegativeMarks(parsed.setupNegativeMarks);
                 if (parsed.manualQuestions) setManualQuestions(parsed.manualQuestions);
                 if (parsed.pdfQuestions) setPdfQuestions(parsed.pdfQuestions);
+                if (parsed.scheduledDate) setScheduledDate(parsed.scheduledDate);
+                if (parsed.startTime) setStartTime(parsed.startTime);
+                if (parsed.endTime) setEndTime(parsed.endTime);
             } catch (e) {
                 console.error("Failed to restore InterviewMode session", e);
             }
@@ -81,13 +80,16 @@ const InterviewMode = () => {
             setupMarksPerQuestion,
             setupNegativeMarks,
             manualQuestions,
-            pdfQuestions
+            pdfQuestions,
+            scheduledDate,
+            startTime,
+            endTime
         };
         localStorage.setItem('interviewModeState', JSON.stringify(stateToSave));
     }, [
         creationMode, pdfSubMode, manualStep, setupNumQuestions, setupNumOptions,
         setupTimePerQuestion, setupMarksPerQuestion, setupNegativeMarks,
-        manualQuestions, pdfQuestions
+        manualQuestions, pdfQuestions, scheduledDate, startTime, endTime
     ]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -176,11 +178,6 @@ const InterviewMode = () => {
             updatedQuestions[qIdx].questionText = value;
         } else if (field === 'option' && optIdx !== undefined) {
             updatedQuestions[qIdx].options[optIdx] = value;
-            // If the modified option was the selected answer, update it? 
-            // Better to match by value if we store value strings. 
-            // But if we change the text of the selected option, we should update the correct answer too?
-            // For simplicity, let's assume user selects radio AFTER typing.
-            // If they change text of selected answer, we might need to re-select.
             if (updatedQuestions[qIdx].correctAnswer === manualQuestions[qIdx].options[optIdx]) {
                 updatedQuestions[qIdx].correctAnswer = value;
             }
@@ -188,65 +185,6 @@ const InterviewMode = () => {
             updatedQuestions[qIdx].correctAnswer = value;
         }
         setManualQuestions(updatedQuestions);
-    };
-
-    const handleStartManualInterview = () => {
-        const isValid = manualQuestions.every(q =>
-            q.questionText.trim() !== '' &&
-            q.correctAnswer !== '' &&
-            q.options.every(opt => opt.trim() !== '')
-        );
-
-        if (!isValid) {
-            toast.error("Please fill in all questions, options, and select correct answers.");
-            return;
-        }
-
-        setInterviewQuestions(manualQuestions);
-        startSession(setupTimePerQuestion);
-        toast.success("Manual Competitive Session Started!");
-    };
-
-    // Helper to start session logic extracted and reused
-    const startSession = (timeLimit: number) => {
-        setCurrentInterviewIndex(0);
-        setShowInterviewAnswer(false);
-        setInterviewMode(true);
-        setIsFinished(false);
-        setAnswersRevealedCount(0);
-        setInterviewTimerEnabled(true);
-        setInterviewTimerSeconds(timeLimit);
-        setRemainingTime(timeLimit);
-    };
-
-    const handleStartInterview = () => {
-        if (creationMode === 'manual') {
-            if (manualQuestions.length === 0) {
-                toast.error("Please add at least one question first.");
-                return;
-            }
-            setInterviewQuestions(manualQuestions);
-            startSession(setupTimePerQuestion); // Use setup time for manual
-            toast.success(`Manual Competitive Session Started!`);
-            return; // Early return as we started manually above logic might duplicate or differ
-        } else if (creationMode === 'pdf') {
-            if (pdfQuestions.length === 0) {
-                toast.error("Please generate questions from the PDF first.");
-                return;
-            }
-            setInterviewQuestions(pdfQuestions);
-            startSession(30); // Default for PDF
-            toast.success(`Competitive Session Started!`);
-        } else {
-            // Fallback for selection mode start (though usually blocked by UI)
-            setInterviewQuestions([
-                {
-                    questionText: "Tell me about yourself.",
-                    hints: "Keep it professional and focus on your recent experiences.",
-                    correctAnswer: "Candidate should provide a concise summary of their background and key skills."
-                }
-            ]);
-        }
     };
 
     const handlePublishToStudents = () => {
@@ -267,13 +205,13 @@ const InterviewMode = () => {
         const quizToAdd: Omit<Quiz, 'id' | 'status'> = {
             title: quizTitle,
             courseName: 'Interview Selection',
-            timeLimitMinutes: interviewTimerEnabled ? (interviewTimerSeconds * questionsToPublish.length) / 60 : 0,
-            negativeMarking: false,
+            timeLimitMinutes: (setupTimePerQuestion * questionsToPublish.length) / 60,
+            negativeMarking: setupNegativeMarks > 0,
             competitionMode: false,
-            scheduledDate: new Date().toISOString().split('T')[0],
-            startTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-            endTime: '23:59',
-            negativeMarksValue: 0,
+            scheduledDate: scheduledDate,
+            startTime: startTime,
+            endTime: endTime,
+            negativeMarksValue: setupNegativeMarks,
             difficulty: 'Medium',
             isInterview: true, // Mark as interview
         };
@@ -283,59 +221,13 @@ const InterviewMode = () => {
             questionText: q.questionText,
             options: q.options || [],
             correctAnswer: q.correctAnswer || q.hints || 'No answer provided',
-            marks: 1,
-            timeLimitMinutes: interviewTimerEnabled ? interviewTimerSeconds / 60 : 0,
+            marks: q.marks || 1,
+            timeLimitMinutes: (q.timeLimit || setupTimePerQuestion) / 60,
         }));
 
         addQuiz(quizToAdd, questionsData);
         toast.success("Interview session published to students!");
     };
-
-    const handleSaveManualQuestion = () => {
-        if (!manualQuestionText.trim()) {
-            toast.error("Please enter a question.");
-            return;
-        }
-        const newQuestion = {
-            questionText: manualQuestionText,
-            hints: manualHints,
-            correctAnswer: manualHints || "No answer/hint provided" // Using hints as a reference or answer for now
-        };
-        setManualQuestions([...manualQuestions, newQuestion]);
-        setManualQuestionText('');
-        setManualHints('');
-        toast.success("Question saved!");
-    };
-
-    const handleNextInterviewQuestion = () => {
-        if (currentInterviewIndex < interviewQuestions.length - 1) {
-            setCurrentInterviewIndex(prev => prev + 1);
-            setShowInterviewAnswer(false);
-            if (interviewTimerEnabled) {
-                setRemainingTime(remainingTime !== null ? interviewTimerSeconds : null);
-                // Actually reset to the initial per-question time
-                const q = interviewQuestions[currentInterviewIndex + 1];
-                setRemainingTime(q.timeLimit || interviewTimerSeconds);
-            }
-        } else {
-            setIsFinished(true);
-            setInterviewMode(false);
-            setRemainingTime(null);
-            localStorage.removeItem('interviewModeState');
-            toast.info("Competitive Session Completed!");
-        }
-    };
-
-    useEffect(() => {
-        if (interviewMode && interviewTimerEnabled && remainingTime !== null && remainingTime > 0) {
-            const timer = setTimeout(() => {
-                setRemainingTime(prev => prev ? prev - 1 : 0);
-            }, 1000);
-            return () => clearTimeout(timer);
-        } else if (remainingTime === 0) {
-            handleNextInterviewQuestion();
-        }
-    }, [interviewMode, interviewTimerEnabled, remainingTime]);
 
     return (
         <div className="space-y-6">
@@ -347,86 +239,7 @@ const InterviewMode = () => {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {interviewMode ? (
-                        <div className="bg-white p-6 rounded-lg border-2 border-gray-200">
-                            <div className="flex justify-between items-center mb-6">
-                                <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">
-                                    Question {currentInterviewIndex + 1} of {interviewQuestions.length}
-                                </span>
-                                <div className="flex items-center gap-3">
-                                    {interviewTimerEnabled && remainingTime !== null && (
-                                        <div className={`px-4 py-1.5 rounded-full font-mono font-bold text-lg border-2 ${remainingTime <= 5 ? 'border-red-500 text-red-600 bg-red-50' : 'border-black text-black bg-white'}`}>
-                                            {remainingTime}s
-                                        </div>
-                                    )}
-                                    <Button variant="ghost" size="sm" onClick={() => { setInterviewMode(false); localStorage.removeItem('interviewModeState'); }} className="text-gray-500 hover:text-red-500">
-                                        Exit Session
-                                    </Button>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                <h3 className="text-xl font-bold text-gray-800">
-                                    {interviewQuestions[currentInterviewIndex]?.questionText}
-                                </h3>
-                                {interviewQuestions[currentInterviewIndex]?.options && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-                                        {interviewQuestions[currentInterviewIndex].options.map((opt: string, i: number) => (
-                                            <div key={i} className="p-3 bg-gray-50 border rounded-lg text-sm">
-                                                {String.fromCharCode(65 + i)}. {opt}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="mt-8 border-t-2 border-gray-100 pt-6">
-                                {!showInterviewAnswer ? (
-                                    <Button onClick={() => { setShowInterviewAnswer(true); setAnswersRevealedCount(prev => prev + 1); }} className="w-full py-6 text-lg font-bold bg-black text-white hover:bg-gray-800 border-2 border-transparent hover:border-black rounded-lg transition-all">
-                                        Reveal Answer
-                                    </Button>
-                                ) : (
-                                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                                        <div className="bg-gray-50 border-2 border-gray-200 p-6 rounded-xl">
-                                            <p className="text-xs text-gray-500 font-bold uppercase mb-2 tracking-wide">Correct Answer</p>
-                                            <p className="text-lg text-gray-900 font-medium leading-relaxed">
-                                                {interviewQuestions[currentInterviewIndex]?.correctAnswer}
-                                            </p>
-                                        </div>
-                                        <Button onClick={handleNextInterviewQuestion} className="w-full py-6 text-lg font-bold border-2 border-black bg-white text-black hover:bg-black hover:text-white transition-all rounded-lg">
-                                            {currentInterviewIndex < interviewQuestions.length - 1 ? "Next Question" : "Finish Interview"}
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    ) : isFinished ? (
-                        <div className="bg-white p-8 rounded-xl border-2 border-gray-200 text-center animate-in zoom-in-95">
-                            <h3 className="text-2xl font-bold text-black mb-8 flex items-center justify-center gap-3">
-                                <Trophy className="h-8 w-8 text-black" />
-                                Session Completed
-                            </h3>
-                            <div className="grid grid-cols-2 gap-6 mb-8">
-                                <div className="p-6 bg-white rounded-xl border-2 border-gray-200 hover:border-black transition-colors">
-                                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-2">Total Questions</p>
-                                    <p className="text-4xl font-bold text-black">{interviewQuestions.length}</p>
-                                </div>
-                                <div className="p-6 bg-white rounded-xl border-2 border-gray-200 hover:border-black transition-colors">
-                                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-2">Answers Revealed</p>
-                                    <p className="text-4xl font-bold text-black">{answersRevealedCount}</p>
-                                </div>
-                            </div>
-                            <Button onClick={() => {
-                                setInterviewMode(false);
-                                setIsFinished(false);
-                                setCreationMode('selection');
-                                setManualQuestions([]);
-                                localStorage.removeItem('interviewModeState');
-                            }} className="min-w-[200px] py-6 font-bold bg-black text-white hover:bg-gray-800 rounded-lg">
-                                Return to Menu
-                            </Button>
-                        </div>
-                    ) : creationMode === 'selection' ? (
+                    {creationMode === 'selection' ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                             <Card className="group cursor-pointer p-8 flex flex-col items-center gap-6 text-center border-2 border-dashed border-gray-300 hover:border-black hover:bg-gray-50 transition-all duration-300 rounded-xl" onClick={() => setCreationMode('manual')}>
                                 <div className="p-5 bg-white border-2 border-gray-200 rounded-full group-hover:border-black transition-colors shadow-sm">
@@ -554,12 +367,6 @@ const InterviewMode = () => {
                                                 {setupNumQuestions} Questions • {setupNumOptions} Options Each • {setupTimePerQuestion}s Limit
                                             </p>
                                         </div>
-                                        <Button
-                                            onClick={handleStartManualInterview}
-                                            className="bg-black hover:bg-gray-800 text-white font-bold py-6 px-8 rounded-lg"
-                                        >
-                                            Start Session
-                                        </Button>
                                     </div>
 
                                     <div className="space-y-6">
@@ -613,19 +420,32 @@ const InterviewMode = () => {
                                             </Card>
                                         ))}
                                     </div>
-                                    <div className="flex flex-col gap-4 pt-8 pb-12">
-                                        <Button
-                                            onClick={handleStartManualInterview}
-                                            className="w-full bg-green-600 hover:bg-green-700 py-6 text-xl font-bold shadow-lg hover:shadow-green-200 transition-all rounded-lg"
-                                        >
-                                            Start Create Competitive Session
-                                        </Button>
+                                    <div className="flex flex-col gap-6 pt-8 pb-12">
+                                        <Separator className="bg-gray-100" />
+
+                                        <div className="space-y-4">
+                                            <Label className="text-lg font-bold">Schedule Quiz</Label>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label className="text-sm font-medium text-gray-500">Date</Label>
+                                                    <Input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-sm font-medium text-gray-500">Start Time</Label>
+                                                    <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-sm font-medium text-gray-500">End Time</Label>
+                                                    <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <Button
                                             onClick={handlePublishToStudents}
-                                            variant="outline"
-                                            className="w-full border-green-200 text-green-700 hover:bg-green-50 shadow-sm"
+                                            className="w-full bg-green-600 hover:bg-green-700 py-8 text-xl font-bold shadow-lg hover:shadow-green-100 transition-all rounded-xl"
                                         >
-                                            <Save className="h-4 w-4 mr-2" /> Publish to Students
+                                            <Save className="h-6 w-6 mr-3" /> Publish to Students
                                         </Button>
                                     </div>
                                 </div>
@@ -721,19 +541,32 @@ const InterviewMode = () => {
                                             </div>
                                         ))}
                                     </div>
-                                    <Button
-                                        onClick={handleStartInterview}
-                                        className="w-full bg-purple-600 hover:bg-purple-700 py-6 text-lg shadow-lg hover:shadow-purple-200 transition-all font-bold"
-                                    >
-                                        Start Competitive Session
-                                    </Button>
-                                    <Button
-                                        onClick={handlePublishToStudents}
-                                        variant="outline"
-                                        className="w-full border-purple-200 text-purple-700 hover:bg-purple-50"
-                                    >
-                                        <Save className="h-4 w-4 mr-2" /> Publish to Students
-                                    </Button>
+                                    <div className="pt-6 border-t border-gray-100 space-y-6">
+                                        <div className="space-y-4">
+                                            <Label className="text-lg font-bold">Schedule Quiz</Label>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label className="text-sm font-medium text-gray-500">Date</Label>
+                                                    <Input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-sm font-medium text-gray-500">Start Time</Label>
+                                                    <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-sm font-medium text-gray-500">End Time</Label>
+                                                    <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <Button
+                                            onClick={handlePublishToStudents}
+                                            className="w-full bg-purple-600 hover:bg-purple-700 py-8 text-xl font-bold shadow-lg hover:shadow-purple-100 transition-all rounded-xl"
+                                        >
+                                            <Save className="h-6 w-6 mr-3" /> Publish to Students
+                                        </Button>
+                                    </div>
                                 </div>
                             )}
                         </div>

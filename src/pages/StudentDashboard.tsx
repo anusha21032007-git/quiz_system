@@ -8,6 +8,7 @@ import StudentDashboardContent from '@/components/student/StudentDashboardConten
 import StudentProfileHeader from '@/components/student/StudentProfileHeader';
 import { LayoutDashboard } from 'lucide-react';
 import BackButton from '@/components/ui/BackButton';
+import { toast } from 'sonner';
 
 const DEFAULT_STUDENT_NAME = 'Mock Student';
 const DEFAULT_REGISTER_NUMBER = '2024-001';
@@ -29,6 +30,15 @@ const StudentDashboard = () => {
   const handleViewChange = (view: string) => {
     setActiveView(view);
     setSearchParams({ view });
+  };
+
+  const handleBack = () => {
+    const canGoBack = typeof window !== 'undefined' && window.history.state?.idx > 0;
+    if (canGoBack) {
+      window.history.back();
+    } else {
+      toast.info("You are at the home view of the Student Portal.");
+    }
   };
 
   // Use default values directly, bypassing login state management
@@ -55,7 +65,7 @@ const StudentDashboard = () => {
             studentName={studentName}
             registerNumber={registerNumber}
           />
-          <BackButton className="lg:hidden" />
+          <BackButton onClick={handleBack} className="lg:hidden" />
         </div>
         <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
           <LayoutDashboard className="h-6 w-6" /> Student Academic Portal
@@ -82,7 +92,7 @@ const StudentDashboard = () => {
           {!isMobile && (
             <header className="flex justify-between items-center px-8 py-4 border-b bg-white shadow-sm flex-shrink-0">
               <div className="space-y-2">
-                <BackButton />
+                <BackButton onClick={handleBack} />
                 <h1 className="text-4xl font-bold text-gray-800">Student Academic Portal</h1>
               </div>
               <StudentProfileHeader studentName={studentName} registerNumber={registerNumber} />
