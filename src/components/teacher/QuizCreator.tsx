@@ -7,11 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ListChecks, PlusCircle, Trash2, Eye, Save, Brain } from 'lucide-react';
+import { PlusCircle, Trash2, Eye, Save, Brain, ListChecks, Info, Wand2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuiz, Quiz, Question } from '@/context/QuizContext';
+import { Target } from 'lucide-react';
 
 interface LocalQuestion {
   questionText: string;
@@ -19,6 +21,7 @@ interface LocalQuestion {
   correctAnswerIndex: number | null;
   marks: number | '';
   timeLimitMinutes: number | '';
+  explanation: string;
 }
 
 interface LocalQuizData {
@@ -30,21 +33,27 @@ interface LocalQuizData {
   scheduledDate: string;
   startTime: string;
   endTime: string;
+  passMarkPercentage: number | '';
 }
 
 interface StoredQuiz {
   id: string;
+  quizId: string;
   title: string;
   courseName: string;
   questionIds: string[];
   timeLimitMinutes: number;
   negativeMarking: boolean;
-  negativeMarksValue: number; // Updated field name for consistency
+  negativeMarksValue: number;
   competitionMode: boolean;
-  scheduledDate: string; // ADDED
-  startTime: string;     // ADDED
-  endTime: string;       // ADDED
-  difficulty: 'Easy' | 'Medium' | 'Hard'; // ADDED DIFFICULTY
+  scheduledDate: string;
+  startTime: string;
+  endTime: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  passPercentage: number;
+  passMarkPercentage: number;
+  totalQuestions: number;
+  requiredCorrectAnswers: number;
   _questionsData: {
     id: string;
     quizId: string;
@@ -53,6 +62,7 @@ interface StoredQuiz {
     correctAnswer: string;
     marks: number;
     timeLimitMinutes: number;
+    explanation: string;
   }[];
 }
 
@@ -69,6 +79,7 @@ const QuizCreator = () => {
     scheduledDate: '',
     startTime: '',
     endTime: '',
+    passMarkPercentage: 0,
   });
 
   const [negativeMarking, setNegativeMarking] = useState<boolean>(false);
@@ -79,10 +90,21 @@ const QuizCreator = () => {
   const [totalCalculatedQuizTime, setTotalCalculatedQuizTime] = useState<number>(0); // New state for total quiz time
   const [quizDifficulty, setQuizDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Medium'); // NEW: Quiz Difficulty
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Manage steps via search params
+  const step = parseInt(searchParams.get('quizStep') || '1');
+  const setStep = (newStep: number) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('quizStep', newStep.toString());
+    setSearchParams(newParams);
+  };
+
   // AI Question Generation State (now local to QuizCreator)
   const [aiCoursePaperName, setAiCoursePaperName] = useState('');
   const [aiDifficulty, setAiDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Easy');
-  const [step, setStep] = useState<number>(1);
+  const [aiMarksPerQuestion, setAiMarksPerQuestion] = useState<number>(1);
+  const [aiTimePerQuestionSeconds, setAiTimePerQuestionSeconds] = useState<number>(60);
 
   // Persistence logic for QuizCreator
   useEffect(() => {
@@ -95,6 +117,8 @@ const QuizCreator = () => {
         if (parsed.negativeMarksValue !== undefined) setNegativeMarksValue(parsed.negativeMarksValue);
         if (parsed.competitionMode !== undefined) setCompetitionMode(parsed.competitionMode);
         if (parsed.quizDifficulty) setQuizDifficulty(parsed.quizDifficulty);
+        if (parsed.aiMarksPerQuestion) setAiMarksPerQuestion(parsed.aiMarksPerQuestion);
+        if (parsed.aiTimePerQuestionSeconds) setAiTimePerQuestionSeconds(parsed.aiTimePerQuestionSeconds);
         if (parsed.step) setStep(parsed.step);
       } catch (e) {
         console.error("Failed to restore QuizCreator session", e);
@@ -109,6 +133,8 @@ const QuizCreator = () => {
       negativeMarksValue,
       competitionMode,
       quizDifficulty,
+      aiMarksPerQuestion,
+      aiTimePerQuestionSeconds,
       step
     };
     localStorage.setItem('quizCreatorState', JSON.stringify(stateToSave));
@@ -118,14 +144,15 @@ const QuizCreator = () => {
     const draftData = sessionStorage.getItem('draft_quiz_params');
     if (draftData) {
       try {
-        const { questions, source } = JSON.parse(draftData);
+        const { questions, source, passMarkPercentage } = JSON.parse(draftData);
         if (questions && Array.isArray(questions)) {
           const mappedQuestions: LocalQuestion[] = questions.map((q: any) => ({
             questionText: q.questionText,
             options: q.options,
             correctAnswerIndex: q.options.indexOf(q.correctAnswer),
             marks: typeof q.marks === 'number' ? q.marks : 1,
-            timeLimitMinutes: typeof q.timeLimitMinutes === 'number' ? q.timeLimitMinutes : 1
+            timeLimitMinutes: typeof q.timeLimitMinutes === 'number' ? q.timeLimitMinutes : 1,
+            explanation: q.explanation || ''
           }));
 
           setQuizData(prev => ({
@@ -133,7 +160,8 @@ const QuizCreator = () => {
             questions: mappedQuestions,
             totalQuestions: mappedQuestions.length,
             // optional: infer options count
-            optionsPerQuestion: mappedQuestions[0]?.options?.length || 4
+            optionsPerQuestion: mappedQuestions[0]?.options?.length || 4,
+            passMarkPercentage: typeof passMarkPercentage === 'number' ? passMarkPercentage : prev.passMarkPercentage
           }));
 
           toast.success("Loaded questions from Question Bank!");
@@ -157,6 +185,10 @@ const QuizCreator = () => {
 
       if (currentCount === targetCount && currentCount > 0) return prev; // Stability check
 
+      // IMPORTANT: If we have MORE questions than target (e.g. AI pool), do NOT slice them off automatically.
+      // Only add questions if we have FEWER than target.
+      if (currentCount >= targetCount) return prev;
+
       const newQuestions = [...prev.questions];
 
       while (newQuestions.length < targetCount) {
@@ -166,11 +198,13 @@ const QuizCreator = () => {
           correctAnswerIndex: null,
           marks: 1,
           timeLimitMinutes: defaultTimePerQuestion !== null ? defaultTimePerQuestion : 1,
+          explanation: '',
         });
       }
 
       // If reducing count
-      const slicedQuestions = newQuestions.slice(0, targetCount);
+      // const slicedQuestions = newQuestions.slice(0, targetCount); // DISABLED for AI Pool support
+      const slicedQuestions = newQuestions;
 
       const updatedQuestions = slicedQuestions.map(q => {
         // Ensure options count matches config
@@ -188,6 +222,26 @@ const QuizCreator = () => {
     });
   }, [quizData.totalQuestions, quizData.optionsPerQuestion, defaultTimePerQuestion]);
 
+  // Auto-trigger AI Generation when entering Step 2
+  useEffect(() => {
+    if (step === 2) {
+      // If we don't have any questions, OR if all existing questions are completely empty
+      const isEmptyPool = quizData.questions.length === 0 || quizData.questions.every(q => !q.questionText.trim() && q.options.every(opt => !opt.trim()));
+
+      if (isEmptyPool) {
+        console.log("Auto-triggering AI generation for Step 2");
+        handleGenerateAIQuestions();
+      }
+    }
+  }, [step]);
+
+  // Sync aiCoursePaperName whenever quizTitle changes (in step 1)
+  useEffect(() => {
+    if (step === 1) {
+      setAiCoursePaperName(quizData.quizTitle);
+    }
+  }, [quizData.quizTitle, step]);
+
   useEffect(() => {
     const sumOfTimes = quizData.questions.reduce((sum, q) => {
       return sum + (typeof q.timeLimitMinutes === 'number' && q.timeLimitMinutes > 0 ? q.timeLimitMinutes : 0);
@@ -200,7 +254,18 @@ const QuizCreator = () => {
   const validateQuizDraft = (): boolean => {
     if (!quizData.quizTitle.trim()) { toast.error("Please provide a quiz title."); return false; }
     if (!quizData.courseName.trim()) { toast.error("Please provide a course name."); return false; }
+    if (quizData.passMarkPercentage === '') { toast.error("Please provide a pass mark percentage."); return false; }
     if (!quizData.scheduledDate || !quizData.startTime || !quizData.endTime) { toast.error("Please set the full schedule."); return false; }
+
+    // Past Date Validation
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(quizData.scheduledDate);
+    if (selectedDate < today) {
+      toast.error("You can only schedule quizzes for upcoming days, not in the past.");
+      return false;
+    }
+
     return true;
   };
 
@@ -234,7 +299,7 @@ const QuizCreator = () => {
     });
   };
 
-  const handleUpdateDraftQuestion = (questionIndex: number, field: any, value: any) => {
+  const handleUpdateDraftQuestion = (questionIndex: number, field: keyof LocalQuestion, value: any) => {
     setQuizData(prev => {
       const newQuestions = [...prev.questions];
       newQuestions[questionIndex] = { ...newQuestions[questionIndex], [field]: value };
@@ -242,24 +307,73 @@ const QuizCreator = () => {
     });
   };
 
+  const handleUpdateOption = (questionIndex: number, optionIndex: number, value: string) => {
+    setQuizData(prev => {
+      const newQuestions = [...prev.questions];
+      const newOptions = [...newQuestions[questionIndex].options];
+      newOptions[optionIndex] = value;
+      newQuestions[questionIndex] = { ...newQuestions[questionIndex], options: newOptions };
+      return { ...prev, questions: newQuestions };
+    });
+  };
+
   const handleGenerateAIQuestions = () => {
-    if (!aiCoursePaperName.trim()) { toast.error("Enter a topic."); return; }
-    const generated = generateAIQuestions(aiCoursePaperName, aiDifficulty, quizData.totalQuestions as number || 5, quizData.optionsPerQuestion);
+    const topicToUse = aiCoursePaperName.trim() || quizData.quizTitle.trim();
+    if (!topicToUse) {
+      toast.error("Please provide a Paper Name in Step 1 or Enter a Topic.");
+      return;
+    }
+
+    // Update local topic state for consistency
+    if (!aiCoursePaperName) setAiCoursePaperName(topicToUse);
+
+    // Generate 5x questions for the pool
+    const poolSize = (quizData.totalQuestions as number || 5) * 5;
+    const generated = generateAIQuestions(
+      topicToUse,
+      aiDifficulty,
+      poolSize,
+      quizData.optionsPerQuestion,
+      aiMarksPerQuestion,
+      aiTimePerQuestionSeconds
+    );
+
+    // Check if generation failed (likely due to unrelated topic)
+    if (generated.length === 0) {
+      toast.error("Limit reached or Subject Unrelated: Please enter a recognized educational module (e.g., Math, Science, History).");
+      return;
+    }
+
     setQuizData(prev => ({
       ...prev,
+      // If the title was modified by user, we append (AI Generated) if it's not already there
+      quizTitle: prev.quizTitle.includes('(AI Generated)') ? prev.quizTitle : `${prev.quizTitle} (AI Generated)`,
       questions: generated.map(q => ({
         questionText: q.questionText,
         options: q.options,
         correctAnswerIndex: q.options.indexOf(q.correctAnswer),
-        marks: 1,
-        timeLimitMinutes: 1
+        marks: aiMarksPerQuestion,
+        timeLimitMinutes: aiTimePerQuestionSeconds / 60,
+        explanation: q.explanation || ''
       })),
-      totalQuestions: generated.length
+      // Do NOT update totalQuestions to match generated length. 
+      // Keep original totalQuestions (the subset size for students).
+      // effectively: totalQuestions = N, questions.length = 5N
     }));
+
+    toast.success(`Generated ${generated.length} questions for a ${quizData.totalQuestions}-question quiz pool!`);
   };
 
   const prepareQuizForOutput = (): StoredQuiz | null => {
     if (!validateQuizDraft()) return null;
+
+    // Safety check: ensure we aren't saving a placeholder empty quiz
+    const actualQuestions = quizData.questions.filter(q => q.questionText.trim() !== '');
+    if (actualQuestions.length === 0) {
+      toast.error("Error: All questions are empty. Please generate or enter questions before saving.");
+      return null;
+    }
+
     const quizId = `qz-${Date.now()}`;
     const questionsForOutput = quizData.questions.map((q, index) => ({
       id: `q-${quizId}-${index}`,
@@ -269,6 +383,7 @@ const QuizCreator = () => {
       correctAnswer: q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : '',
       marks: typeof q.marks === 'number' ? q.marks : 1,
       timeLimitMinutes: typeof q.timeLimitMinutes === 'number' ? q.timeLimitMinutes : 1,
+      explanation: q.explanation || '',
     }));
 
     return {
@@ -284,7 +399,12 @@ const QuizCreator = () => {
       startTime: quizData.startTime,
       endTime: quizData.endTime,
       difficulty: quizDifficulty, // Include difficulty
+      passPercentage: Number(quizData.passMarkPercentage) || 0,
+      passMarkPercentage: Number(quizData.passMarkPercentage) || 0,
+      totalQuestions: Number(quizData.totalQuestions) || 0,
+      requiredCorrectAnswers: Math.ceil((Number(quizData.totalQuestions) * (Number(quizData.passMarkPercentage) || 0)) / 100),
       _questionsData: questionsForOutput, // Include full question data for easy retrieval
+      quizId: quizId,
     };
   };
 
@@ -292,10 +412,23 @@ const QuizCreator = () => {
     const finalQuizData = prepareQuizForOutput();
     if (finalQuizData) {
 
-      // 1. Prepare data for QuizContext's addQuiz (which handles Supabase insertion)
+      // 1. Prepare questions data (Omit<Question, 'id'>) - questions will be embedded by addQuiz
+      const questionsToAdd: Omit<Question, 'id'>[] = finalQuizData._questionsData.map(q => ({
+        quizId: q.quizId, // Placeholder, will be overwritten by addQuiz
+        questionText: q.questionText,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        marks: q.marks,
+        timeLimitMinutes: q.timeLimitMinutes,
+        explanation: q.explanation || '',
+      }));
+
+      // 2. Prepare data for QuizContext's addQuiz (which handles embedding questions and Supabase insertion)
       const quizToAdd: Omit<Quiz, 'id' | 'status'> = {
+        quizId: finalQuizData.quizId,
         title: finalQuizData.title,
         courseName: finalQuizData.courseName,
+        questions: [], // Will be populated by addQuiz with full question objects
         timeLimitMinutes: finalQuizData.timeLimitMinutes,
         negativeMarking: finalQuizData.negativeMarking,
         competitionMode: finalQuizData.competitionMode,
@@ -303,20 +436,15 @@ const QuizCreator = () => {
         startTime: finalQuizData.startTime,
         endTime: finalQuizData.endTime,
         negativeMarksValue: finalQuizData.negativeMarksValue,
-        difficulty: finalQuizData.difficulty, // Pass difficulty
+        difficulty: finalQuizData.difficulty,
+        passPercentage: finalQuizData.passPercentage,
+        totalQuestions: finalQuizData.totalQuestions,
+        requiredCorrectAnswers: finalQuizData.requiredCorrectAnswers,
+        createdAt: '', // Will be set by addQuiz
       };
 
-      // 2. Prepare questions data (Omit<Question, 'id'>)
-      const questionsToAdd: Omit<Question, 'id'>[] = finalQuizData._questionsData.map(q => ({
-        quizId: q.quizId, // Placeholder, will be overwritten by mutation
-        questionText: q.questionText,
-        options: q.options,
-        correctAnswer: q.correctAnswer,
-        marks: q.marks,
-        timeLimitMinutes: q.timeLimitMinutes,
-      }));
-
       // 3. Add the quiz to the global pool (triggers Supabase mutation)
+      // addQuiz will embed questions array and set status to 'ACTIVE'
       addQuiz(quizToAdd, questionsToAdd);
 
       // Reset form regardless of immediate success (mutation handles success/error toast)
@@ -349,6 +477,7 @@ const QuizCreator = () => {
       scheduledDate: '',
       startTime: '',
       endTime: '',
+      passMarkPercentage: 0,
     });
     setNegativeMarking(false);
     setNegativeMarksValue('');
@@ -359,6 +488,12 @@ const QuizCreator = () => {
     setAiDifficulty('Easy');
     setQuizDifficulty('Medium'); // Reset difficulty
     setStep(1); // Reset step to 1
+
+    // Clear quizStep from URL
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('quizStep');
+    setSearchParams(newParams);
+
     localStorage.removeItem('quizCreatorState');
   };
 
@@ -379,6 +514,10 @@ const QuizCreator = () => {
       toast.error("Please set the scheduled date, start time, and end time.");
       return;
     }
+    if (quizData.passMarkPercentage === '' || quizData.passMarkPercentage < 0 || quizData.passMarkPercentage > 100) {
+      toast.error("Please enter a valid pass mark percentage (0-100).");
+      return;
+    }
     setStep(2);
   };
 
@@ -391,10 +530,10 @@ const QuizCreator = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <Label htmlFor="quizTitle">Course / Paper Name</Label>
+          <Label htmlFor="quizTitle">Paper Name</Label>
           <Input
             id="quizTitle"
-            placeholder="e.g., 'Introduction to Quantum Physics'"
+            placeholder="Enter Paper Name / Topic"
             value={quizData.quizTitle}
             disabled={step === 2} // Lock
             onChange={(e) => {
@@ -425,6 +564,7 @@ const QuizCreator = () => {
               <Input
                 id="scheduledDate"
                 type="date"
+                min={new Date().toISOString().split('T')[0]}
                 value={quizData.scheduledDate}
                 disabled={step === 2}
                 onChange={(e) => handleUpdateQuizDetails('scheduledDate', e.target.value)}
@@ -452,6 +592,52 @@ const QuizCreator = () => {
                 onChange={(e) => handleUpdateQuizDetails('endTime', e.target.value)}
                 className="mt-1"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Pass Mark Configuration */}
+        <div className="border-t pt-4 mt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Target className="h-5 w-5 text-blue-600" />
+            <h3 className="text-lg font-semibold">Pass Criteria</h3>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <Label htmlFor="passMark">Pass Mark Percentage (%)</Label>
+              <Input
+                id="passMark"
+                type="number"
+                min="0"
+                max="100"
+                value={quizData.passMarkPercentage}
+                disabled={step === 2}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') {
+                    handleUpdateQuizDetails('passMarkPercentage', '');
+                    return;
+                  }
+                  const numVal = parseInt(val);
+                  if (numVal >= 0 && numVal <= 100) {
+                    handleUpdateQuizDetails('passMarkPercentage', numVal);
+                  }
+                }}
+                className="mt-1"
+              />
+            </div>
+            <div className="flex flex-col justify-end pb-2">
+              <p className="text-sm font-medium text-gray-600">
+                {quizData.totalQuestions && quizData.passMarkPercentage !== '' ? (
+                  <>
+                    Minimum Correct Answers Required: <span className="text-blue-600 font-bold">
+                      {Math.ceil((Number(quizData.totalQuestions) * Number(quizData.passMarkPercentage)) / 100)}
+                    </span> / {quizData.totalQuestions}
+                  </>
+                ) : (
+                  "Enter total questions and pass percentage"
+                )}
+              </p>
             </div>
           </div>
         </div>
@@ -572,7 +758,7 @@ const QuizCreator = () => {
             <>
               <h3 className="text-lg font-semibold mb-2">Questions for "{quizData.quizTitle || 'New Quiz'}"</h3>
               <div className="flex justify-between items-center mb-4 p-3 border rounded-md bg-blue-50 text-blue-800 font-semibold">
-                <span>Total Questions: {quizData.questions.length}</span>
+                <span>Pool Size: {quizData.questions.length} / Attempt: {quizData.totalQuestions}</span>
                 <span>Total Marks: {totalQuizMarks}</span>
                 <span>Total Quiz Time: {totalCalculatedQuizTime} minutes</span>
               </div>
@@ -580,7 +766,7 @@ const QuizCreator = () => {
               {/* AI Question Generation Section */}
               <div className="border-t pt-4 mt-4 space-y-4">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Brain className="h-5 w-5" /> Generate Questions with AI (Mock)
+                  <Brain className="h-5 w-5" /> Expert Academic Question Generator
                 </h3>
                 <div>
                   <Label htmlFor="aiDifficulty">Difficulty</Label>
@@ -595,12 +781,57 @@ const QuizCreator = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button onClick={handleGenerateAIQuestions} className="w-full bg-purple-600 hover:bg-purple-700">
-                  Generate Questions with AI
-                </Button>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="aiMarks">Marks per Question</Label>
+                    <Input
+                      id="aiMarks"
+                      type="number"
+                      min="1"
+                      value={aiMarksPerQuestion}
+                      onChange={(e) => setAiMarksPerQuestion(parseInt(e.target.value) || 1)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="aiTime">Time per Question (seconds)</Label>
+                    <Input
+                      id="aiTime"
+                      type="number"
+                      min="5"
+                      value={aiTimePerQuestionSeconds}
+                      onChange={(e) => setAiTimePerQuestionSeconds(parseInt(e.target.value) || 60)}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Button
+                    onClick={handleGenerateAIQuestions}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 h-12 text-lg font-bold shadow-lg shadow-indigo-100"
+                  >
+                    <Wand2 className="h-5 w-5 mr-2" />
+                    Generate {quizData.totalQuestions} Expert Questions for "{aiCoursePaperName || quizData.quizTitle || 'Topic'}"
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-gray-400 hover:text-indigo-600 text-[10px] uppercase tracking-widest font-black"
+                    onClick={() => {
+                      toast.info("Expert Rules: realistic distractors, clear conceptual focus, and no unrelated options.", {
+                        duration: 5000,
+                        icon: <Info className="h-4 w-4" />
+                      });
+                    }}
+                  >
+                    <Info className="h-3 w-3 mr-1.5" /> Review AI Rules & Strict Guidelines
+                  </Button>
+                </div>
                 <p className="text-sm text-gray-500 mt-2">
-                  AI will generate {quizData.totalQuestions} questions with {quizData.optionsPerQuestion} options each.
-                  You will still need to manually set marks and time for each question.
+                  AI will generate {quizData.totalQuestions} questions with {quizData.optionsPerQuestion} options each,
+                  setting each to {aiMarksPerQuestion} marks and {aiTimePerQuestionSeconds} seconds.
                 </p>
               </div>
 
@@ -621,15 +852,25 @@ const QuizCreator = () => {
                       <div className="space-y-3">
                         <div>
                           <Label>Question {index + 1}</Label>
-                          <div className="p-3 bg-gray-50 border rounded-md min-h-[60px] text-sm mt-1">
-                            {q.questionText || <span className="text-gray-400 italic">Example Question Text from AI</span>}
+                          <div className="mt-1">
+                            <Textarea
+                              value={q.questionText}
+                              onChange={(e) => handleUpdateDraftQuestion(index, 'questionText', e.target.value)}
+                              placeholder="Enter question text..."
+                              className="min-h-[80px]"
+                            />
                           </div>
                         </div>
                         <div className="grid grid-cols-1 gap-2 mt-2">
                           {q.options.map((option, optIndex) => (
                             <div key={optIndex} className="flex items-center gap-2 p-2 border rounded-md bg-white text-sm">
                               <span className="font-semibold text-gray-500 w-6">{String.fromCharCode(65 + optIndex)}.</span>
-                              <span>{option || <span className="text-gray-400 italic">Option Text</span>}</span>
+                              <Input
+                                value={option}
+                                onChange={(e) => handleUpdateOption(index, optIndex, e.target.value)}
+                                placeholder={`Option ${optIndex + 1}`}
+                                className="flex-1"
+                              />
                             </div>
                           ))}
                         </div>
@@ -682,6 +923,16 @@ const QuizCreator = () => {
                             />
                           </div>
                         )}
+                        <div>
+                          <Label htmlFor={`q-explanation-${index}`}>Explanation / Rationale</Label>
+                          <Textarea
+                            id={`q-explanation-${index}`}
+                            value={q.explanation}
+                            onChange={(e) => handleUpdateDraftQuestion(index, 'explanation', e.target.value)}
+                            placeholder="Explain why the correct answer is right..."
+                            className="mt-1 min-h-[60px]"
+                          />
+                        </div>
                       </div>
                     </Card>
                   ))

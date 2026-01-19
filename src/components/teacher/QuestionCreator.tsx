@@ -9,7 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { PlusCircle, Trash2, History, X, Settings2, Save, Send, CheckCircle2, Calendar, Clock, Edit } from 'lucide-react';
 import { toast } from 'sonner';
-import { useQuiz } from '@/context/QuizContext';
+import { useQuiz, Quiz, Question } from '@/context/QuizContext';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 interface Poll {
   pollId: string;
@@ -19,7 +20,10 @@ interface Poll {
   status: 'pending' | 'completed' | 'scheduled';
   draftQuestions?: DraftQuestion[];
   questionSetName?: string;
+  courseName?: string;
   scheduledAt?: number;
+  passMarkPercentage?: number;
+  requiredCorrectAnswers?: number;
 }
 
 interface DraftQuestion {
@@ -31,17 +35,41 @@ interface DraftQuestion {
 }
 
 const QuestionCreator = () => {
-  const { addQuestion } = useQuiz();
+  const { addQuestion, addQuiz } = useQuiz();
+  const navigate = useNavigate();
+
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Configuration State
   const [numQuestions, setNumQuestions] = useState<number | ''>(0);
   const [numOptions, setNumOptions] = useState<number | ''>(0);
 
+  // Manage steps and setup visibility via search params
+  const isSetupVisible = searchParams.get('qSetup') === 'true';
+  const step = parseInt(searchParams.get('qStep') || '1') as 1 | 2;
+
+  const setIsSetupVisible = (visible: boolean) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (visible) {
+      newParams.set('qSetup', 'true');
+    } else {
+      newParams.delete('qSetup');
+    }
+    setSearchParams(newParams);
+  };
+
+  const setStep = (newStep: 1 | 2) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('qStep', newStep.toString());
+    setSearchParams(newParams);
+  };
+
   // Drafting State
-  const [step, setStep] = useState<1 | 2>(1);
   const [draftQuestions, setDraftQuestions] = useState<DraftQuestion[]>([]);
   const [questionSetName, setQuestionSetName] = useState('');
-  const [isSetupVisible, setIsSetupVisible] = useState(false);
+  const [courseName, setCourseName] = useState('');
+  const [passMarkPercentage, setPassMarkPercentage] = useState<number | ''>(0);
+  const [maxAttempts, setMaxAttempts] = useState<number | ''>(1); // New State
   const [showErrors, setShowErrors] = useState(false);
   const [creationStatus, setCreationStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
@@ -61,13 +89,15 @@ const QuestionCreator = () => {
     const session = localStorage.getItem('activeCreationSession');
     if (session) {
       try {
-        const { numQuestions: sq, numOptions: so, draftQuestions: sd, step: ss, questionSetName: sn, currentSetId: si } = JSON.parse(session);
+        const { numQuestions: sq, numOptions: so, draftQuestions: sd, step: ss, questionSetName: sn, courseName: sc, currentSetId: si, passMarkPercentage: sp, totalQuestions: st, requiredCorrectAnswers: src } = JSON.parse(session);
         if (sq !== undefined) setNumQuestions(sq);
         if (so !== undefined) setNumOptions(so);
         if (sd !== undefined) setDraftQuestions(sd);
         if (sn !== undefined) setQuestionSetName(sn);
+        if (sc !== undefined) setCourseName(sc);
         if (ss !== undefined) setStep(ss);
         if (si !== undefined) setCurrentSetId(si);
+        if (sp !== undefined) setPassMarkPercentage(sp);
       } catch (e) {
         console.error("Failed to restore creation session", e);
       }
@@ -85,11 +115,15 @@ const QuestionCreator = () => {
       numOptions,
       draftQuestions,
       questionSetName,
+      courseName,
       step,
-      currentSetId
+      currentSetId,
+      passMarkPercentage,
+      totalQuestions: numQuestions,
+      requiredCorrectAnswers: Math.ceil((Number(numQuestions) * (Number(passMarkPercentage) || 0)) / 100)
     };
     localStorage.setItem('activeCreationSession', JSON.stringify(sessionData));
-  }, [numQuestions, numOptions, draftQuestions, questionSetName, step, currentSetId]);
+  }, [numQuestions, numOptions, draftQuestions, questionSetName, courseName, step, currentSetId]);
 
   // Sync Polls
   useEffect(() => {
@@ -103,9 +137,16 @@ const QuestionCreator = () => {
     setNumOptions(0);
     setDraftQuestions([]);
     setQuestionSetName('');
+    setCourseName('');
     setCurrentSetId(null);
-    setStep(1);
-    setIsSetupVisible(false);
+    setPassMarkPercentage(0);
+
+    // Reset URL params related to question creation
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('qSetup');
+    newParams.delete('qStep');
+    setSearchParams(newParams);
+
     setShowErrors(false);
     setCreationStatus(null);
     setShowSchedule(false);
@@ -132,8 +173,8 @@ const QuestionCreator = () => {
                 timeLimitMinutes: q.timeLimitMinutes as number
               });
             });
-            toast.success(`Question set "${poll.questionSetName || poll.pollId}" posted automatically!`);
             logQuestionAction(poll.pollId, poll.numberOfQuestions, 'Completed');
+            toast.success(`Question set "${poll.questionSetName || poll.pollId}" posted automatically!`);
           }
         });
 
@@ -152,8 +193,10 @@ const QuestionCreator = () => {
 
   // Validation for Step 1
   const isConfigValid =
+    courseName.trim().length > 0 && // Ensure Exam Paper is entered
     typeof numQuestions === 'number' && numQuestions > 0 &&
-    typeof numOptions === 'number' && numOptions >= 2 && numOptions <= 6;
+    typeof numOptions === 'number' && numOptions >= 2 && numOptions <= 6 &&
+    typeof passMarkPercentage === 'number' && passMarkPercentage >= 0 && passMarkPercentage <= 100;
 
   // Generate Questions based on Config
   const generateDraftBlocks = () => {
@@ -199,7 +242,9 @@ const QuestionCreator = () => {
             ...p,
             numberOfQuestions: numQuestions as number,
             mcqCount: numOptions as number,
-            draftQuestions: generatedDraft
+            draftQuestions: generatedDraft,
+            passMarkPercentage: passMarkPercentage as number,
+            requiredCorrectAnswers: Math.ceil((Number(numQuestions) * (Number(passMarkPercentage) || 0)) / 100)
           } : p);
           return updated;
         });
@@ -213,14 +258,20 @@ const QuestionCreator = () => {
           createdAt: Date.now(),
           status: 'pending',
           draftQuestions: generatedDraft,
-          questionSetName: ''
+          questionSetName: '',
+          passMarkPercentage: passMarkPercentage as number,
+          requiredCorrectAnswers: Math.ceil((Number(numQuestions) * (Number(passMarkPercentage) || 0)) / 100)
         };
         setPolls(prev => [newPoll, ...prev]);
         setCurrentSetId(pollId);
       }
 
-      setIsSetupVisible(false);
-      setStep(2);
+      // Update both params in a single call to avoid stale state issues
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('qSetup');
+      newParams.set('qStep', '2');
+      setSearchParams(newParams);
+
       setShowErrors(false);
     } else {
       setShowErrors(true);
@@ -292,6 +343,8 @@ const QuestionCreator = () => {
           draftQuestions,
           numberOfQuestions: numQuestions as number,
           mcqCount: numOptions as number,
+          passMarkPercentage: passMarkPercentage as number,
+          requiredCorrectAnswers: Math.ceil((Number(numQuestions) * (Number(passMarkPercentage) || 0)) / 100),
         } : p);
         localStorage.setItem('polls', JSON.stringify(updated));
         return updated;
@@ -307,6 +360,8 @@ const QuestionCreator = () => {
         status: 'pending',
         draftQuestions,
         questionSetName,
+        passMarkPercentage: passMarkPercentage as number,
+        requiredCorrectAnswers: Math.ceil((Number(numQuestions) * (Number(passMarkPercentage) || 0)) / 100),
       };
       setPolls(prev => [newPoll, ...prev]);
       setCurrentSetId(pollId);
@@ -320,7 +375,6 @@ const QuestionCreator = () => {
     handleSaveDraft();
     setTimeout(() => {
       clearActiveSession();
-      setStep(1);
     }, 500);
   };
 
@@ -329,7 +383,9 @@ const QuestionCreator = () => {
     setNumOptions(poll.mcqCount);
     setDraftQuestions(poll.draftQuestions || []);
     setQuestionSetName(poll.questionSetName || '');
+    setCourseName(poll.courseName || '');
     setCurrentSetId(poll.pollId);
+    setPassMarkPercentage(poll.passMarkPercentage || 0);
 
     // Restore scheduling state if applicable
     if (poll.status === 'scheduled' && poll.scheduledAt) {
@@ -349,8 +405,12 @@ const QuestionCreator = () => {
       setScheduledTime('');
     }
 
-    setStep(2);
-    setIsSetupVisible(false);
+    // Update both params in a single call to avoid stale state issues
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('qSetup');
+    newParams.set('qStep', '2');
+    setSearchParams(newParams);
+
     setCreationStatus(null);
   };
 
@@ -385,8 +445,7 @@ const QuestionCreator = () => {
       setPolls(prev => {
         const updated = prev.map(p => p.pollId === currentSetId ? {
           ...p,
-          questionSetName,
-          draftQuestions,
+          passMarkPercentage: passMarkPercentage as number,
           status: 'scheduled',
           scheduledAt: scheduledDateTime
         } as Poll : p);
@@ -402,7 +461,9 @@ const QuestionCreator = () => {
         status: 'scheduled',
         draftQuestions,
         questionSetName,
-        scheduledAt: scheduledDateTime
+        scheduledAt: scheduledDateTime,
+        passMarkPercentage: passMarkPercentage as number,
+        requiredCorrectAnswers: Math.ceil((Number(numQuestions) * (Number(passMarkPercentage) || 0)) / 100)
       };
       setPolls(prev => [newPoll, ...prev]);
     }
@@ -410,6 +471,86 @@ const QuestionCreator = () => {
     clearActiveSession();
     setCreationStatus({ type: 'success', message: `Question set scheduled for ${scheduledDate} ${scheduledTime}` });
     setTimeout(() => setCreationStatus(null), 3000);
+  };
+
+  const handleDirectCreateQuiz = () => {
+    // 1. Validation
+    const invalid = draftQuestions.some(q =>
+      !q.questionText.trim() || q.options.some(o => !o.trim()) || !q.correctAnswer.trim() || q.marks === '' || q.timeLimitMinutes === ''
+    );
+    if (invalid) {
+      setCreationStatus({ type: 'error', message: "Please fill all fields for all questions." });
+      toast.error("Please fill all fields for all questions.");
+      return;
+    }
+
+    // Use correct source for Title and Course
+    const finalTitle = questionSetName.trim() || courseName.trim();
+    const finalCourse = courseName.trim();
+
+    if (!finalTitle || !finalCourse || passMarkPercentage === '') {
+      setCreationStatus({ type: 'error', message: "Exam Paper / Course Name is mandatory." });
+      toast.error("Exam Paper / Course Name is mandatory.");
+      return;
+    }
+
+    // 2. Prepare Quiz Data
+    const quizId = `qz-direct-${Date.now()}`;
+    const startTimeStr = "00:00";
+    const endTimeStr = "23:59";
+    const scheduledDateStr = new Date().toISOString().split('T')[0];
+
+    const quizToAdd: Omit<Quiz, 'id' | 'status'> = {
+      quizId: quizId,
+      title: finalTitle,
+      courseName: finalCourse,
+      questions: [],
+      timeLimitMinutes: draftQuestions.reduce((acc, q) => acc + (Number(q.timeLimitMinutes) || 0), 0),
+      negativeMarking: false,
+      competitionMode: false,
+      scheduledDate: scheduledDate,
+      startTime: scheduledTime,
+      endTime: scheduledTime,
+      negativeMarksValue: 0,
+      difficulty: 'Medium',
+      passPercentage: Number(passMarkPercentage),
+      totalQuestions: draftQuestions.length,
+      requiredCorrectAnswers: Math.ceil((draftQuestions.length * Number(passMarkPercentage)) / 100),
+      createdAt: '', // Will be set by addQuiz
+      maxAttempts: maxAttempts === '' ? 1 : maxAttempts, // Set max attempts
+    };
+
+    // If no schedule provided, use 'now'
+    if (!scheduledDate || !scheduledTime) {
+      quizToAdd.scheduledDate = scheduledDateStr;
+      quizToAdd.startTime = startTimeStr;
+      quizToAdd.endTime = endTimeStr;
+    }
+
+    // 3. Prepare Questions
+    const questionsToAdd: Omit<Question, 'id'>[] = draftQuestions.map((q, idx) => ({
+      quizId: quizId,
+      questionText: q.questionText,
+      options: q.options,
+      correctAnswer: q.correctAnswer,
+      marks: Number(q.marks) || 1,
+      timeLimitMinutes: Number(q.timeLimitMinutes) || 1,
+    }));
+
+    // 4. Save and Redirect
+    addQuiz(quizToAdd, questionsToAdd);
+    toast.success("Quiz created successfully! Redirecting...");
+
+    // Log action
+    logQuestionAction(currentSetId || quizId, draftQuestions.length, 'Completed');
+
+    // Clear session
+    clearActiveSession();
+
+    // Redirect to student module
+    setTimeout(() => {
+      window.location.href = '/student';
+    }, 1500);
   };
 
   return (
@@ -423,6 +564,41 @@ const QuestionCreator = () => {
           </div>
 
           <div className="grid gap-8">
+            {/* Split Inputs: Course Name & Exam Name */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label htmlFor="courseName" className="text-lg font-bold text-gray-700">Course Name</Label>
+                <Input
+                  id="courseName"
+                  placeholder="e.g. Mathematics, Physics"
+                  value={courseName}
+                  onChange={(e) => setCourseName(e.target.value)}
+                  className={`h-14 text-xl bg-gray-50/50 focus:bg-white transition-all shadow-sm ${showErrors && !courseName.trim() ? 'border-red-500 ring-red-50' : 'border-blue-100 focus:border-blue-500'}`}
+                />
+                {showErrors && !courseName.trim() && (
+                  <p className="text-sm text-red-500 font-bold flex items-center gap-1">
+                    <X className="h-4 w-4" /> Course Name required.
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="examName" className="text-lg font-bold text-gray-700">Exam Name</Label>
+                <Input
+                  id="examName"
+                  placeholder="e.g. Final Exam, Quiz 1"
+                  value={questionSetName}
+                  onChange={(e) => setQuestionSetName(e.target.value)}
+                  className={`h-14 text-xl bg-gray-50/50 focus:bg-white transition-all shadow-sm ${showErrors && (!questionSetName || !questionSetName.trim()) ? 'border-red-500 ring-red-50' : 'border-blue-100 focus:border-blue-500'}`}
+                />
+                {showErrors && (!questionSetName || !questionSetName.trim()) && (
+                  <p className="text-sm text-red-500 font-bold flex items-center gap-1">
+                    <X className="h-4 w-4" /> Exam Name required.
+                  </p>
+                )}
+              </div>
+            </div>
+
             <div className="space-y-3">
               <Label htmlFor="numQuestions" className="text-lg font-bold text-gray-700">Number of Questions</Label>
               <Input
@@ -485,12 +661,81 @@ const QuestionCreator = () => {
                 )}
               </div>
             </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="passMark" className="text-lg font-bold text-gray-700">Pass Mark Percentage (%)</Label>
+              <Input
+                id="passMark"
+                type="number"
+                min="0"
+                max="100"
+                value={passMarkPercentage}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') {
+                    setPassMarkPercentage('');
+                    return;
+                  }
+                  const numVal = parseInt(val);
+                  if (numVal < 0 || numVal > 100) {
+                    toast.error("Pass percentage must be between 0 and 100.");
+                    return;
+                  }
+                  setPassMarkPercentage(numVal);
+                  if (showErrors) setShowErrors(false);
+                }}
+                className={`h-14 text-xl bg-gray-50/50 focus:bg-white transition-all shadow-sm ${showErrors && (passMarkPercentage === '' || passMarkPercentage < 0 || passMarkPercentage > 100) ? 'border-red-500 ring-red-50' : 'border-blue-100 focus:border-blue-500'}`}
+              />
+              <div className="flex justify-between items-center px-1">
+                <p className="text-sm text-gray-400 font-medium">
+                  {typeof numQuestions === 'number' && typeof passMarkPercentage === 'number' ?
+                    `Minimum Correct Answers Required: ${Math.ceil((numQuestions * passMarkPercentage) / 100)} / ${numQuestions}` :
+                    'Enter a percentage to see required answers'}
+                </p>
+                {showErrors && (passMarkPercentage === '' || passMarkPercentage < 0 || passMarkPercentage > 100) && (
+                  <p className="text-sm text-red-500 font-bold">Mandatory field!</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="maxAttempts" className="text-lg font-bold text-gray-700">Max Attempts (Optional)</Label>
+              <Input
+                id="maxAttempts"
+                type="number"
+                min="1"
+                placeholder="Default: 1"
+                value={maxAttempts}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') {
+                    setMaxAttempts('');
+                    return;
+                  }
+                  const numVal = parseInt(val);
+                  if (numVal < 1) {
+                    toast.error("Max attempts must be at least 1.");
+                    return;
+                  }
+                  setMaxAttempts(numVal);
+                }}
+                className="h-14 text-xl bg-gray-50/50 focus:bg-white transition-all shadow-sm border-blue-100 focus:border-blue-500"
+              />
+              <p className="text-sm text-gray-400 font-medium px-1">
+                Number of times a student can take this quiz. Leave empty for 1 attempt.
+              </p>
+            </div>
           </div>
 
           <div className="flex justify-end pt-6 border-t border-blue-50 gap-4">
             <Button
               variant="ghost"
-              onClick={() => { setIsSetupVisible(false); setStep(1); }}
+              onClick={() => {
+                const newParams = new URLSearchParams(searchParams);
+                newParams.delete('qSetup');
+                newParams.set('qStep', '1');
+                setSearchParams(newParams);
+              }}
               className="px-6 h-12 font-bold text-gray-400 hover:text-gray-600"
             >
               Cancel
@@ -733,17 +978,8 @@ const QuestionCreator = () => {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-6 p-6 bg-gray-50/80 border-t rounded-b-lg">
-            <div className="w-full space-y-2">
-              <Label className="text-sm font-bold text-gray-600">Question Set Name</Label>
-              <Input
-                placeholder="e.g., Biology Final Exam - Section A"
-                value={questionSetName}
-                onChange={(e) => {
-                  setQuestionSetName(e.target.value);
-                  if (creationStatus) setCreationStatus(null);
-                }}
-                className={`bg-white h-12 text-lg font-bold ${creationStatus?.type === 'error' && !questionSetName.trim() ? 'border-red-500 ring-red-100' : 'border-gray-300'}`}
-              />
+            <div className="w-full space-y-2 hidden">
+              {/* Question Set Name input removed from interface but kept in state logic if needed internally */}
             </div>
 
             {creationStatus && (
@@ -757,7 +993,7 @@ const QuestionCreator = () => {
             <div className="w-full flex items-center justify-between p-4 bg-white rounded-xl border border-blue-100 shadow-sm">
               <div className="flex items-center gap-3">
                 <Calendar className="h-5 w-5 text-blue-600" />
-                <span className="font-bold text-gray-700">Add to Question Pool (Schedule)</span>
+                <span className="font-bold text-gray-700">Scheduling Options (Optional)</span>
               </div>
               <Button
                 variant={showSchedule ? "default" : "outline"}
@@ -765,7 +1001,7 @@ const QuestionCreator = () => {
                 onClick={() => setShowSchedule(!showSchedule)}
                 className={`transition-all ${showSchedule ? 'bg-blue-600' : 'text-blue-600 border-blue-200'}`}
               >
-                {showSchedule ? "Cancel Scheduling" : "Schedule Now"}
+                {showSchedule ? "Hide Schedule" : "Set Schedule"}
               </Button>
             </div>
 
@@ -800,10 +1036,11 @@ const QuestionCreator = () => {
                 </div>
                 <Button
                   onClick={handleAddToPool}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-10 flex items-center justify-center gap-2"
+                  variant="outline"
+                  className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 font-bold h-10 flex items-center justify-center gap-2"
                 >
-                  <Send className="h-4 w-4" />
-                  Confirm & Schedule for Pool
+                  <History className="h-4 w-4" />
+                  Save as Draft / Add to Pool
                 </Button>
               </div>
             )}
@@ -814,7 +1051,7 @@ const QuestionCreator = () => {
                 onClick={() => { setStep(1); setIsSetupVisible(true); setCreationStatus(null); }}
                 className="px-8 h-12 font-bold border-gray-300"
               >
-                Back to Config
+                Back
               </Button>
               <Button
                 variant="outline"
@@ -822,29 +1059,14 @@ const QuestionCreator = () => {
                 className="flex-1 h-12 font-bold border-blue-200 text-blue-600 hover:bg-blue-50 flex items-center gap-2"
               >
                 <CheckCircle2 className="h-4 w-4" />
-                Save & Exit
+                Save Draft
               </Button>
               <Button
-                onClick={() => {
-                  const invalid = draftQuestions.some(q =>
-                    !q.questionText.trim() || q.options.some(o => !o.trim()) || !q.correctAnswer.trim() || q.marks === '' || q.timeLimitMinutes === ''
-                  );
-                  if (invalid) {
-                    setCreationStatus({ type: 'error', message: "Please fill all fields before creating a quiz." });
-                    return;
-                  }
-
-                  sessionStorage.setItem('draft_quiz_params', JSON.stringify({
-                    questions: draftQuestions,
-                    source: 'question_creator'
-                  }));
-                  // Force a hard navigation or ensure the parent re-renders if using query params in the same component tree
-                  window.location.href = '/teacher?view=create-quiz';
-                }}
-                className="flex-1 h-12 font-bold bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2 text-white shadow-indigo-200 shadow-lg"
+                onClick={handleDirectCreateQuiz}
+                className={`flex-1 h-12 font-black flex items-center justify-center gap-2 text-white shadow-lg text-lg rounded-2xl transition-all hover:scale-105 active:scale-95 ${scheduledDate && scheduledTime ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-200' : 'bg-green-600 hover:bg-green-700 shadow-green-200'}`}
               >
-                <Settings2 className="h-4 w-4" />
-                Create Quiz Now
+                {scheduledDate && scheduledTime ? <Calendar className="h-5 w-5" /> : <CheckCircle2 className="h-5 w-5" />}
+                {scheduledDate && scheduledTime ? "Schedule Quiz" : "Create Quiz Now"}
               </Button>
             </div>
           </CardFooter>

@@ -28,9 +28,9 @@ const StudentResultsList = ({ studentAttempts, quizzes }: StudentResultsListProp
         const headers = ["Quiz Title", "Date", "Score", "Total Questions", "Percentage", "Status", "Time Taken (s)"];
         const rows = attempts.map(attempt => {
             const date = new Date(attempt.timestamp).toLocaleDateString();
-            const percentage = (attempt.score / attempt.totalQuestions) * 100;
-            const status = percentage >= 50 ? 'Passed' : 'Failed';
+            const status = attempt.passed ? 'Passed' : 'Failed';
             const title = getQuizTitle(attempt.quizId);
+            const percentage = (attempt.score / attempt.totalQuestions) * 100;
 
             return [
                 `"${title}"`, // Quote title to handle commas
@@ -98,8 +98,7 @@ const StudentResultsList = ({ studentAttempts, quizzes }: StudentResultsListProp
                         </TableHeader>
                         <TableBody>
                             {sortedAttempts.map((attempt) => {
-                                const percentage = (attempt.score / attempt.totalQuestions) * 100;
-                                const isPassed = percentage >= 50;
+                                const isPassed = attempt.passed;
 
                                 return (
                                     <TableRow key={attempt.id} className="hover:bg-gray-50/50 transition-colors">
@@ -114,7 +113,7 @@ const StudentResultsList = ({ studentAttempts, quizzes }: StudentResultsListProp
                                                 "px-2 py-1 rounded-md bg-gray-100",
                                                 isPassed ? "text-green-700 bg-green-50" : "text-red-700 bg-red-50"
                                             )}>
-                                                {attempt.score.toFixed(1)} / {attempt.totalQuestions}
+                                                {attempt.correctAnswersCount} / {attempt.totalQuestions}
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-center">

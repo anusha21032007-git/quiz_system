@@ -8,7 +8,7 @@ interface OverviewCardsProps {
   totalQuizzesAttempted: number;
   quizzesPassed: number;
   averageScore: number;
-  currentRank: number;
+  currentRank: string | number;
 }
 
 const OverviewCards = ({ totalQuizzesAttempted, quizzesPassed, averageScore, currentRank }: OverviewCardsProps) => {
@@ -32,10 +32,10 @@ const OverviewCards = ({ totalQuizzesAttempted, quizzesPassed, averageScore, cur
       description: "Your overall performance.",
     },
     {
-      title: "Credits Earned",
-      value: 12, // Mock value
-      icon: DollarSign,
-      description: "Total academic credits earned.",
+      title: "Current Rank",
+      value: currentRank,
+      icon: Award,
+      description: "Your position in results.",
     },
   ];
 

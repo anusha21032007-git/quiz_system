@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -11,6 +11,7 @@ import {
   SupabaseQuestion
 } from '@/integrations/supabase/quizzes';
 import { supabase } from '@/integrations/supabase/client';
+import { aiService, AIQuestionResponse } from '@/services/aiService';
 
 // --- Type Definitions ---
 
@@ -23,21 +24,29 @@ export interface Question extends Omit<SupabaseQuestion, 'teacher_id' | 'created
   quizId: string;
   marks: number;
   timeLimitMinutes: number;
+  explanation: string;
 }
 
-export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | 'course_name' | 'time_limit_minutes' | 'scheduled_date' | 'start_time' | 'end_time' | 'negative_marks_value' | 'status' | 'difficulty' | 'negative_marking' | 'competition_mode'> {
+export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | 'course_name' | 'time_limit_minutes' | 'scheduled_date' | 'start_time' | 'end_time' | 'negative_marks_value' | 'status' | 'difficulty' | 'negative_marking' | 'competition_mode' | 'pass_mark_percentage' | 'total_questions' | 'required_correct_answers'> {
+  quizId: string;
   courseName: string;
+  questions: Question[];
+  totalQuestions: number;
+  passPercentage: number;
+  requiredCorrectAnswers: number;
+  startTime: string;
+  endTime: string;
+  status: 'draft' | 'published' | 'ACTIVE' | 'DELETED';
+  createdAt: string;
+  // Existing internal fields
   timeLimitMinutes: number;
   negativeMarking: boolean;
   competitionMode: boolean;
   scheduledDate: string;
-  startTime: string;
-  endTime: string;
   negativeMarksValue: number;
-  status: 'draft' | 'published';
   difficulty: 'Easy' | 'Medium' | 'Hard';
-  isInterview?: boolean; // NEW: Distinguish interview sessions from regular quizzes
-  // Note: questionIds is derived from fetching questions separately now, not stored on the quiz object itself.
+  isInterview?: boolean;
+  maxAttempts?: number; // New field
 }
 
 export interface QuizAttempt {
@@ -46,6 +55,8 @@ export interface QuizAttempt {
   studentName: string;
   score: number;
   totalQuestions: number;
+  correctAnswersCount: number;
+  passed: boolean;
   answers: { questionId: string; selectedAnswer: string; isCorrect: boolean; marksObtained: number }[];
   timestamp: number;
   timeTakenSeconds: number;
@@ -58,6 +69,8 @@ interface QuizContextType {
   isQuizzesLoading: boolean;
   isQuestionsLoading: boolean;
   availableCourses: string[];
+  hasNewQuizzes: boolean;
+  markQuizzesAsSeen: () => void;
 
   // Mutations/Actions
   addQuestion: (question: Omit<Question, 'id'>) => string;
@@ -66,7 +79,7 @@ interface QuizContextType {
   submitQuizAttempt: (attempt: Omit<QuizAttempt, 'id' | 'timestamp'>) => void;
   getQuestionsForQuiz: (quizId: string) => Promise<Question[]>;
   getQuizById: (quizId: string) => Quiz | undefined;
-  generateAIQuestions: (coursePaperName: string, difficulty: 'Easy' | 'Medium' | 'Hard', numQuestions: number, numOptions: number) => Question[];
+  generateAIQuestions: (coursePaperName: string, difficulty: 'Easy' | 'Medium' | 'Hard', numQuestions: number, numOptions: number, marksPerQuestion: number, timePerQuestionSeconds: number) => Question[];
   deleteQuiz: (quizId: string) => void;
 }
 
@@ -76,8 +89,10 @@ const QuizContext = createContext<QuizContextType | undefined>(undefined);
 
 const mapSupabaseQuizToLocal = (sQuiz: SupabaseQuiz): Quiz => ({
   id: sQuiz.id,
+  quizId: sQuiz.id,
   title: sQuiz.title,
   courseName: sQuiz.course_name,
+  questions: [], // Questions will be fetched separately for Supabase quizzes
   timeLimitMinutes: sQuiz.time_limit_minutes,
   negativeMarking: sQuiz.negative_marking,
   competitionMode: sQuiz.competition_mode,
@@ -85,9 +100,13 @@ const mapSupabaseQuizToLocal = (sQuiz: SupabaseQuiz): Quiz => ({
   startTime: sQuiz.start_time,
   endTime: sQuiz.end_time,
   negativeMarksValue: sQuiz.negative_marks_value,
-  status: sQuiz.status,
+  status: sQuiz.status === 'published' ? 'ACTIVE' : sQuiz.status as any,
   difficulty: sQuiz.difficulty,
-  isInterview: sQuiz.title.startsWith('INT:') || sQuiz.course_name.includes('Interview'), // Fallback detection for Supabase
+  passPercentage: sQuiz.pass_mark_percentage || 0,
+  totalQuestions: sQuiz.total_questions || 0,
+  requiredCorrectAnswers: sQuiz.required_correct_answers || 0,
+  createdAt: sQuiz.created_at,
+  isInterview: sQuiz.title.startsWith('INT:') || sQuiz.course_name.includes('Interview'),
 });
 
 export const QuizProvider = ({ children }: { children: ReactNode }) => {
@@ -95,137 +114,154 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
 
   // Fetch Quizzes using Supabase hook
   const { data: supabaseQuizzes = [], isLoading: isQuizzesLoading } = useQuizzes();
-  const [localQuizzes, setLocalQuizzes] = useState<Quiz[]>(() => {
+  const createQuizMutation = useCreateQuiz(); // Initialize mutation hook
+  // --- Centralized Local Storage ---
+  const [localData, setLocalData] = useState<{
+    quizzes: Quiz[];
+    questions: Question[];
+    attempts: QuizAttempt[];
+    courses: string[];
+  }>(() => {
     try {
-      const storedQuizzes = localStorage.getItem('local_quizzes');
-      return storedQuizzes ? JSON.parse(storedQuizzes) : [];
+      const stored = localStorage.getItem('ALL_QUIZZES');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Migration: If it was just an array (from my previous step), wrap it
+        if (Array.isArray(parsed)) {
+          return {
+            quizzes: parsed,
+            questions: JSON.parse(localStorage.getItem('local_questions') || '[]'),
+            attempts: JSON.parse(localStorage.getItem('quiz_attempts') || '[]'),
+            courses: JSON.parse(localStorage.getItem('manual_courses') || '[]'),
+          };
+        }
+        return {
+          quizzes: parsed.quizzes || [],
+          questions: parsed.questions || [],
+          attempts: parsed.attempts || [],
+          courses: parsed.courses || [],
+        };
+      }
+
+      // Legacy fallout migration (if ALL_QUIZZES didn't exist yet but others did)
+      return {
+        quizzes: JSON.parse(localStorage.getItem('local_quizzes') || '[]'),
+        questions: JSON.parse(localStorage.getItem('local_questions') || '[]'),
+        attempts: JSON.parse(localStorage.getItem('quiz_attempts') || '[]'),
+        courses: JSON.parse(localStorage.getItem('manual_courses') || '[]'),
+      };
     } catch (error) {
-      console.error("Failed to load local quizzes", error);
-      return [];
+      console.error("Failed to load global quiz data", error);
+      return { quizzes: [], questions: [], attempts: [], courses: [] };
     }
   });
 
-  const [localQuestionPool, setLocalQuestionPool] = useState<Question[]>(() => {
-    try {
-      const storedQuestions = localStorage.getItem('local_questions');
-      return storedQuestions ? JSON.parse(storedQuestions) : [];
-    } catch (error) {
-      console.error("Failed to load local questions", error);
-      return [];
-    }
-  });
-  const [quizAttempts, setQuizAttempts] = useState<QuizAttempt[]>(() => {
-    try {
-      const storedAttempts = localStorage.getItem('quiz_attempts');
-      return storedAttempts ? JSON.parse(storedAttempts) : [];
-    } catch (error) {
-      console.error("Failed to load quiz attempts", error);
-      return [];
-    }
-  });
+  const { quizzes: localQuizzes, questions: localQuestionPool, attempts: quizAttempts, courses: manualCourses } = localData;
 
-  // State for manually added courses
-  const [manualCourses, setManualCourses] = useState<string[]>(() => {
-    try {
-      const stored = localStorage.getItem('manual_courses');
-      return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-      return [];
-    }
-  });
+  const setLocalQuizzes = (updater: Quiz[] | ((prev: Quiz[]) => Quiz[])) => {
+    setLocalData(prev => ({
+      ...prev,
+      quizzes: typeof updater === 'function' ? updater(prev.quizzes) : updater
+    }));
+  };
+
+  const setLocalQuestionPool = (updater: Question[] | ((prev: Question[]) => Question[])) => {
+    setLocalData(prev => ({
+      ...prev,
+      questions: typeof updater === 'function' ? updater(prev.questions) : updater
+    }));
+  };
+
+  const setQuizAttempts = (updater: QuizAttempt[] | ((prev: QuizAttempt[]) => QuizAttempt[])) => {
+    setLocalData(prev => ({
+      ...prev,
+      attempts: typeof updater === 'function' ? updater(prev.attempts) : updater
+    }));
+  };
+
+  const setManualCourses = (updater: string[] | ((prev: string[]) => string[])) => {
+    setLocalData(prev => ({
+      ...prev,
+      courses: typeof updater === 'function' ? updater(prev.courses) : updater
+    }));
+  };
 
   // Merge Supabase quizzes with Local Quizzes
-  const quizzes = [...supabaseQuizzes.map(mapSupabaseQuizToLocal), ...localQuizzes];
+  const quizzes = useMemo(() => [...supabaseQuizzes.map(mapSupabaseQuizToLocal), ...localQuizzes], [supabaseQuizzes, localQuizzes]);
 
-  // Derive available courses (from both quizzes and manual additions)
-  const availableCourses = Array.from(new Set([
-    ...quizzes.map(q => q.courseName),
-    ...manualCourses
-  ])).filter(Boolean);
+  // State for student notification
+  const [hasNewQuizzes, setHasNewQuizzes] = useState<boolean>(() => {
+    return localStorage.getItem('NEW_QUIZ_AVAILABLE') === 'true';
+  });
 
-  useEffect(() => {
-    localStorage.setItem('quiz_attempts', JSON.stringify(quizAttempts));
-  }, [quizAttempts]);
-
-  useEffect(() => {
-    localStorage.setItem('local_quizzes', JSON.stringify(localQuizzes));
-  }, [localQuizzes]);
-
-  useEffect(() => {
-    localStorage.setItem('local_questions', JSON.stringify(localQuestionPool));
-  }, [localQuestionPool]);
-
-  useEffect(() => {
-    localStorage.setItem('manual_courses', JSON.stringify(manualCourses));
-  }, [manualCourses]);
-
-  // Listen for changes from other tabs
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'local_quizzes' && e.newValue) {
-        setLocalQuizzes(JSON.parse(e.newValue));
-      }
-      if (e.key === 'local_questions' && e.newValue) {
-        setLocalQuestionPool(JSON.parse(e.newValue));
-      }
-      if (e.key === 'quiz_attempts' && e.newValue) {
-        setQuizAttempts(JSON.parse(e.newValue));
-      }
-      if (e.key === 'manual_courses' && e.newValue) {
-        setManualCourses(JSON.parse(e.newValue));
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+  const markQuizzesAsSeen = useCallback(() => {
+    setHasNewQuizzes(false);
+    localStorage.setItem('NEW_QUIZ_AVAILABLE', 'false');
   }, []);
 
-  const createQuizMutation = useCreateQuiz();
+  const availableCourses = manualCourses;
 
-  const addQuestion = (question: Omit<Question, 'id'>): string => {
-    const newQuestion: Question = { ...question, id: `q-local-${Date.now()}` };
+  // Persistence Effect
+  useEffect(() => {
+    const dataToSave = {
+      quizzes: localQuizzes,
+      questions: localQuestionPool,
+      attempts: quizAttempts,
+      courses: manualCourses,
+    };
+    localStorage.setItem('ALL_QUIZZES', JSON.stringify(dataToSave));
+  }, [localQuizzes, localQuestionPool, quizAttempts, manualCourses]);
+
+  const addQuestion = (question: Omit<Question, 'id'>) => {
+    const newId = `q-local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const newQuestion = { ...question, id: newId };
     setLocalQuestionPool((prev) => [...prev, newQuestion]);
-    return newQuestion.id;
+    return newId;
   };
 
   const addCourse = (courseName: string) => {
-    setManualCourses(prev => {
-      if (!prev.includes(courseName)) {
-        return [...prev, courseName];
-      }
-      return prev;
-    });
+    if (!manualCourses.includes(courseName)) {
+      setManualCourses((prev) => [...prev, courseName]);
+    }
   };
 
   const addQuiz = (quiz: Omit<Quiz, 'id' | 'status'>, questionsData: Omit<Question, 'id'>[]) => {
-    // 1. Create Local Fallback Quiz
+    // ... (existing addQuiz logic) ...
     const localId = `qz-local-${Date.now()}`;
-    const newLocalQuiz: Quiz = {
-      ...quiz,
-      id: localId,
-      status: 'published',
-    };
-
     const newLocalQuestions = questionsData.map((q, index) => ({
       ...q,
       id: `q-local-${localId}-${index}`,
       quizId: localId,
     }));
 
-    // Update Local State immediately (Optimistic UI for the user)
-    setLocalQuizzes(prev => {
-      const updatedQuizzes = [...prev, newLocalQuiz];
-      localStorage.setItem('local_quizzes', JSON.stringify(updatedQuizzes)); // Ensure immediate save
-      return updatedQuizzes;
-    });
-    setLocalQuestionPool(prev => {
-      const updatedQuestions = [...prev, ...newLocalQuestions];
-      localStorage.setItem('local_questions', JSON.stringify(updatedQuestions)); // Ensure immediate save
-      return updatedQuestions;
-    });
+    const newLocalQuiz: Quiz = {
+      ...quiz,
+      id: localId,
+      quizId: localId,
+      questions: newLocalQuestions,
+      passPercentage: (quiz as any).passPercentage || (quiz as any).passMarkPercentage || 0,
+      status: 'ACTIVE',
+      createdAt: new Date().toISOString(),
+      maxAttempts: (quiz as any).maxAttempts || 1, // Default to 1 if not specified
+    };
+
+    // Update Local State immediately
+    setLocalQuizzes(prev => [...prev, newLocalQuiz]);
+    setLocalQuestionPool(prev => [...prev, ...newLocalQuestions]);
 
     // Also add the course to manual courses to ensure it persists immediately
     addCourse(quiz.courseName);
+
+    // Set NEW_QUIZ_AVAILABLE flag
+    localStorage.setItem('NEW_QUIZ_AVAILABLE', 'true');
+    setHasNewQuizzes(true);
+
+    // Dispatch event for other tabs
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'NEW_QUIZ_AVAILABLE',
+      newValue: 'true'
+    }));
+
     toast.success("Quiz created locally! (Syncing to cloud...)");
 
     // 2. Try Sync to Supabase
@@ -241,6 +277,9 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
         end_time: quiz.endTime,
         negative_marks_value: quiz.negativeMarksValue,
         difficulty: quiz.difficulty,
+        pass_mark_percentage: quiz.passPercentage,
+        total_questions: quiz.totalQuestions,
+        required_correct_answers: quiz.requiredCorrectAnswers,
       },
       questionsData: questionsData.map(q => ({
         quiz_id: 'temp',
@@ -249,6 +288,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
         correct_answer: q.correctAnswer,
         marks: q.marks,
         time_limit_minutes: q.timeLimitMinutes,
+        explanation: q.explanation || '',
       }))
     }, {
       onSuccess: () => {
@@ -262,9 +302,26 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const deleteQuiz = async (quizId: string) => {
-    // 1. Delete from Local State
-    setLocalQuizzes(prev => prev.filter(q => q.id !== quizId));
-    setLocalQuestionPool(prev => prev.filter(q => q.quizId !== quizId));
+    // 1. Soft Delete in Local State (preserve history)
+    setLocalQuizzes(prev => {
+      return prev.map(q => {
+        if (q.id === quizId) {
+          // Log deletion to history
+          const historyItem = {
+            questionSetId: quizId,
+            paperName: q.courseName || q.title, // Use course/paper name
+            totalQuestions: q.questions.length,
+            action: 'Deleted',
+            timestamp: Date.now()
+          };
+          const currentHistory = JSON.parse(localStorage.getItem('questionActionHistory') || '[]');
+          localStorage.setItem('questionActionHistory', JSON.stringify([historyItem, ...currentHistory]));
+
+          return { ...q, status: 'DELETED' };
+        }
+        return q;
+      });
+    });
 
     // 2. Delete from Supabase if it's a cloud quiz
     if (!quizId.startsWith('qz-')) {
@@ -278,7 +335,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
         toast.error("Failed to delete quiz from cloud.");
       }
     } else {
-      toast.success("Local quiz deleted.");
+      toast.success("Quiz deleted from active view.");
     }
   };
 
@@ -296,10 +353,11 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
 
     // 2. Fallback: Check localStorage directly in case state hasn't synced yet (e.g. across tabs)
     try {
-      const stored = localStorage.getItem('local_questions');
+      const stored = localStorage.getItem('ALL_QUIZZES');
       if (stored) {
-        const parsed: Question[] = JSON.parse(stored);
-        const found = parsed.filter(q => q.quizId === quizId);
+        const parsed = JSON.parse(stored);
+        const questions = parsed.questions || [];
+        const found = questions.filter((q: Question) => q.quizId === quizId);
         if (found.length > 0) return found;
       }
     } catch (e) {
@@ -327,6 +385,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
         correctAnswer: sQ.correct_answer,
         marks: sQ.marks,
         timeLimitMinutes: sQ.time_limit_minutes,
+        explanation: (sQ as any).explanation || '', // Safety check for new field
       }));
     } catch (error) {
       console.error("Error fetching questions for quiz:", quizId, error);
@@ -338,68 +397,290 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     return quizzes.find(q => q.id === quizId);
   };
 
-  const generateAIQuestions = (coursePaperName: string, difficulty: 'Easy' | 'Medium' | 'Hard', numQuestions: number, numOptions: number): Question[] => {
+  const generateAIQuestions = (
+    coursePaperName: string,
+    difficulty: 'Easy' | 'Medium' | 'Hard',
+    numQuestions: number,
+    numOptions: number,
+    marksPerQuestion: number,
+    timePerQuestionSeconds: number
+  ): Question[] => {
+    // Basic Keyword Validation Heuristic
+    const VALID_TOPICS = [
+      "Math", "Algebra", "Geometry", "Calculus", "Statistics",
+      "Science", "Physics", "Chemistry", "Biology", "Astronomy",
+      "History", "Geography", "Civics", "Economics", "Social Studies",
+      "Literature", "English", "Grammar", "Language", "Writing",
+      "Computer", "Programming", "Coding", "Java", "Python", "React", "Web Development", "AI", "Data Science",
+      "Art", "Music", "General Knowledge", "GK", "Quiz",
+      "Business", "Marketing", "Finance", "Management",
+      "Psychology", "Sociology", "Philosophy",
+      "Engineering", "Medical", "Law",
+      "Sports", "Movies", "Technology" // Broad categories
+    ];
+
+    const lowerCaseInput = coursePaperName.toLowerCase();
+
+    const isRelevant = VALID_TOPICS.some(topic =>
+      lowerCaseInput.includes(topic.toLowerCase()) || topic.toLowerCase().includes(lowerCaseInput)
+    );
+
+    // If completely unrelated (e.g. random gibberish), we still generate but with a generic warning
+    // This prevents the user from being stuck with empty questions.
+    const effectiveTopic = isRelevant ? coursePaperName : `Topic: ${coursePaperName} (Unrecognized Category)`;
+
+    const CATEGORY_TEMPLATES: Record<string, { questions: string[], options: string[][], explanations: string[] }> = {
+      Biology: {
+        questions: [
+          "Basics: Identify the primary structural components of {topic} at the cellular level.",
+          "Concepts: Discuss the homeostatic mechanisms that regulate {topic} within a multicellular system.",
+          "Applications: Evaluate how {topic} biotechnology is applied in contemporary pharmacotherapy.",
+          "Problem Solving: Predict the physiological consequences of a 50% reduction in {topic} efficiency.",
+          "Real World: Analyze the impact of environmental pollutants on {topic} functionality in urban biomes.",
+          "Theoretical: Critically analyze the evolutionary divergence of {topic} across phylogenetic lineages.",
+          "Systems: Synthesize the relationship between {topic} and the systemic metabolic rate.",
+          "Genetics: Determine the repercussion of epigenetic silencing on {topic} expression."
+        ],
+        options: [
+          ["Mitochondrial sequestration", "Nuclear translocation", "Ribosomal ubiquitination", "Golgi apparatus secretion", "Cytoplasmic streaming", "Vacuolar autophagy"],
+          ["Aerobic glycolysis", "Anaerobic fermentation", "Oxidative phosphorylation", "Photolytic water splitting", "Substrate-level phosphorylation", "Chemiosmotic coupling"],
+          ["Enzymatic catalysis", "Hormonal signal transduction", "Structural protein synthesis", "Lipid membrane fluidization", "Carbohydrate catabolism", "Nucleic acid hybridization"],
+          ["Trophic level optimization", "Competitive niche exclusion", "Symbiotic mutualism", "Ecological succession", "Biogeochemical cycling", "Population density regulation"]
+        ],
+        explanations: [
+          "This represents the core metabolic adaptation necessary for homeostatic maintenance in the given biological context.",
+          "The cellular mechanism described directly moderates the efficiency of localized physiological responses.",
+          "Biochemical pathways are optimized to ensure minimal energy expenditure while maximizing systemic output."
+        ]
+      },
+      Physics: {
+        options: [
+          ["Gravitational field strength", "Electromagnetic induction", "Strong nuclear coupling", "Weak interaction theory", "Centripetal acceleration", "Angular momentum conservation"],
+          ["Kinetic energy distribution", "Elastic potential energy", "Internal thermal energy", "Rotational inertia", "Linear momentum vector", "Gravitational potential well"],
+          ["Wavefront interference", "Diffraction pattern analysis", "Photoelectric emission", "Compton scattering effect", "Quantum tunnel probability", "Heisenberg uncertainty limit"],
+          ["Thermal conductivity", "Convective heat transfer", "Radiative flux density", "Specific heat capacity", "Latent heat of fusion", "Thermal expansion coefficient"]
+        ],
+        explanations: [
+          "The fundamental principles of physics mandate this behavioral pattern within a closed systemic environment.",
+          "Mathematical derivation from first principles confirms this relationship between energy and matter states.",
+          "Experimental validation consistently highlights this quantitative variance across multiple reference frames."
+        ],
+        questions: [
+          "Basics: Define the fundamental properties of {topic} in a Newtonian reference frame.",
+          "Concepts: Explain the wave-particle duality and diffraction patterns observed in {topic}.",
+          "Applications: Evaluate the role of {topic} in the development of semiconductor technology.",
+          "Problem Solving: Calculate the net force required to stabilize {topic} in a non-inertial system.",
+          "Real World: Assess the engineering challenges of containing {topic} in high-pressure environments.",
+          "Theoretical: Synthesize the unified field theory implications for {topic} in higher dimensions.",
+          "Dynamics: Derive the terminal velocity of {topic} using fluid dynamics principles.",
+          "Energy: Analyze the thermodynamic efficiency of energy conversion in {topic} systems."
+        ]
+      },
+      Chemistry: {
+        questions: [
+          "Determine the electronegativity variance in the covalent bonding of {topic}.",
+          "Predict the stoichiometric yield of {topic} in a complex redox reaction.",
+          "Analyze the enthalpy change and activation energy threshold for {topic} decomposition.",
+          "Calculate the pKa value and titration curve characteristics of {topic}.",
+          "Identify the organometallic catalyst required to optimize the {topic} synthesis.",
+          "Describe the hybridisation states of the carbon atoms in the {topic} structure.",
+          "Evaluate the lattice energy and crystalline stability of {topic} isotopes.",
+          "Discuss the role of ligand field theory in explaining the color of {topic} complexes."
+        ],
+        options: [
+          ["Covalent network lattice", "Ionic crystalline structure", "Metallic lattice bonding", "Hydrogen bridge interaction", "London dispersion forces", "Induced dipole-dipole"],
+          ["Arrhenius acid dissociation", "Brønsted-Lowry protonation", "Lewis acid electron-pair", "Amphiprotic behavior", "Buffer solution capacity", "Indicators of pH variance"],
+          ["Stoichiometric ratio", "Molar concentration", "Average isotopic mass", "Macromolecular chain", "Monomeric structural unit", "Allotropic modification"],
+          ["Isothermal expansion", "Adiabatic compression", "Exothermic enthalpy change", "Endothermic heat absorption", "Gibbs free energy delta", "Entropy maximization"]
+        ],
+        explanations: [
+          "Molecular geometry and electronegativity differences dictate the polarity and reactivity of the resulting complex.",
+          "Thermodynamic stability is achieved through the minimization of potential energy within the crystalline lattice.",
+          "Kinetic analysis reveal that activation energy thresholds are the primary rate-limiting factors in this reaction."
+        ]
+      },
+      History: {
+        questions: [
+          "Critique the historiographical interpretations of {topic} during the Enlightenment.",
+          "Evaluate the geopolitical repercussions of {topic} on the balance of power in Europe.",
+          "Synthesize the sociopolitical causes leading to the escalation of {topic}.",
+          "Analyze the shift in subaltern perspectives regarding the {topic} revolution.",
+          "Deconstruct the diplomatic nuances of the treaty that concluded the {topic} era.",
+          "Assess the long-term demographic shifts resulting from the {topic} diaspora.",
+          "Identify the primary archival evidence that challenges the narrative of {topic}.",
+          "Discuss the manifestation of national identity through the lens of {topic}."
+        ],
+        options: [
+          ["Renaissance Humanism", "Baroque Absolutism", "Industrial Capitalism", "Cold War Brinkmanship", "Age of Enlightenment", "Feudal Decentralization"],
+          ["National Sovereignty", "Imperial Colonialism", "Hegemonic Power", "Democratic Populism", "Monarchical Autocracy", "Republican Ideology"],
+          ["Diplomatic Treaty", "Strategic Alliance", "Military Armistice", "Political Campaign", "Popular Rebellion", "Foreign Invasion"],
+          ["Primary Document", "Historical Archive", "Material Artifact", "Oral Chronicle", "Cultural Legend", "Foundational Myth"]
+        ],
+        explanations: [
+          "The confluence of economic pressure and shifting social paradigms was the primary catalyst for this historical transition.",
+          "Archival analysis reveals that diplomatic negotiations were heavily influenced by regional power dynamics.",
+          "Long-term outcomes were dictated by the intersection of national identity and strategic resource management."
+        ]
+      },
+      Programming: {
+        questions: [
+          "Basics: Elaborate on the core syntax and data types required to implement {topic}.",
+          "Concepts: Discuss the architectural trade-offs of {topic} in distributed systems.",
+          "Applications: Implement {topic} to optimize asynchronous data processing in web apps.",
+          "Problem Solving: Evaluate the asymptotic complexity of {topic} in worst-case scenarios.",
+          "Real World: Analyze the security vulnerabilities and mitigation strategies for {topic}.",
+          "Logic: Deconstruct the multi-threaded execution flow of {topic} to avoid deadlocks.",
+          "Patterns: Compare {topic} with alternative design patterns for scalable software.",
+          "Lifecycle: Describe the memory footprint and garbage collection behavior for {topic}."
+        ],
+        options: [
+          ["Linear complexity O(n)", "Logarithmic O(log n)", "Quadratic O(n^2)", "Constant O(1)", "Quasilinear O(n log n)", "Exponential O(2^n)"],
+          ["Static Array", "Key-Value Pair", "Pure Function", "Primitive Variable", "Boolean Logic", "Template String"],
+          ["Unit Debugging", "Modular Refactoring", "Lazy Initialization", "CI/CD Deployment", "Regression Testing", "Code Optimization"],
+          ["Lexical Syntax", "Runtime Exception", "Business Logic", "Static Compilation", "Dynamic Linker", "Binary Loader"]
+        ],
+        explanations: [
+          "Algorithmic efficiency is optimized here to minimize resource overhead during large-scale data processing.",
+          "The structural pattern implemented ensures maximum modularity and ease of maintenance in distributed environments.",
+          "Security protocols require this specific implementation to prevent potential unauthorized access and injection."
+        ]
+      },
+      Math: {
+        questions: [
+          "Solve the non-homogeneous differential equation in the context of {topic}.",
+          "Apply the Fundamental Theorem of Calculus to evaluate the definite integral of {topic}.",
+          "Derive the Taylor series expansion for the function representing {topic}.",
+          "Analyze the topological properties and manifold structure of {topic}.",
+          "Calculate the Bayesian probability density function for the {topic} distribution.",
+          "Evaluate the convergence criteria for the infinite series related to {topic}.",
+          "Determine the singular value decomposition (SVD) for the {topic} matrix.",
+          "Discuss the group theory applications in the symmetry of {topic} structures."
+        ],
+        options: [
+          ["Quadratic equation", "Linear transformation", "Polynomial regression", "Exponential decay", "Logarithmic growth", "Trigonometric identity"],
+          ["Composite Integer", "Rational coefficient", "Irrational number", "Complex manifold", "Real-valued function", "Natural logarithm"],
+          ["Riemann Sum", "Dot Product", "Vector Difference", "Newtonian Quotient", "Remainder theorem", "Factorial growth"],
+          ["Acute Angle", "Vector Slope", "Curvature Radius", "Matrix Diameter", "Circular Chord", "Geometric Tangent"]
+        ],
+        explanations: [
+          "The application of advanced calculus principles allows for the precise derivation of the system's behavioral model.",
+          "Statistical convergence is guaranteed by the Law of Large Numbers within this theoretical framework.",
+          "Topological invariants provide a robust classification of the system's geometric properties."
+        ]
+      },
+      General: {
+        questions: [
+          "Critically synthesize the overarching theoretical framework governing the use of {topic}.",
+          "Identify the multifaceted variables that modulate the long-term trajectory of {topic}.",
+          "Establish the empirical correlation between {topic} and industry-standard best practices.",
+          "Evaluate the systemic impact of {topic} across diverse academic and professional disciplines.",
+          "Analyze the chronological progression of {topic} research from inception to present-day utility.",
+          "Determine the primary methodological approach used to validate the efficacy of {topic}.",
+          "Assess the contemporary paradigm shifts that are currently reshaping the application of {topic}.",
+          "Summarize the ethical considerations and core values intrinsic to the development of {topic}."
+        ],
+        options: [
+          ["Conceptual Framework", "Theoretical Paradigm", "Analytical Model", "Internal Metric", "External Variable", "Neutral Axiom"],
+          ["Natural Resource", "Human Capital", "Intellectual Labor", "Knowledge Economy", "Infrastructure Asset", "Emerging Technology"],
+          ["Public Policy", "Regulatory Mandate", "Technical Standard", "Operational Guideline", "Methodological Framework", "Security Protocol"],
+          ["Micro-trend", "Economic Cycle", "Statistical Pattern", "Structural Shift", "Project Phase", "Lifecycle Stage"]
+        ],
+        explanations: [
+          "Comprehensive analysis highlights the intersection of theoretical models and practical industry requirements.",
+          "Systemic factors contribute to the evolution of this field within the broader academic discourse.",
+          "Standardization of methodologies ensures consistency and reliability across diverse professional sectors."
+        ]
+      }
+    };
+
+    // Determine Category with refined keyword matching
+    let category = "General";
+    const lowerInput = lowerCaseInput;
+
+    // Programming/Tech
+    if (lowerInput.match(/react|hook|coding|programming|java|python|javascript|typescript|c\+\+|html|css|web|api|backend|frontend/)) {
+      category = "Programming";
+    }
+    // Biology
+    else if (lowerInput.match(/biology|bio|heart|cell|organ|evolution|plant|animal|genetics|dna|body/)) {
+      category = "Biology";
+    }
+    // Physics
+    else if (lowerInput.match(/physics|phys|motion|gravity|energy|relativity|quantum|matter|force|atom/)) {
+      category = "Physics";
+    }
+    // Chemistry
+    else if (lowerInput.match(/chemistry|chem|reaction|periodic|acid|base|molecular|bond|atom/)) {
+      category = "Chemistry";
+    }
+    // Math
+    else if (lowerInput.match(/math|algebra|geometry|calculus|statistics|trig|number|logic/)) {
+      category = "Math";
+    }
+    // History
+    else if (lowerInput.match(/history|era|war|revolution|ancient|medieval|modern|century|civilization/)) {
+      category = "History";
+    }
+
+    const templates = CATEGORY_TEMPLATES[category as keyof typeof CATEGORY_TEMPLATES] || CATEGORY_TEMPLATES.General;
+
     const generated: Question[] = [];
-    const baseMarks = 1;
-    const baseTimeLimit = 1;
+    const baseMarks = marksPerQuestion;
+    const baseTimeLimit = timePerQuestionSeconds / 60;
+    const usedQuestions = new Set<string>();
 
-    for (let i = 0; i < numQuestions; i++) {
-      const questionId = `ai-q-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 4)}`;
-      let questionText = '';
-      let options: string[] = [];
-      let correctAnswer = '';
+    let attempts = 0;
+    const maxGlobalAttempts = numQuestions * 5; // Allow for some retries
 
-      let baseOptions: string[] = [];
-      switch (difficulty) {
-        case 'Easy':
-          questionText = `What is the capital of ${coursePaperName.split(' ')[0] || 'France'}?`;
-          baseOptions = ['Paris', 'London', 'Berlin', 'Rome', 'Madrid', 'Tokyo'];
-          correctAnswer = 'Paris';
-          break;
-        case 'Medium':
-          questionText = `In ${coursePaperName}, which concept describes the interaction between supply and demand?`;
-          baseOptions = ['Equilibrium', 'Elasticity', 'Utility', 'Scarcity', 'Inflation', 'Deflation'];
-          correctAnswer = 'Equilibrium';
-          break;
-        case 'Hard':
-          questionText = `Explain the implications of Heisenberg's Uncertainty Principle in the context of ${coursePaperName}.`;
-          baseOptions = [
-            "It states that one cannot simultaneously know the exact position and momentum of a particle.",
-            "It describes the behavior of particles at relativistic speeds.",
-            "It quantifies the energy levels of electrons in an atom.",
-            "It relates to the wave-particle duality of light.",
-            "It is a fundamental principle of classical mechanics.",
-            "It applies only to macroscopic objects."
-          ];
-          correctAnswer = "It states that one cannot simultaneously know the exact position and momentum of a particle.";
-          break;
-        default:
-          questionText = `[${difficulty}] According to "${coursePaperName}", what is the key concept related to topic ${i + 1}?`;
-          baseOptions = [`Option A for ${i + 1}`, `Option B for ${i + 1}`, `Option C for ${i + 1}`, `Option D for ${i + 1}`, `Option E for ${i + 1}`, `Option F for ${i + 1}`];
-          correctAnswer = `Option A for ${i + 1}`;
+    while (generated.length < numQuestions && attempts < maxGlobalAttempts) {
+      attempts++;
+      const questionId = `ai-q-${Date.now()}-${generated.length}-${Math.random().toString(36).substr(2, 4)}`;
+
+      // Select templates
+      const questionTemplate = templates.questions[Math.floor(Math.random() * templates.questions.length)];
+      const baseOptionsPool = templates.options[Math.floor(Math.random() * templates.options.length)];
+      const explanationTemplate = templates.explanations[Math.floor(Math.random() * templates.explanations.length)];
+
+      const rawQuestionText = questionTemplate.replace('{topic}', effectiveTopic);
+
+      // Rule: No duplicate questions
+      if (usedQuestions.has(rawQuestionText)) continue;
+
+      // Select correct answer and distractors
+      const currentCorrectAnswer = baseOptionsPool[Math.floor(Math.random() * baseOptionsPool.length)];
+      const distractors = baseOptionsPool.filter(opt => opt !== currentCorrectAnswer);
+
+      // Shuffle and pick distractors
+      const selectedDistractors = distractors.sort(() => 0.5 - Math.random()).slice(0, numOptions - 1);
+
+      // Rule: Options are not repeated
+      if (new Set([currentCorrectAnswer, ...selectedDistractors]).size !== numOptions) continue;
+
+      const finalOptions = [currentCorrectAnswer, ...selectedDistractors].sort(() => 0.5 - Math.random());
+      const correctIndex = finalOptions.indexOf(currentCorrectAnswer);
+
+      // Simulate the structured AI response format (Now matches the new array-based schema)
+      const aiResponse: AIQuestionResponse = {
+        question: difficulty === 'Hard' ? "Advanced: " + rawQuestionText : difficulty === 'Easy' ? "Fundamental: " + rawQuestionText : rawQuestionText,
+        options: finalOptions,
+        correctIndex: correctIndex,
+        explanation: explanationTemplate // Use the template as a placeholder for the mock
+      };
+
+      // Use the service to validate the response format and content
+      const { valid } = aiService.validateQuestions([aiResponse], effectiveTopic);
+
+      if (valid.length === 0) {
+        console.warn("AI Question failed verification, retrying...", aiResponse);
+        continue;
       }
 
-      const shuffledBaseOptions = baseOptions.filter(opt => opt !== correctAnswer);
-      const finalOptions = [correctAnswer, ...shuffledBaseOptions.sort(() => 0.5 - Math.random()).slice(0, numOptions - 1)].sort(() => 0.5 - Math.random());
+      // Use the service to map it back to Question interface
+      // Note: Passing marks and timeLimit per updated service signature
+      const mapped = aiService.mapResponseToQuestions([aiResponse], 'ai-generated', baseMarks, timePerQuestionSeconds)[0];
 
-      while (finalOptions.length < numOptions) {
-        finalOptions.push(`Generic Option ${finalOptions.length + 1}`);
-      }
-      options = finalOptions.slice(0, numOptions);
-
-      if (!options.includes(correctAnswer)) {
-        correctAnswer = options[0];
-      }
-
-      generated.push({
-        id: questionId,
-        quizId: 'ai-generated',
-        questionText: questionText.replace(coursePaperName.split(' ')[0] || 'France', coursePaperName),
-        options,
-        correctAnswer,
-        marks: baseMarks,
-        timeLimitMinutes: baseTimeLimit,
-      });
+      generated.push(mapped);
+      usedQuestions.add(rawQuestionText);
     }
     return generated;
   };
@@ -413,6 +694,8 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
         isQuizzesLoading,
         isQuestionsLoading: false,
         availableCourses,
+        hasNewQuizzes,
+        markQuizzesAsSeen,
         addQuestion,
         addQuiz,
         addCourse, // Restored

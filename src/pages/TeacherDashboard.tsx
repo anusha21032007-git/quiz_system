@@ -2,11 +2,10 @@
 
 import React from 'react';
 import { useQuiz } from '@/context/QuizContext';
-import QuestionCreator from '@/components/teacher/QuestionCreator';
-import QuizCreator from '@/components/teacher/QuizCreator';
-import AvailableQuizzesList from '@/components/teacher/AvailableQuizzesList';
+import GenerateQuizLanding from '@/components/teacher/GenerateQuizLanding';
 import InterviewMode from '@/components/teacher/InterviewMode';
 import UsersList from '@/components/teacher/UsersList';
+import HistoryList from '@/components/teacher/HistoryList';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import BackButton from '@/components/ui/BackButton';
@@ -21,8 +20,7 @@ const TeacherDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Manage active view via URL search params for history support
-  const activeView = searchParams.get('view') || 'create-question';
-  const setActiveView = (view: string) => setSearchParams({ view });
+  const activeView = searchParams.get('view') || 'create-quiz';
 
   // PAGE RESTRICTED BACK LOGIC:
   // When 'Back' is clicked, we want to go back in session history
@@ -41,20 +39,14 @@ const TeacherDashboard = () => {
 
   const renderMainContent = () => (
     <>
-      <div className={cn(activeView === 'create-question' ? 'block' : 'hidden')}>
-        <QuestionCreator />
-      </div>
       <div className={cn(activeView === 'create-quiz' ? 'block' : 'hidden')}>
-        <QuizCreator />
-      </div>
-      <div className={cn(activeView === 'available-quizzes' ? 'block' : 'hidden')}>
-        <AvailableQuizzesList quizzes={quizzes} />
-      </div>
-      <div className={cn(activeView === 'competitive-mode' || activeView === 'interview-mode' ? 'block' : 'hidden')}>
-        <InterviewMode />
+        <GenerateQuizLanding />
       </div>
       <div className={cn(activeView === 'users' ? 'block' : 'hidden')}>
         <UsersList />
+      </div>
+      <div className={cn(activeView === 'history' ? 'block' : 'hidden')}>
+        <HistoryList />
       </div>
     </>
   );
@@ -63,7 +55,7 @@ const TeacherDashboard = () => {
     <div className="min-h-screen flex flex-col bg-white">
       <header className="flex items-center justify-between p-4 border-b-2 border-gray-100 bg-white lg:hidden">
         <div className="flex items-center gap-2">
-          <TeacherSidebar activeView={activeView} setActiveView={setActiveView} isMobile={isMobile} />
+          <TeacherSidebar activeView={activeView} isMobile={isMobile} />
           <BackButton onClick={handleBack} />
         </div>
         <h1 className="text-xl font-bold text-black">Teacher Dashboard</h1>
@@ -73,7 +65,7 @@ const TeacherDashboard = () => {
         {!isMobile && (
           <ResizablePanelGroup direction="horizontal" className="min-h-screen max-w-full">
             <ResizablePanel defaultSize={20} minSize={15} maxSize={25} className="border-r-0">
-              <TeacherSidebar activeView={activeView} setActiveView={setActiveView} isMobile={isMobile} />
+              <TeacherSidebar activeView={activeView} isMobile={isMobile} />
             </ResizablePanel>
             <ResizableHandle withHandle className="bg-gray-200 w-[2px]" />
             <ResizablePanel defaultSize={80}>

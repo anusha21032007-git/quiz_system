@@ -8,7 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/componen
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle, XCircle, Info, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, Info, Loader2, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import QuizHeader from '@/components/quiz/QuizHeader';
@@ -33,7 +33,7 @@ const QuizPage = () => {
   const location = useLocation();
   const { studentName } = (location.state || {}) as { studentName?: string };
 
-  const { getQuizById, submitQuizAttempt, getQuestionsForQuiz } = useQuiz();
+  const { getQuizById, submitQuizAttempt, getQuestionsForQuiz, quizAttempts } = useQuiz();
   const quiz = quizId ? getQuizById(quizId) : undefined;
 
   const [questions, setQuestions] = useState<LocalQuestionType[]>([]);
@@ -45,17 +45,29 @@ const QuizPage = () => {
       if (!quizId) return;
       setIsQuestionsLoading(true);
       try {
-        const q = await getQuestionsForQuiz(quizId);
-        setQuestions(q);
+        const allQuestions = await getQuestionsForQuiz(quizId);
+
+        // --- RANDOM SHUFFLING LOGIC ---
+        // The quiz might have a large pool. We need to select `quiz.totalQuestions` items randomly.
+        const requiredCount = quiz?.totalQuestions || allQuestions.length;
+
+        // Shuffle the full pool
+        const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
+
+        // Select the subset (ensure we don't try to slice more than we have)
+        const selectedQuestions = shuffled.slice(0, Math.min(requiredCount, allQuestions.length));
+
+        setQuestions(selectedQuestions);
       } catch (error) {
         console.error("Failed to load questions:", error);
         toast.error("Failed to load quiz questions.");
+        setQuestions([]); // Ensure state is reset on error
       } finally {
         setIsQuestionsLoading(false);
       }
     };
     fetchQuestions();
-  }, [quizId, getQuestionsForQuiz]);
+  }, [quizId, getQuestionsForQuiz, quiz?.totalQuestions]); // Added quiz?.totalQuestions dependency
 
   const isMobile = useIsMobile();
 
@@ -195,13 +207,17 @@ const QuizPage = () => {
     }
 
     const totalScore = finalAnswers.reduce((sum, ans) => sum + ans.marksObtained, 0);
+    const correctAnswersCount = finalAnswers.filter(ans => ans.isCorrect).length;
     const timeTaken = initialTime - timeLeft;
+    const passed = correctAnswersCount >= (quiz.requiredCorrectAnswers || 0);
 
     submitQuizAttempt({
       quizId: quiz.id,
       studentName: quizStudentName,
       score: totalScore,
       totalQuestions: questions.length,
+      correctAnswersCount,
+      passed,
       answers: finalAnswers,
       timeTakenSeconds: timeTaken,
     });
@@ -279,6 +295,17 @@ const QuizPage = () => {
     const totalCorrectAnswers = answers.filter(ans => ans.isCorrect).length;
     const totalWrongAnswers = answers.filter(ans => !ans.isCorrect && ans.selectedAnswer !== null).length;
 
+    // Rank calculation
+    const attemptsForQuiz = quizAttempts.filter(a => a.quizId === quiz.id);
+    const sortedScores = [...attemptsForQuiz, { score: finalScore }].sort((a, b) => b.score - a.score);
+    const rank = sortedScores.findIndex(s => s.score === finalScore) + 1;
+    const totalParticipants = attemptsForQuiz.length + 1;
+
+    // Top performers for leaderboard
+    const topPerformers = [...attemptsForQuiz, { studentName: quizStudentName, score: finalScore }]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+
 
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-blue-100 p-8">
@@ -288,7 +315,20 @@ const QuizPage = () => {
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-2xl text-gray-800">Congratulations, <span className="font-semibold">{quizStudentName}</span>!</p>
-            <p className="text-5xl font-extrabold text-blue-600">Your Score: {finalScore.toFixed(2)} / {totalPossibleMarks}</p>
+
+            <div className="py-6 px-4 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200">
+              <p className="text-lg text-gray-600 font-medium">YOUR FINAL RESULT</p>
+              <div className={cn(
+                "text-6xl font-black mb-2",
+                totalCorrectAnswers >= (quiz.requiredCorrectAnswers || 0) ? "text-green-600" : "text-red-600"
+              )}>
+                {totalCorrectAnswers >= (quiz.requiredCorrectAnswers || 0) ? "PASSED" : "FAILED"}
+              </div>
+              <p className="text-3xl font-bold text-blue-600 mb-1">Score: {finalScore.toFixed(2)} / {totalPossibleMarks}</p>
+              <p className="text-sm text-gray-500">
+                Criteria: {quiz.requiredCorrectAnswers} / {questions.length} correct answers required to pass.
+              </p>
+            </div>
             <div className="grid grid-cols-2 gap-4 text-lg">
               <div className="flex flex-col items-center">
                 <CheckCircle className="h-8 w-8 text-green-500 mb-1" />
@@ -300,6 +340,49 @@ const QuizPage = () => {
               </div>
             </div>
             <p className="text-xl text-gray-700">Time Taken: <span className="font-semibold">{formatTime(timeTaken)}</span></p>
+
+            <div className="flex justify-center items-center gap-6 py-4">
+              <div className="text-center">
+                <p className="text-sm text-gray-500 uppercase tracking-wider">Current Rank</p>
+                <p className="text-4xl font-bold text-indigo-600">#{rank}</p>
+              </div>
+              <div className="h-10 w-px bg-gray-200" />
+              <div className="text-center">
+                <p className="text-sm text-gray-500 uppercase tracking-wider">Participants</p>
+                <p className="text-4xl font-bold text-gray-700">{totalParticipants}</p>
+              </div>
+            </div>
+
+            {/* Mini Leaderboard Section */}
+            <div className="py-4 px-6 bg-indigo-50/50 rounded-xl border border-indigo-100">
+              <h3 className="text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
+                <Trophy className="h-4 w-4" /> TOP PERFORMERS
+              </h3>
+              <div className="space-y-2">
+                {topPerformers.map((perf, idx) => (
+                  <div key={idx} className="flex justify-between items-center text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        "w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold",
+                        idx === 0 ? "bg-yellow-400 text-yellow-950" :
+                          idx === 1 ? "bg-gray-300 text-gray-900" :
+                            "bg-orange-300 text-orange-950"
+                      )}>
+                        {idx + 1}
+                      </span>
+                      <span className={cn(
+                        "font-medium",
+                        perf.studentName === quizStudentName && "text-indigo-600 font-bold"
+                      )}>
+                        {perf.studentName} {perf.studentName === quizStudentName && "(You)"}
+                      </span>
+                    </div>
+                    <span className="font-mono font-bold text-indigo-700">{perf.score.toFixed(1)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="mt-6">
               <h3 className="text-xl font-semibold mb-3">Review Your Answers:</h3>
               <div className="space-y-6 max-h-80 overflow-y-auto p-4 border rounded-md bg-gray-50">

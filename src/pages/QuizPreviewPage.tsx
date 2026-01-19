@@ -11,6 +11,7 @@ import { Info } from 'lucide-react';
 import { toast } from 'sonner';
 import QuizHeader from '@/components/quiz/QuizHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
+import BackButton from '@/components/ui/BackButton';
 
 // Define types for the quiz data loaded from session storage
 interface PreviewQuestion {
@@ -144,6 +145,9 @@ const QuizPreviewPage = () => {
         timeLeft={timeLeft}
         isMobile={isMobile}
       />
+      <div className="absolute top-20 left-4 z-50">
+        <BackButton className="bg-white border rounded-lg px-4 py-2 shadow-sm hover:shadow-md transition-all" />
+      </div>
       <main className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-2xl shadow-xl">
           <CardHeader>

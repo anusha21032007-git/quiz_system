@@ -9,21 +9,17 @@ import { cn } from '@/lib/utils';
 
 interface TeacherSidebarProps {
   activeView: string;
-  setActiveView: (view: string) => void;
   isMobile: boolean;
 }
 
-const TeacherSidebar = ({ activeView, setActiveView, isMobile }: TeacherSidebarProps) => {
+const TeacherSidebar = ({ activeView, isMobile }: TeacherSidebarProps) => {
   // No longer using location directly as view is passed via props
 
   const navItems = [
-    { id: 'create-question', label: 'Create Question', icon: PlusCircle, path: '/teacher?view=create-question' },
     { id: 'create-quiz', label: 'Generate Quiz', icon: ListChecks, path: '/teacher?view=create-quiz' },
-    { id: 'available-quizzes', label: 'Available Quizzes', icon: Trophy, path: '/teacher?view=available-quizzes' },
-    { id: 'competitive-mode', label: 'Interview Mode', icon: Brain, path: '/teacher?view=competitive-mode' },
     { id: 'courses', label: 'Available Courses', icon: BookOpen, path: '/teacher/courses' },
     { id: 'users', label: 'Users', icon: Users, path: '/teacher?view=users' },
-    { id: 'history', label: 'History', icon: History, path: '/teacher/history' },
+    { id: 'history', label: 'History', icon: History, path: '/teacher?view=history' },
   ];
 
   const renderNav = () => (
@@ -32,9 +28,6 @@ const TeacherSidebar = ({ activeView, setActiveView, isMobile }: TeacherSidebarP
         <Link
           key={item.id}
           to={item.path}
-          onClick={() => {
-            if (setActiveView) setActiveView(item.id);
-          }}
           className="block w-full"
         >
           <Button

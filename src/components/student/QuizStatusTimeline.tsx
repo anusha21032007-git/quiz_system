@@ -11,22 +11,20 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useQuestionCount } from '@/integrations/supabase/quizzes';
 
-interface QuizTimelineItem extends Quiz {
-  status: 'Upcoming' | 'Live' | 'Expired' | 'Completed';
+interface QuizTimelineItem extends Omit<Quiz, 'status' | 'startTime' | 'endTime'> {
+  status: 'Upcoming' | 'Live' | 'Expired' | 'Completed' | string;
   statusColor: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning';
   isCompleted: boolean;
   startTime: Date;
   endTime: Date;
-  missedReason?: 'Time Over' | 'Not Attempted';
+  missedReason?: 'Time Over' | 'Not Attempted' | string;
   latestAttempt?: QuizAttempt;
 }
 
 interface QuizStatusTimelineProps {
   studentName: string;
+  quizzes?: Quiz[]; // Optional to maintain backward compatibility during incremental refactor or if accessed directly
 }
-
-// Mock Course Data (Must match the names used in StudentDashboardContent)
-
 
 // Utility function to combine date and time strings into a Date object
 const createDateTime = (dateStr: string, timeStr: string): Date => {
@@ -67,7 +65,27 @@ const getDifficultyBadge = (difficulty: 'Easy' | 'Medium' | 'Hard') => {
   );
 };
 
-const QuizItem = ({ quiz, studentName, handleStartQuiz }: { quiz: QuizTimelineItem, studentName: string, handleStartQuiz: (quiz: Quiz) => void }) => {
+interface QuizTimelineItem extends Omit<Quiz, 'status' | 'startTime' | 'endTime'> {
+  status: 'Upcoming' | 'Live' | 'Expired' | 'Completed' | string;
+  statusColor: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning';
+  isCompleted: boolean;
+  startTime: Date;
+  endTime: Date;
+  missedReason?: 'Time Over' | 'Not Attempted' | string;
+  latestAttempt?: QuizAttempt;
+}
+
+const QuizItem = ({ quiz, studentName, handleStartQuiz }: { quiz: QuizTimelineItem, studentName: string, handleStartQuiz: (quiz: any) => void }) => {
+  const { quizAttempts } = useQuiz();
+
+  const attemptsCount = useMemo(() => {
+    return quizAttempts.filter(a => a.quizId === quiz.id && a.studentName === studentName).length;
+  }, [quizAttempts, quiz.id, studentName]);
+
+  const maxAttempts = quiz.maxAttempts || 1; // Default to 1
+  const attemptsLeft = maxAttempts - attemptsCount;
+  const isMaxAttemptsReached = attemptsLeft <= 0;
+
   const getButton = () => {
     switch (quiz.status) {
       case 'Upcoming':
@@ -77,9 +95,17 @@ const QuizItem = ({ quiz, studentName, handleStartQuiz }: { quiz: QuizTimelineIt
           </Button>
         );
       case 'Live':
+        if (isMaxAttemptsReached) {
+          return (
+            <Button disabled variant="outline" className="w-full sm:w-auto text-orange-500 border-orange-200 bg-orange-50">
+              <AlertTriangle className="h-4 w-4 mr-2" /> Max Attempts Reached
+            </Button>
+          );
+        }
         return (
           <Button onClick={() => handleStartQuiz(quiz)} className="w-full sm:w-auto bg-green-600 hover:bg-green-700 animate-pulse">
             <ListChecks className="h-4 w-4 mr-2" /> Start Quiz
+            {maxAttempts > 1 && <span className="ml-1 text-xs opacity-80">({attemptsLeft} left)</span>}
           </Button>
         );
       case 'Expired':
@@ -123,15 +149,41 @@ const QuizItem = ({ quiz, studentName, handleStartQuiz }: { quiz: QuizTimelineIt
         label = quiz.missedReason ? `Missed (${quiz.missedReason})` : 'Expired';
         break;
       case 'Completed':
-        colorClasses = 'bg-purple-100 text-purple-800 border-purple-400';
-        Icon = CheckCircle;
+        // Differentiate Passed vs Failed
+        const attempt = quiz.latestAttempt;
+        const passMark = quiz.passPercentage || 40; // Default 40% if not set
+        const totalQuestions = quiz.totalQuestions || attempt?.totalQuestions || 1;
+
+        let isPassed = false;
+        if (attempt) {
+          // Calculate if passed if 'passed' property is missing or unreliable
+          const percentage = (attempt.score / totalQuestions) * 100;
+          isPassed = percentage >= passMark;
+        }
+
+        if (isPassed) {
+          colorClasses = 'bg-green-100 text-green-800 border-green-400';
+          Icon = CheckCircle;
+          label = 'PASSED';
+        } else {
+          colorClasses = 'bg-red-100 text-red-800 border-red-400';
+          Icon = XCircle;
+          label = 'FAILED';
+        }
         break;
     }
 
     return (
-      <Badge variant="outline" className={cn(baseClasses, colorClasses)}>
-        <Icon className="h-3 w-3 mr-1" /> {label}
-      </Badge>
+      <div className="flex gap-2">
+        <Badge variant="outline" className={cn(baseClasses, colorClasses)}>
+          <Icon className="h-3 w-3 mr-1" /> {label}
+        </Badge>
+        {quiz.status === 'Live' && (
+          <Badge variant="outline" className={cn(baseClasses, "bg-indigo-50 text-indigo-700 border-indigo-200")}>
+            Attempts: {attemptsCount}/{maxAttempts}
+          </Badge>
+        )}
+      </div>
     );
   };
 
@@ -175,17 +227,32 @@ const QuizItem = ({ quiz, studentName, handleStartQuiz }: { quiz: QuizTimelineIt
   );
 };
 
-const QuizStatusTimeline = ({ studentName }: QuizStatusTimelineProps) => {
-  const { quizzes, quizAttempts, isQuizzesLoading } = useQuiz();
+const QuizStatusTimeline = ({ studentName, quizzes: propQuizzes }: QuizStatusTimelineProps) => {
+  const { quizAttempts, isQuizzesLoading: contextLoading } = useQuiz();
+  // If quizzes are passed via props (from local storage), we don't need to wait for context loading
+  const quizzes = propQuizzes || [];
+  const isQuizzesLoading = propQuizzes ? false : contextLoading;
+
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = React.useState<'Live' | 'Upcoming' | 'Completed' | 'Expired'>('Live');
+  // Upcoming tab removed as quizzes should only appear at scheduled time
+  const [activeTab, setActiveTab] = React.useState<'Live' | 'Completed' | 'Expired'>('Live');
+
+  // Real-time update for scheduled quizzes
+  const [now, setNow] = React.useState(new Date());
+
+  React.useEffect(() => {
+    // Update 'now' every 10 seconds to check for start times
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
 
   const processedQuizzes = useMemo(() => {
     if (isQuizzesLoading) return [];
-    const now = new Date();
 
     return quizzes
-      .filter(q => !q.isInterview) // FILTER: Exclude interview sessions from standard timeline
+      .filter(q => !q.isInterview) // FILTER: Only show standard quizzes (ACTIVE or DELETED)
       .map((quiz) => {
         const startTime = createDateTime(quiz.scheduledDate, quiz.startTime);
         const endTime = createDateTime(quiz.scheduledDate, quiz.endTime);
@@ -203,12 +270,31 @@ const QuizStatusTimeline = ({ studentName }: QuizStatusTimelineProps) => {
         if (isCompleted) {
           status = 'Completed';
           statusColor = 'secondary';
+        } else if (quiz.status === 'DELETED') {
+          // DELETED quizzes are treated as Expired/Missed if not taken
+          status = 'Expired';
+          statusColor = 'destructive';
+          missedReason = 'Cancelled by Teacher';
         } else if (now < startTime) {
           status = 'Upcoming';
           statusColor = 'outline';
         } else if (now >= startTime && now <= endTime) {
-          status = 'Live';
-          statusColor = 'success';
+          // Live check: Ensure NOT completed and attempts left
+          // (isCompleted is already checked above, but good to be explicit in logic flow)
+          const attemptsCount = quizAttempts.filter(a => a.quizId === quiz.id && a.studentName.trim().toLowerCase() === studentName.trim().toLowerCase()).length;
+          const maxAttempts = quiz.maxAttempts || 1;
+
+          if (attemptsCount >= maxAttempts) {
+            // If max attempts reached, treating as Completed/Done for visibility? 
+            // User asked: "if completed... should go from there (live)"
+            // So we push to Completed? Or separate? 
+            // Let's treat it as Completed for the timeline grouping to hide from Live.
+            status = 'Completed';
+            statusColor = 'secondary';
+          } else {
+            status = 'Live';
+            statusColor = 'success';
+          }
         } else {
           status = 'Expired';
           statusColor = 'destructive';
@@ -225,52 +311,59 @@ const QuizStatusTimeline = ({ studentName }: QuizStatusTimelineProps) => {
           missedReason,
           latestAttempt,
         } as QuizTimelineItem;
-      });
-  }, [quizzes, quizAttempts, studentName, isQuizzesLoading]);
+      })
+      .filter(q => q.status !== 'Upcoming'); // STRICT VISIBILITY: Hide upcoming quizzes
+  }, [quizzes, quizAttempts, studentName, isQuizzesLoading, now]);
 
   const groupedQuizzes = useMemo(() => {
     const groups: Record<string, QuizTimelineItem[]> = {
       Live: [],
-      Upcoming: [],
       Completed: [],
       Expired: [],
     };
 
     processedQuizzes.forEach(quiz => {
-      groups[quiz.status].push(quiz);
+      if (groups[quiz.status]) {
+        groups[quiz.status].push(quiz);
+      }
     });
 
-    groups.Upcoming.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
     groups.Completed.sort((a, b) => b.endTime.getTime() - a.endTime.getTime());
     groups.Expired.sort((a, b) => b.endTime.getTime() - a.endTime.getTime());
 
     return groups;
   }, [processedQuizzes]);
 
-  // Set initial tab if there are no live quizzes but there are upcoming ones
+  // Set initial tab logic updated (no upcoming)
   React.useEffect(() => {
-    if (!isQuizzesLoading && groupedQuizzes.Live.length === 0 && groupedQuizzes.Upcoming.length > 0) {
-      // Only switch if we are default 'Live' and it's empty
-      setActiveTab((prev) => prev === 'Live' ? 'Upcoming' : prev);
-    }
+    // If on Live tab and it's empty, but we have completed/expired, staying on Live is fine (shows "No live quizzes")
+    // Unless we want to auto-switch? Standard behavior is usually default to Live.
   }, [isQuizzesLoading, groupedQuizzes]);
 
 
-  const handleStartQuiz = (quiz: Quiz) => {
+  const handleStartQuiz = (quiz: any) => {
     if (!studentName.trim()) {
       toast.error("Please ensure your name is entered in the Profile/Dashboard section before starting a quiz.");
       return;
     }
 
-    const now = new Date();
+    // Check Max Attempts
+    const attemptsCount = quizAttempts.filter(a => a.quizId === quiz.id && a.studentName === studentName).length;
+    const maxAttempts = quiz.maxAttempts || 1;
+    if (attemptsCount >= maxAttempts) {
+      toast.error(`You have reached the maximum number of attempts (${maxAttempts}) for this quiz.`);
+      return;
+    }
+
+    const currentNow = new Date();
     const start = createDateTime(quiz.scheduledDate, quiz.startTime);
     const end = createDateTime(quiz.scheduledDate, quiz.endTime);
 
-    if (now < start) {
+    if (currentNow < start) {
       toast.warning("This quiz is not live yet. Please wait for the scheduled start time.");
       return;
     }
-    if (now > end) {
+    if (currentNow > end) {
       toast.error("This quiz has expired and cannot be started.");
       return;
     }
@@ -291,22 +384,19 @@ const QuizStatusTimeline = ({ studentName }: QuizStatusTimelineProps) => {
 
   const renderContent = () => {
     const quizzes = groupedQuizzes[activeTab];
-    const isEmpty = quizzes.length === 0;
+    const isEmpty = quizzes?.length === 0 || !quizzes;
 
-    const emptyMessage = activeTab === 'Upcoming'
-      ? "No upcoming quizzes scheduled."
-      : activeTab === 'Live'
-        ? "No quizzes are currently live."
-        : activeTab === 'Completed'
-          ? "No completed quizzes yet."
-          : "No missed quizzes.";
+    const emptyMessage = activeTab === 'Live'
+      ? "No quizzes are currently live. Check back at your scheduled time."
+      : activeTab === 'Completed'
+        ? "No completed quizzes yet."
+        : "No missed quizzes.";
 
     if (isEmpty) {
       return (
         <Card className="p-12 shadow-sm border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center text-center">
           <div className="h-12 w-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
             {activeTab === 'Live' && <Clock className="h-6 w-6 text-gray-400" />}
-            {activeTab === 'Upcoming' && <Calendar className="h-6 w-6 text-gray-400" />}
             {activeTab === 'Completed' && <CheckCircle className="h-6 w-6 text-gray-400" />}
             {activeTab === 'Expired' && <XCircle className="h-6 w-6 text-gray-400" />}
           </div>
@@ -326,7 +416,7 @@ const QuizStatusTimeline = ({ studentName }: QuizStatusTimelineProps) => {
 
   const TabButton = ({ id, label, icon: Icon, colorClass }: { id: typeof activeTab, label: string, icon: any, colorClass: string }) => {
     const isActive = activeTab === id;
-    const count = groupedQuizzes[id].length;
+    const count = groupedQuizzes[id]?.length || 0;
 
     return (
       <button
@@ -356,7 +446,7 @@ const QuizStatusTimeline = ({ studentName }: QuizStatusTimelineProps) => {
     <div className="space-y-6">
       <div className="flex flex-wrap gap-2 pb-2">
         <TabButton id="Live" label="Live Quizzes" icon={Clock} colorClass="bg-green-600" />
-        <TabButton id="Upcoming" label="Upcoming" icon={Calendar} colorClass="bg-blue-600" />
+        {/* Upcoming tab removed */}
         <TabButton id="Completed" label="Completed" icon={CheckCircle} colorClass="bg-purple-600" />
         <TabButton id="Expired" label="Missed" icon={XCircle} colorClass="bg-red-600" />
       </div>

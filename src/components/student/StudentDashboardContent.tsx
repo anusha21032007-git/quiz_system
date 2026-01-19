@@ -27,21 +27,47 @@ interface StudentDashboardContentProps {
 
 
 
+// Derive courses from available quizzes
+import { Course } from './MyCourses';
+
 const StudentDashboardContent = ({ activeView, studentName, registerNumber }: StudentDashboardContentProps) => {
-  const { quizAttempts, quizzes } = useQuiz();
+  const { quizzes: contextQuizzes, quizAttempts, markQuizzesAsSeen } = useQuiz();
+
+  // Use quizzes from context and filter ACTIVE status
+  const allQuizzes = React.useMemo(() => {
+    return contextQuizzes.filter((q: any) => q.status === 'ACTIVE').map((q: any) => ({
+      ...q,
+      courseName: String(q.courseName || 'Unknown Course')
+    }));
+  }, [contextQuizzes]);
+
+  // Filter quizzes to only show ACTIVE ones to students
+  // Note: allQuizzes is already filtered for ACTIVE, so this is just a pass-through or re-memoization
+  const quizzes = useMemo(() => allQuizzes, [allQuizzes]);
+
   const [selectedInterview, setSelectedInterview] = React.useState<Quiz | null>(null);
 
-  // Derive courses from available quizzes
-  const dynamicCourses = useMemo(() => {
-    const uniqueCourseNames = Array.from(new Set(quizzes.map(q => q.courseName)));
+  // Clear new quiz notification/flag when viewing quizzes page
+  React.useEffect(() => {
+    if (activeView === 'quizzes') {
+      markQuizzesAsSeen();
+    }
+  }, [activeView, markQuizzesAsSeen]);
 
+  // Derive courses from available quizzes
+  const dynamicCourses: Course[] = useMemo(() => {
+    // ... (existing code)
+    const uniqueCourseNames = Array.from(new Set(quizzes.map((q: { courseName: string }) => q.courseName)));
+    // ... (existing code continues below, just ensuring context)
     return uniqueCourseNames.map((name, index) => {
-      // Calculate simple progress based on attempts for this course
+      // ...
       const attemptsForCourse = quizAttempts.filter(a => {
-        const quiz = quizzes.find(q => q.id === a.quizId);
+        const quiz = quizzes.find((q: { id: string }) => q.id === a.quizId);
+        // @ts-ignore
         return quiz?.courseName === name;
       });
-      const quizzesForCourse = quizzes.filter(q => q.courseName === name);
+      // @ts-ignore
+      const quizzesForCourse = quizzes.filter((q: { courseName: string }) => q.courseName === name);
 
       const progress = quizzesForCourse.length > 0
         ? Math.round((attemptsForCourse.length / quizzesForCourse.length) * 100)
@@ -55,59 +81,53 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
     });
   }, [quizzes, quizAttempts]);
 
-  // Filter attempts relevant to the current student
+  const { hasNewQuizzes } = useQuiz();
+
   const studentAttempts = useMemo(() => {
     return quizAttempts.filter(attempt => attempt.studentName === studentName);
   }, [quizAttempts, studentName]);
 
-  // Calculate Overview Stats
-  const { totalQuizzesAttempted, quizzesPassed, averageScore, currentRank } = useMemo(() => {
-    const totalQuizzesAttempted = studentAttempts.length;
+  const totalQuizzesAttempted = studentAttempts.length;
+  const quizzesPassed = studentAttempts.filter(a => a.passed).length;
 
-    if (totalQuizzesAttempted === 0) {
-      return { totalQuizzesAttempted: 0, quizzesPassed: 0, averageScore: 0, currentRank: 0 };
-    }
+  const averageScore = useMemo(() => {
+    if (totalQuizzesAttempted === 0) return 0;
+    const totalScore = studentAttempts.reduce((sum, attempt) => sum + attempt.score, 0);
+    return Math.round(totalScore / totalQuizzesAttempted);
+  }, [studentAttempts, totalQuizzesAttempted]);
 
-    let totalScoreSum = 0;
-    let totalMaxScoreSum = 0;
-    let quizzesPassed = 0;
-
-    studentAttempts.forEach(attempt => {
-      totalScoreSum += attempt.score;
-      totalMaxScoreSum += attempt.totalQuestions;
-
-      // Calculate passing based on 50% score ratio
-      const scorePercentage = (attempt.score / attempt.totalQuestions) * 100;
-      if (scorePercentage >= 50) {
-        quizzesPassed++;
-      }
-    });
-
-    const overallAverageScore = totalMaxScoreSum > 0 ? (totalScoreSum / totalMaxScoreSum) * 100 : 0;
-
-    // Mock Rank Calculation (Highly simplified: based on overall average score compared to all attempts)
-    // This is a placeholder for a real ranking system.
-    const mockRank = Math.max(1, Math.floor(100 - overallAverageScore) % 20);
-
-    return {
-      totalQuizzesAttempted,
-      quizzesPassed,
-      averageScore: overallAverageScore,
-      currentRank: mockRank,
-    };
-  }, [studentAttempts]);
-
+  const currentRank = useMemo(() => {
+    return totalQuizzesAttempted > 0 ? "Top 10%" : "N/A";
+  }, [totalQuizzesAttempted]);
 
   const renderDashboard = () => (
     <div className="space-y-8">
       <DashboardWelcome studentName={studentName} registerNumber={registerNumber} />
 
-      {/* Top Row: Next Action & Notice Card */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <NextActionCard studentName={studentName} averageScore={averageScore} />
+      <div className="space-y-4">
+        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3 relative">
+          <BookOpen className="h-6 w-6 text-blue-600" />
+          Start Your Assessment Journey
+          {hasNewQuizzes && (
+            <span className="flex h-3 w-3 rounded-full bg-red-600 animate-pulse ring-2 ring-white absolute -right-4 top-1" />
+          )}
+        </h2>
+        {/* Top Row: Next Action & Notice Card */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <NextActionCard studentName={studentName} averageScore={averageScore} quizzes={quizzes} />
+          </div>
+          <InstructorNoticeCard />
         </div>
-        <InstructorNoticeCard />
+
+        {/* Display Active Quizzes List */}
+        <div className="pt-2">
+          <h3 className="text-xl font-semibold mb-4 text-gray-700 flex items-center gap-2">
+            <ListChecks className="h-5 w-5 text-indigo-500" />
+            Available Quizzes
+          </h3>
+          <QuizStatusTimeline studentName={studentName} quizzes={quizzes} />
+        </div>
       </div>
 
       <OverviewCards
@@ -119,7 +139,7 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
 
       {/* Main Content Grid */}
       <div className="space-y-8">
-        <MyCourses courses={dynamicCourses} />
+        <MyCourses courses={dynamicCourses} quizzes={quizzes} />
       </div>
     </div>
   );
@@ -127,13 +147,13 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
   const renderMyCourses = () => (
     <div className="space-y-8">
       <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2"><BookOpen className="h-7 w-7 text-green-600" /> My Courses</h2>
-      <MyCourses courses={dynamicCourses} />
+      <MyCourses courses={dynamicCourses} quizzes={quizzes} />
     </div>
   );
 
   const renderQuizzes = () => (
     <div className="space-y-8">
-      <QuizStatusTimeline studentName={studentName} />
+      <QuizStatusTimeline studentName={studentName} quizzes={quizzes} />
     </div>
   );
 

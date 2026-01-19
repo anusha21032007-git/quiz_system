@@ -6,6 +6,7 @@ import { History as HistoryIcon } from 'lucide-react';
 
 interface ActionEntry {
     questionSetId: string;
+    paperName?: string; // New field
     totalQuestions: number;
     action: 'Completed' | 'Deleted';
     timestamp: number;
@@ -42,6 +43,7 @@ const HistoryList = () => {
                                     <thead className="bg-gray-50 border-b sticky top-0 z-10">
                                         <tr>
                                             <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Question Set ID</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Paper Name</th>
                                             <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Total Questions</th>
                                             <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Action</th>
                                             <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date & Time</th>
@@ -53,13 +55,16 @@ const HistoryList = () => {
                                                 <td className="px-6 py-4 text-sm font-mono text-gray-900">
                                                     {entry.questionSetId.includes('_') ? entry.questionSetId.split('_')[1] : entry.questionSetId}
                                                 </td>
+                                                <td className="px-6 py-4 text-sm font-bold text-blue-600">
+                                                    {entry.paperName || 'N/A'}
+                                                </td>
                                                 <td className="px-6 py-4 text-sm font-bold text-gray-700">
                                                     {entry.totalQuestions || 'N/A'}
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <span className={`text-sm font-bold uppercase tracking-wide ${entry.action === 'Completed' ? 'text-green-600' : 'text-red-600'
                                                         }`}>
-                                                        {entry.action}
+                                                        {entry.action === 'Completed' ? 'Completed creation' : 'Deleted creation'}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">

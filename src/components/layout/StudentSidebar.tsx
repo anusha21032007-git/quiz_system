@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { PanelLeft, LayoutDashboard, BookOpen, ListChecks, Trophy, User, LogOut, BarChart, ArrowLeft, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'; // Import Avatar components
+import { useQuiz } from '@/context/QuizContext';
 // Removed import for ScheduledQuizAlert
 
 interface StudentSidebarProps {
@@ -18,6 +19,7 @@ interface StudentSidebarProps {
 }
 
 const StudentSidebar = ({ activeView, setActiveView, isMobile, studentName, registerNumber }: StudentSidebarProps) => {
+  const { hasNewQuizzes } = useQuiz(); // This now tracks the explicit notification flag
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'my-courses', label: 'My Courses', icon: BookOpen },
@@ -72,7 +74,10 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile, studentName, regi
             onClick={() => setActiveView(item.id)}
           >
             <item.icon className={cn("h-5 w-5", activeView === item.id ? "text-white" : "text-gray-500")} />
-            {item.label}
+            <span className="flex-grow text-left">{item.label}</span>
+            {item.id === 'quizzes' && hasNewQuizzes && (
+              <span className="flex h-2 w-2 rounded-full bg-red-600 animate-pulse ring-2 ring-white" />
+            )}
           </Button>
         ))}
       </div>

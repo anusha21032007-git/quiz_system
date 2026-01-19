@@ -200,11 +200,14 @@ const InterviewMode = () => {
             return;
         }
 
+        const quizId = `qz-interview-${Date.now()}`;
         const quizTitle = `INT: ${creationMode === 'pdf' ? selectedFile?.name : 'Manual Interview'} - ${new Date().toLocaleDateString()}`;
 
         const quizToAdd: Omit<Quiz, 'id' | 'status'> = {
+            quizId: quizId,
             title: quizTitle,
             courseName: 'Interview Selection',
+            questions: [], // Will be populated by addQuiz
             timeLimitMinutes: (setupTimePerQuestion * questionsToPublish.length) / 60,
             negativeMarking: setupNegativeMarks > 0,
             competitionMode: false,
@@ -213,11 +216,15 @@ const InterviewMode = () => {
             endTime: endTime,
             negativeMarksValue: setupNegativeMarks,
             difficulty: 'Medium',
+            passPercentage: 0, // Interview mode doesn't have pass/fail
+            totalQuestions: questionsToPublish.length,
+            requiredCorrectAnswers: 0, // Interview mode doesn't have pass/fail
+            createdAt: '', // Will be set by addQuiz
             isInterview: true, // Mark as interview
         };
 
         const questionsData: Omit<Question, 'id'>[] = questionsToPublish.map(q => ({
-            quizId: 'temp',
+            quizId: quizId,
             questionText: q.questionText,
             options: q.options || [],
             correctAnswer: q.correctAnswer || q.hints || 'No answer provided',

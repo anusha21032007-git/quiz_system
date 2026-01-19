@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'; // FIX: Import cn
 interface NextActionCardProps {
   studentName: string;
   averageScore: number;
+  quizzes: any[]; // Changed to accept quizzes prop
 }
 
 // Utility function to combine date and time strings into a Date object
@@ -18,12 +19,14 @@ const createDateTime = (dateStr: string, timeStr: string): Date => {
   return new Date(dateStr + 'T' + timeStr + ':00');
 };
 
-const NextActionCard = ({ studentName, averageScore }: NextActionCardProps) => {
-  const { quizzes: allQuizzes, quizAttempts } = useQuiz();
+const NextActionCard = ({ studentName, averageScore, quizzes: propQuizzes }: NextActionCardProps) => {
+  const { quizAttempts, hasNewQuizzes } = useQuiz();
   const now = new Date();
 
-  // Filter out interviews from the next action card
-  const quizzes = useMemo(() => allQuizzes.filter(q => !q.isInterview), [allQuizzes]);
+  // Filter out interviews and non-ACTIVE quizzes from the next action card
+  const quizzes = useMemo(() =>
+    propQuizzes.filter(q => !q.isInterview && q.status === 'ACTIVE'),
+    [propQuizzes]);
 
   const recommendation = useMemo(() => {
     // Rule 1: No quiz attempted yet
@@ -41,16 +44,27 @@ const NextActionCard = ({ studentName, averageScore }: NextActionCardProps) => {
     const liveQuiz = quizzes.find(quiz => {
       const startTime = createDateTime(quiz.scheduledDate, quiz.startTime);
       const endTime = createDateTime(quiz.scheduledDate, quiz.endTime);
+
+      // Strict Completion Check: Normalize names to avoid case/space issues
       const isCompleted = quizAttempts.some(
-        (attempt) => attempt.quizId === quiz.id && attempt.studentName === studentName
+        (attempt) => attempt.quizId === quiz.id &&
+          attempt.studentName.trim().toLowerCase() === studentName.trim().toLowerCase()
       );
-      return now >= startTime && now <= endTime && !isCompleted;
+
+      // Also check if max attempts reached (if not fully completed logic, but usually 1 attempt = done for this alert)
+      const attemptsCount = quizAttempts.filter(
+        (a) => a.quizId === quiz.id &&
+          a.studentName.trim().toLowerCase() === studentName.trim().toLowerCase()
+      ).length;
+      const maxAttempts = quiz.maxAttempts || 1;
+
+      return now >= startTime && now <= endTime && !isCompleted && attemptsCount < maxAttempts;
     });
 
     // Rule 2: Quiz is scheduled today and is live
     if (liveQuiz) {
       return {
-        title: "Quiz is LIVE Now!",
+        title: "Assessment is LIVE Now!",
         message: `Hurry! ${liveQuiz.title} is active until ${liveQuiz.endTime}.`,
         icon: AlertTriangle,
         color: "bg-green-600",
@@ -106,9 +120,12 @@ const NextActionCard = ({ studentName, averageScore }: NextActionCardProps) => {
   return (
     <Card className={cn("shadow-lg text-white", recommendation.color)}>
       <CardHeader>
-        <CardTitle className="flex items-center gap-3 text-2xl">
+        <CardTitle className="flex items-center gap-3 text-2xl relative">
           <recommendation.icon className="h-6 w-6" />
-          {recommendation.title}
+          <span className="flex-grow">{recommendation.title}</span>
+          {hasNewQuizzes && (
+            <span className="absolute -top-1 -right-1 flex h-3 w-3 rounded-full bg-white shadow-sm ring-2 ring-red-600 ring-offset-2 animate-bounce" />
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
