@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Trophy, Users, Clock } from 'lucide-react';
 import BackButton from '@/components/ui/BackButton';
+import { cn } from '@/lib/utils';
 
 const Leaderboard = () => {
   const { quizAttempts, quizzes } = useQuiz();
@@ -49,62 +50,94 @@ const Leaderboard = () => {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto space-y-12">
         {Object.keys(groupedAttempts).length === 0 ? (
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-2xl">
-                <Trophy className="h-6 w-6" /> No Quiz Results Yet
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-500">Students need to complete quizzes for results to appear here.</p>
-            </CardContent>
-          </Card>
+          <div className="py-24 bg-white rounded-[40px] border-2 border-dashed border-slate-100 text-center">
+            <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <Trophy className="h-10 w-10 text-slate-200" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">No Quiz Results Yet</h3>
+            <p className="text-slate-500 max-w-xs mx-auto italic">
+              "Competitive rankings will manifest here as students complete their assessments."
+            </p>
+          </div>
         ) : (
           Object.keys(groupedAttempts).map(quizId => {
             const quiz = quizzes.find(q => q.id === quizId);
-            if (!quiz) return null; // Should not happen if data is consistent
+            if (!quiz) return null;
 
             return (
-              <Card key={quizId} className="shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-2xl">
-                    <Trophy className="h-6 w-6 text-yellow-500" /> Leaderboard for: {quiz.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[50px]">Rank</TableHead>
-                        <TableHead>Student Name</TableHead>
-                        <TableHead className="text-right">Score</TableHead>
-                        <TableHead className="text-right">Time Taken</TableHead>
-                        <TableHead className="text-right">Date</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {groupedAttempts[quizId].map((attempt, index) => {
-                        let rowClasses = '';
-                        if (index === 0) rowClasses = 'bg-yellow-100 font-bold'; // Gold for 1st
-                        else if (index === 1) rowClasses = 'bg-gray-200 font-semibold'; // Silver for 2nd
-                        else if (index === 2) rowClasses = 'bg-orange-100 font-medium'; // Bronze for 3rd
+              <div key={quizId} className="space-y-6">
+                <div className="flex items-center justify-between px-2">
+                  <h3 className="text-xl font-black text-slate-800 flex items-center gap-3">
+                    <Trophy className="h-7 w-7 text-yellow-500" />
+                    {quiz.title}
+                  </h3>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                      {groupedAttempts[quizId].length} Participants
+                    </span>
+                  </div>
+                </div>
 
-                        return (
-                          <TableRow key={attempt.id} className={rowClasses}>
-                            <TableCell className="font-medium">{index + 1}</TableCell>
-                            <TableCell>{attempt.studentName}</TableCell>
-                            <TableCell className="text-right">{attempt.score.toFixed(2)} / {attempt.totalQuestions}</TableCell>
-                            <TableCell className="text-right">{formatTime(attempt.timeTakenSeconds)}</TableCell>
-                            <TableCell className="text-right">{new Date(attempt.timestamp).toLocaleDateString()}</TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
+                <div className="flex flex-col gap-3">
+                  {groupedAttempts[quizId].map((attempt, index) => (
+                    <div key={attempt.id} className={cn(
+                      "group p-4 rounded-2xl border transition-all flex items-center justify-between relative overflow-hidden",
+                      index === 0 ? "bg-amber-50/50 border-amber-200 shadow-amber-100 shadow-md" :
+                        index === 1 ? "bg-slate-50/50 border-slate-200" :
+                          index === 2 ? "bg-orange-50/10 border-orange-100" : "bg-white border-slate-100 shadow-sm hover:shadow-md"
+                    )}>
+                      <div className="flex items-center gap-6">
+                        {/* Rank Indicator */}
+                        <div className={cn(
+                          "flex items-center justify-center w-10 h-10 rounded-full font-black text-sm border-2 transition-all shrink-0",
+                          index === 0 ? "bg-yellow-400 border-yellow-500 text-white shadow-lg shadow-yellow-100 rotate-3 scale-110" :
+                            index === 1 ? "bg-slate-300 border-slate-400 text-white rotate-2" :
+                              index === 2 ? "bg-orange-300 border-orange-400 text-white -rotate-2" :
+                                "bg-slate-50 border-slate-100 text-slate-400"
+                        )}>
+                          {index + 1}
+                        </div>
+
+                        <div className="w-12 h-12 bg-white rounded-xl border border-slate-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm">
+                          <Users className="h-6 w-6 text-indigo-500" />
+                        </div>
+
+                        <div>
+                          <h4 className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                            {attempt.studentName}
+                          </h4>
+                          <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-400 mt-1">
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {formatTime(attempt.timeTakenSeconds)}
+                            </span>
+                            <span className="w-1 h-1 bg-slate-200 rounded-full" />
+                            <span>{new Date(attempt.timestamp).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="text-2xl font-black text-indigo-600 tracking-tighter">
+                          {attempt.score.toFixed(0)}
+                          <span className="text-xs text-slate-300 ml-1">/ {attempt.totalQuestions}</span>
+                        </div>
+                        <div className="px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded-full text-[9px] font-black uppercase tracking-widest">
+                          Final Grade
+                        </div>
+                      </div>
+
+                      {index === 0 && (
+                        <div className="absolute top-0 right-0 px-3 py-1 bg-yellow-400 text-white text-[8px] font-black uppercase tracking-widest rounded-bl-xl shadow-sm">
+                          Top Performer
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             );
           })
         )}

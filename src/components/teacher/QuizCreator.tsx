@@ -68,7 +68,7 @@ interface StoredQuiz {
 
 const QuizCreator = () => {
   const navigate = useNavigate();
-  const { generateAIQuestions, addQuiz } = useQuiz(); // Removed addQuestion
+  const { generateAIQuestions, addQuiz, availableCourses } = useQuiz(); // Removed addQuestion
 
   const [quizData, setQuizData] = useState<LocalQuizData>({
     quizTitle: '',
@@ -543,16 +543,37 @@ const QuizCreator = () => {
             className="mt-1"
           />
         </div>
-        <div>
+        <div className="space-y-3">
           <Label htmlFor="courseName">Course Name (for Student Dashboard)</Label>
-          <Input
-            id="courseName"
-            placeholder="e.g., 'CS 101: Introduction to Programming'"
+          <Select
             value={quizData.courseName}
-            disabled={step === 2} // Lock
-            onChange={(e) => handleUpdateQuizDetails('courseName', e.target.value)}
-            className="mt-1"
-          />
+            onValueChange={(value) => handleUpdateQuizDetails('courseName', value)}
+            disabled={step === 2}
+          >
+            <SelectTrigger className="w-full mt-1 h-12 rounded-xl border-slate-200">
+              <SelectValue placeholder="Select a course..." />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl shadow-xl">
+              {availableCourses.length > 0 ? (
+                availableCourses.map((course) => (
+                  <SelectItem key={course} value={course} className="py-3 focus:bg-indigo-50">
+                    {course}
+                  </SelectItem>
+                ))
+              ) : (
+                <div className="p-4 text-center space-y-2">
+                  <p className="text-sm font-medium text-slate-500">No courses added yet.</p>
+                  <Button
+                    variant="link"
+                    className="text-indigo-600 font-bold p-0"
+                    onClick={() => navigate('/teacher?view=courses')}
+                  >
+                    Add Courses in Management
+                  </Button>
+                </div>
+              )}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Scheduling Inputs */}

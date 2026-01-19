@@ -62,6 +62,17 @@ export interface QuizAttempt {
   timeTakenSeconds: number;
 }
 
+export interface ManagedUser {
+  id: string;
+  name: string;
+  registerNumber: string;
+  year: string;
+  department: string;
+  username: string;
+  password: string;
+  role: 'Student';
+}
+
 interface QuizContextType {
   quizzes: Quiz[];
   questions: Question[];
@@ -69,13 +80,17 @@ interface QuizContextType {
   isQuizzesLoading: boolean;
   isQuestionsLoading: boolean;
   availableCourses: string[];
+  managedUsers: ManagedUser[];
   hasNewQuizzes: boolean;
   markQuizzesAsSeen: () => void;
 
   // Mutations/Actions
   addQuestion: (question: Omit<Question, 'id'>) => string;
   addQuiz: (quiz: Omit<Quiz, 'id' | 'status'>, questionsData: Omit<Question, 'id'>[]) => void;
-  addCourse: (courseName: string) => void; // Restored
+  addCourse: (courseName: string) => void;
+  addManagedUser: (user: Omit<ManagedUser, 'id' | 'username' | 'password' | 'role'>) => void;
+  editCourse: (oldName: string, newName: string) => void;
+  deleteCourse: (courseName: string) => void;
   submitQuizAttempt: (attempt: Omit<QuizAttempt, 'id' | 'timestamp'>) => void;
   getQuestionsForQuiz: (quizId: string) => Promise<Question[]>;
   getQuizById: (quizId: string) => Quiz | undefined;
@@ -121,6 +136,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     questions: Question[];
     attempts: QuizAttempt[];
     courses: string[];
+    users: ManagedUser[];
   }>(() => {
     try {
       const stored = localStorage.getItem('ALL_QUIZZES');
@@ -133,6 +149,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
             questions: JSON.parse(localStorage.getItem('local_questions') || '[]'),
             attempts: JSON.parse(localStorage.getItem('quiz_attempts') || '[]'),
             courses: JSON.parse(localStorage.getItem('manual_courses') || '[]'),
+            users: JSON.parse(localStorage.getItem('managed_users') || '[]'),
           };
         }
         return {
@@ -140,6 +157,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
           questions: parsed.questions || [],
           attempts: parsed.attempts || [],
           courses: parsed.courses || [],
+          users: parsed.users || [],
         };
       }
 
@@ -149,6 +167,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
         questions: JSON.parse(localStorage.getItem('local_questions') || '[]'),
         attempts: JSON.parse(localStorage.getItem('quiz_attempts') || '[]'),
         courses: JSON.parse(localStorage.getItem('manual_courses') || '[]'),
+        users: JSON.parse(localStorage.getItem('managed_users') || '[]'),
       };
     } catch (error) {
       console.error("Failed to load global quiz data", error);
@@ -156,7 +175,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     }
   });
 
-  const { quizzes: localQuizzes, questions: localQuestionPool, attempts: quizAttempts, courses: manualCourses } = localData;
+  const { quizzes: localQuizzes, questions: localQuestionPool, attempts: quizAttempts, courses: manualCourses, users: managedUsers } = localData;
 
   const setLocalQuizzes = (updater: Quiz[] | ((prev: Quiz[]) => Quiz[])) => {
     setLocalData(prev => ({
@@ -186,6 +205,13 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     }));
   };
 
+  const setManagedUsers = (updater: ManagedUser[] | ((prev: ManagedUser[]) => ManagedUser[])) => {
+    setLocalData(prev => ({
+      ...prev,
+      users: typeof updater === 'function' ? updater(prev.users) : updater
+    }));
+  };
+
   // Merge Supabase quizzes with Local Quizzes
   const quizzes = useMemo(() => [...supabaseQuizzes.map(mapSupabaseQuizToLocal), ...localQuizzes], [supabaseQuizzes, localQuizzes]);
 
@@ -208,6 +234,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
       questions: localQuestionPool,
       attempts: quizAttempts,
       courses: manualCourses,
+      users: managedUsers,
     };
     localStorage.setItem('ALL_QUIZZES', JSON.stringify(dataToSave));
   }, [localQuizzes, localQuestionPool, quizAttempts, manualCourses]);
@@ -223,6 +250,35 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     if (!manualCourses.includes(courseName)) {
       setManualCourses((prev) => [...prev, courseName]);
     }
+  };
+
+  const addManagedUser = (userData: Omit<ManagedUser, 'id' | 'username' | 'password' | 'role'>) => {
+    const id = `user-${Date.now()}`;
+    const newUser: ManagedUser = {
+      ...userData,
+      id,
+      username: `student_${userData.registerNumber || Date.now()}`,
+      password: `pass${Math.floor(1000 + Math.random() * 9000)}`,
+      role: 'Student'
+    };
+    setManagedUsers(prev => [newUser, ...prev]);
+    toast.success("User added successfully!");
+  };
+
+  const editCourse = (oldName: string, newName: string) => {
+    if (manualCourses.includes(oldName)) {
+      setManualCourses(prev => prev.map(c => c === oldName ? newName : c));
+
+      // Update local quizzes associated with this course
+      setLocalQuizzes(prev => prev.map(q => q.courseName === oldName ? { ...q, courseName: newName } : q));
+
+      toast.success(`Course renamed to "${newName}"`);
+    }
+  };
+
+  const deleteCourse = (courseName: string) => {
+    setManualCourses(prev => prev.filter(c => c !== courseName));
+    toast.success("Course deleted successfully.");
   };
 
   const addQuiz = (quiz: Omit<Quiz, 'id' | 'status'>, questionsData: Omit<Question, 'id'>[]) => {
@@ -694,11 +750,15 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
         isQuizzesLoading,
         isQuestionsLoading: false,
         availableCourses,
+        managedUsers,
         hasNewQuizzes,
         markQuizzesAsSeen,
         addQuestion,
         addQuiz,
-        addCourse, // Restored
+        addCourse,
+        addManagedUser,
+        editCourse,
+        deleteCourse,
         deleteQuiz,
         submitQuizAttempt,
         getQuestionsForQuiz,

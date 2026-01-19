@@ -7,10 +7,18 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { PlusCircle, Trash2, History, X, Settings2, Save, Send, CheckCircle2, Calendar, Clock, Edit } from 'lucide-react';
+import { PlusCircle, Trash2, History, X, Settings2, Save, Send, CheckCircle2, Calendar, Clock, Edit, GraduationCap } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from 'sonner';
 import { useQuiz, Quiz, Question } from '@/context/QuizContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 interface Poll {
   pollId: string;
@@ -35,7 +43,7 @@ interface DraftQuestion {
 }
 
 const QuestionCreator = () => {
-  const { addQuestion, addQuiz } = useQuiz();
+  const { addQuestion, addQuiz, availableCourses } = useQuiz();
   const navigate = useNavigate();
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -557,7 +565,7 @@ const QuestionCreator = () => {
     <div className="space-y-6">
       {isSetupVisible ? (
         /* Question Setup Section */
-        <div className="bg-white rounded-xl shadow-lg border border-blue-100 p-8 space-y-8 animate-in slide-in-from-top-4 duration-300 max-w-2xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg border border-blue-100 p-8 space-y-8 animate-in slide-in-from-top-4 duration-300 max-w-5xl mx-auto">
           <div className="flex items-center gap-3 border-b border-blue-50 pb-4">
             <Settings2 className="h-6 w-6 text-blue-600" />
             <h3 className="text-2xl font-bold text-gray-800">Question Setup</h3>
@@ -568,13 +576,36 @@ const QuestionCreator = () => {
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <Label htmlFor="courseName" className="text-lg font-bold text-gray-700">Course Name</Label>
-                <Input
-                  id="courseName"
-                  placeholder="e.g. Mathematics, Physics"
-                  value={courseName}
-                  onChange={(e) => setCourseName(e.target.value)}
-                  className={`h-14 text-xl bg-gray-50/50 focus:bg-white transition-all shadow-sm ${showErrors && !courseName.trim() ? 'border-red-500 ring-red-50' : 'border-blue-100 focus:border-blue-500'}`}
-                />
+                <Select value={courseName} onValueChange={setCourseName}>
+                  <SelectTrigger
+                    className={cn(
+                      "h-14 text-xl bg-gray-50/50 focus:bg-white transition-all shadow-sm rounded-xl border-blue-100 focus:border-blue-500",
+                      showErrors && !courseName ? "border-red-500 ring-red-50" : ""
+                    )}
+                  >
+                    <SelectValue placeholder="Select a course..." />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-blue-50 shadow-xl">
+                    {availableCourses.length > 0 ? (
+                      availableCourses.map((course) => (
+                        <SelectItem key={course} value={course} className="text-lg py-3 rounded-lg focus:bg-indigo-50 focus:text-indigo-600">
+                          {course}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="p-4 text-center space-y-2">
+                        <p className="text-sm font-medium text-slate-500">No courses added yet.</p>
+                        <Button
+                          variant="link"
+                          className="text-indigo-600 font-bold p-0"
+                          onClick={() => navigate('/teacher?view=courses')}
+                        >
+                          Add Courses in Management
+                        </Button>
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
                 {showErrors && !courseName.trim() && (
                   <p className="text-sm text-red-500 font-bold flex items-center gap-1">
                     <X className="h-4 w-4" /> Course Name required.

@@ -1,10 +1,19 @@
 "use client";
 
 import React from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { PanelLeft, PlusCircle, ListChecks, Trophy, Brain, Users, BookOpen, History } from 'lucide-react';
+import {
+  PanelLeft,
+  LayoutDashboard,
+  PlusCircle,
+  Users,
+  Trophy,
+  History,
+  LogOut,
+  GraduationCap
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TeacherSidebarProps {
@@ -13,59 +22,83 @@ interface TeacherSidebarProps {
 }
 
 const TeacherSidebar = ({ activeView, isMobile }: TeacherSidebarProps) => {
-  // No longer using location directly as view is passed via props
-
   const navItems = [
-    { id: 'create-quiz', label: 'Generate Quiz', icon: ListChecks, path: '/teacher?view=create-quiz' },
-    { id: 'courses', label: 'Available Courses', icon: BookOpen, path: '/teacher/courses' },
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard, path: '/teacher?view=overview' },
+    { id: 'create-quiz', label: 'Create Quiz', icon: PlusCircle, path: '/teacher?view=create-quiz' },
+    { id: 'courses', label: 'Courses', icon: GraduationCap, path: '/teacher?view=courses' },
     { id: 'users', label: 'Users', icon: Users, path: '/teacher?view=users' },
+    { id: 'leaderboard', label: 'Leaderboard', icon: Trophy, path: '/leaderboard' },
     { id: 'history', label: 'History', icon: History, path: '/teacher?view=history' },
   ];
 
   const renderNav = () => (
-    <nav className="flex flex-col gap-2 p-4">
-      {navItems.map((item) => (
-        <Link
-          key={item.id}
-          to={item.path}
-          className="block w-full"
-        >
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start gap-3 transition-all duration-200 border-2 rounded-lg",
-              activeView === item.id
-                ? "bg-black text-white border-black shadow-none hover:bg-gray-800 hover:text-white"
-                : "bg-white text-gray-700 border-transparent hover:border-gray-300 hover:bg-gray-50"
-            )}
-          >
-            <item.icon className={cn("h-5 w-5", activeView === item.id ? "text-white" : "text-gray-500")} />
-            {item.label}
-          </Button>
-        </Link>
-      ))}
-
-      <div className="mt-auto pt-4 border-t-2 border-gray-100 space-y-2">
-        <Link to="/" className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-black hover:bg-gray-50 rounded-md transition-colors border border-transparent hover:border-gray-200">
-          Home
-        </Link>
-        <Link to="/leaderboard" className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-black hover:bg-gray-50 rounded-md transition-colors border border-transparent hover:border-gray-200">
-          Leaderboard
-        </Link>
+    <div className="flex flex-col h-full bg-white text-slate-600">
+      {/* Brand Header */}
+      <div className="p-6 flex items-center gap-3">
+        <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+          <GraduationCap className="h-6 w-6 text-indigo-600" />
+        </div>
+        <span className="text-2xl font-bold text-indigo-950 tracking-tight">EduFlow</span>
       </div>
-    </nav>
+
+      <div className="px-6 py-4">
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Core Management</p>
+        <nav className="space-y-1">
+          {navItems.map((item) => {
+            const isActive = activeView === item.id || (item.id === 'overview' && activeView === 'create-quiz'); // Temporary fallback
+            return (
+              <Link key={item.id} to={item.path} className="block">
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start gap-3 h-11 px-4 transition-all duration-200 rounded-xl font-medium",
+                    isActive
+                      ? "bg-indigo-50 text-indigo-600 shadow-sm"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                  )}
+                >
+                  <item.icon className={cn("h-5 w-5", isActive ? "text-indigo-600" : "text-slate-400")} />
+                  {item.label}
+                </Button>
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+
+      <div className="mt-auto p-6 space-y-6">
+        {/* Info Box */}
+        <div className="bg-indigo-50/50 rounded-2xl p-5 border border-indigo-100/50">
+          <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Teacher Access</p>
+          <p className="text-xs font-semibold text-indigo-900">Cyber Security Dept.</p>
+        </div>
+
+        {/* Logout */}
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3 h-11 px-4 text-slate-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all duration-200"
+          onClick={() => {
+            // Add logout logic if needed
+            window.location.href = '/';
+          }}
+        >
+          <LogOut className="h-5 w-5" />
+          <span className="font-medium">Logout</span>
+        </Button>
+      </div>
+    </div>
   );
 
   if (isMobile) {
     return (
       <Sheet>
         <SheetTrigger asChild>
-          <Button size="icon" variant="outline" className="lg:hidden">
-            <PanelLeft className="h-5 w-5" />
+          <Button size="icon" variant="outline" className="lg:hidden border-slate-200 rounded-xl">
+            <PanelLeft className="h-5 w-5 text-slate-600" />
             <span className="sr-only">Toggle Menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="sm:max-w-xs">
+        <SheetContent side="left" className="p-0 w-72 bg-white border-r border-slate-100">
           {renderNav()}
         </SheetContent>
       </Sheet>
@@ -73,7 +106,7 @@ const TeacherSidebar = ({ activeView, isMobile }: TeacherSidebarProps) => {
   }
 
   return (
-    <div className="flex flex-col h-full border-r-2 border-gray-200 bg-white text-gray-900">
+    <div className="flex flex-col h-full border-r border-slate-100 bg-white">
       {renderNav()}
     </div>
   );

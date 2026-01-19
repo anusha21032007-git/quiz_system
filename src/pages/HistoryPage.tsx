@@ -6,7 +6,7 @@ import HistoryList from '@/components/teacher/HistoryList';
 
 const HistoryPage = () => {
     return (
-        <TeacherLayout activeView="history" title="Action History">
+        <TeacherLayout activeView="history" title="Creation History">
             <HistoryList />
         </TeacherLayout>
     );
