@@ -105,6 +105,7 @@ const QuizCreator = () => {
   const [aiDifficulty, setAiDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Easy');
   const [aiMarksPerQuestion, setAiMarksPerQuestion] = useState<number>(1);
   const [aiTimePerQuestionSeconds, setAiTimePerQuestionSeconds] = useState<number>(60);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
   // Persistence logic for QuizCreator
   useEffect(() => {
@@ -317,7 +318,7 @@ const QuizCreator = () => {
     });
   };
 
-  const handleGenerateAIQuestions = () => {
+  const handleGenerateAIQuestions = async () => {
     const topicToUse = aiCoursePaperName.trim() || quizData.quizTitle.trim();
     if (!topicToUse) {
       toast.error("Please provide a Paper Name in Step 1 or Enter a Topic.");
@@ -327,41 +328,49 @@ const QuizCreator = () => {
     // Update local topic state for consistency
     if (!aiCoursePaperName) setAiCoursePaperName(topicToUse);
 
-    // Generate 5x questions for the pool
-    const poolSize = (quizData.totalQuestions as number || 5) * 5;
-    const generated = generateAIQuestions(
-      topicToUse,
-      aiDifficulty,
-      poolSize,
-      quizData.optionsPerQuestion,
-      aiMarksPerQuestion,
-      aiTimePerQuestionSeconds
-    );
+    setIsGeneratingAI(true);
+    try {
+      // Generate 5x questions for the pool
+      const poolSize = (quizData.totalQuestions as number || 5) * 5;
+      const generated = await generateAIQuestions(
+        topicToUse,
+        aiDifficulty,
+        poolSize,
+        quizData.optionsPerQuestion,
+        aiMarksPerQuestion,
+        aiTimePerQuestionSeconds
+      );
 
-    // Check if generation failed (likely due to unrelated topic)
-    if (generated.length === 0) {
-      toast.error("Limit reached or Subject Unrelated: Please enter a recognized educational module (e.g., Math, Science, History).");
-      return;
+      // Check if generation failed (likely due to unrelated topic)
+      if (generated.length === 0) {
+        toast.error("Limit reached or Subject Unrelated: Please enter a recognized educational module (e.g., Math, Science, History).");
+        return;
+      }
+
+      setQuizData(prev => ({
+        ...prev,
+        // If the title was modified by user, we append (AI Generated) if it's not already there
+        quizTitle: prev.quizTitle.includes('(AI Generated)') ? prev.quizTitle : `${prev.quizTitle} (AI Generated)`,
+        questions: generated.map(q => ({
+          questionText: q.questionText,
+          options: q.options,
+          correctAnswerIndex: q.options.indexOf(q.correctAnswer),
+          marks: aiMarksPerQuestion,
+          timeLimitMinutes: aiTimePerQuestionSeconds / 60,
+          explanation: q.explanation || ''
+        })),
+        // Do NOT update totalQuestions to match generated length. 
+        // Keep original totalQuestions (the subset size for students).
+        // effectively: totalQuestions = N, questions.length = 5N
+      }));
+
+      toast.success(`Generated ${generated.length} questions for a ${quizData.totalQuestions}-question quiz pool!`);
+    } catch (error) {
+      console.error("AI Generation failed:", error);
+      toast.error("Something went wrong during AI generation.");
+    } finally {
+      setIsGeneratingAI(false);
     }
-
-    setQuizData(prev => ({
-      ...prev,
-      // If the title was modified by user, we append (AI Generated) if it's not already there
-      quizTitle: prev.quizTitle.includes('(AI Generated)') ? prev.quizTitle : `${prev.quizTitle} (AI Generated)`,
-      questions: generated.map(q => ({
-        questionText: q.questionText,
-        options: q.options,
-        correctAnswerIndex: q.options.indexOf(q.correctAnswer),
-        marks: aiMarksPerQuestion,
-        timeLimitMinutes: aiTimePerQuestionSeconds / 60,
-        explanation: q.explanation || ''
-      })),
-      // Do NOT update totalQuestions to match generated length. 
-      // Keep original totalQuestions (the subset size for students).
-      // effectively: totalQuestions = N, questions.length = 5N
-    }));
-
-    toast.success(`Generated ${generated.length} questions for a ${quizData.totalQuestions}-question quiz pool!`);
   };
 
   const prepareQuizForOutput = (): StoredQuiz | null => {
@@ -831,10 +840,20 @@ const QuizCreator = () => {
                 <div className="flex flex-col gap-2">
                   <Button
                     onClick={handleGenerateAIQuestions}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 h-12 text-lg font-bold shadow-lg shadow-indigo-100"
+                    disabled={isGeneratingAI}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 h-12 text-lg font-bold shadow-lg shadow-indigo-100 disabled:bg-indigo-400"
                   >
-                    <Wand2 className="h-5 w-5 mr-2" />
-                    Generate {quizData.totalQuestions} Expert Questions for "{aiCoursePaperName || quizData.quizTitle || 'Topic'}"
+                    {isGeneratingAI ? (
+                      <>
+                        <div className="h-5 w-5 mr-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Generating Questions...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="h-5 w-5 mr-2" />
+                        Generate {quizData.totalQuestions} Expert Questions for "{aiCoursePaperName || quizData.quizTitle || 'Topic'}"
+                      </>
+                    )}
                   </Button>
                   <Button
                     variant="ghost"
@@ -856,9 +875,20 @@ const QuizCreator = () => {
                 </p>
               </div>
 
-              <div className="space-y-6 max-h-96 overflow-y-auto p-3 border rounded-md bg-gray-50 mt-4">
+              <div className="space-y-6 max-h-96 overflow-y-auto p-3 border rounded-md bg-gray-50 mt-4 relative">
+                {isGeneratingAI && (
+                  <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
+                    <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4" />
+                    <h4 className="text-lg font-semibold text-indigo-900">Expert AI is Working...</h4>
+                    <p className="text-sm text-indigo-600 max-w-[250px]">
+                      Crafting clear, conceptually focused MCQs with realistic distractors for your subject.
+                    </p>
+                  </div>
+                )}
                 {quizData.questions.length === 0 ? (
-                  <p className="text-gray-500 text-center">No questions added yet. Click "Generate Questions with AI" to begin.</p>
+                  <p className="text-gray-500 text-center py-10">
+                    {isGeneratingAI ? "" : "No questions added yet. Click \"Generate Questions with AI\" to begin."}
+                  </p>
                 ) : (
                   quizData.questions.map((q, index) => (
                     <Card key={index} className="p-4 border rounded-md bg-white shadow-sm relative">

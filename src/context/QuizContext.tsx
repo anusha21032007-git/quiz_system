@@ -94,7 +94,7 @@ interface QuizContextType {
   submitQuizAttempt: (attempt: Omit<QuizAttempt, 'id' | 'timestamp'>) => void;
   getQuestionsForQuiz: (quizId: string) => Promise<Question[]>;
   getQuizById: (quizId: string) => Quiz | undefined;
-  generateAIQuestions: (coursePaperName: string, difficulty: 'Easy' | 'Medium' | 'Hard', numQuestions: number, numOptions: number, marksPerQuestion: number, timePerQuestionSeconds: number) => Question[];
+  generateAIQuestions: (coursePaperName: string, difficulty: 'Easy' | 'Medium' | 'Hard', numQuestions: number, numOptions: number, marksPerQuestion: number, timePerQuestionSeconds: number) => Promise<Question[]>;
   deleteQuiz: (quizId: string) => void;
 }
 
@@ -171,7 +171,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
       };
     } catch (error) {
       console.error("Failed to load global quiz data", error);
-      return { quizzes: [], questions: [], attempts: [], courses: [] };
+      return { quizzes: [], questions: [], attempts: [], courses: [], users: [] };
     }
   });
 
@@ -453,14 +453,57 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     return quizzes.find(q => q.id === quizId);
   };
 
-  const generateAIQuestions = (
+  const generateAIQuestions = async (
     coursePaperName: string,
     difficulty: 'Easy' | 'Medium' | 'Hard',
     numQuestions: number,
     numOptions: number,
     marksPerQuestion: number,
     timePerQuestionSeconds: number
-  ): Question[] => {
+  ): Promise<Question[]> => {
+    // 1. Try real Gemini API first
+    try {
+      const prompt = aiService.generatePrompt({
+        subjectName: coursePaperName,
+        totalQuestions: numQuestions,
+        mcqOptions: numOptions,
+        difficulty: difficulty,
+        marksPerQuestion: marksPerQuestion,
+        timePerQuestionSeconds: timePerQuestionSeconds
+      });
+
+      const response = await aiService.callGeminiAPI(prompt);
+
+      if (response && response.questions && response.questions.length > 0) {
+        // 2. Second Stage: Validation and Correction
+        toast.info("Refining and validating questions...");
+        const validationPrompt = aiService.generateValidationPrompt(
+          JSON.stringify(response),
+          coursePaperName,
+          difficulty
+        );
+
+        const validatedResponse = await aiService.callGeminiAPI(validationPrompt);
+
+        const finalResponse = validatedResponse || response;
+
+        if (finalResponse.questions && finalResponse.questions.length > 0) {
+          toast.success(`Generated and validated ${finalResponse.questions.length} questions from Gemini AI!`);
+          return aiService.mapResponseToQuestions(
+            finalResponse.questions,
+            'ai-generated',
+            marksPerQuestion,
+            timePerQuestionSeconds
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Gemini API failed, falling back to templates:", error);
+    }
+
+    // 2. Fallback to templates if API fails or is missing
+    toast.info("Using template-based generation (API unavailable)");
+
     // Basic Keyword Validation Heuristic
     const VALID_TOPICS = [
       "Math", "Algebra", "Geometry", "Calculus", "Statistics",
@@ -717,10 +760,12 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
 
       // Simulate the structured AI response format (Now matches the new array-based schema)
       const aiResponse: AIQuestionResponse = {
+        id: generated.length + 1,
         question: difficulty === 'Hard' ? "Advanced: " + rawQuestionText : difficulty === 'Easy' ? "Fundamental: " + rawQuestionText : rawQuestionText,
         options: finalOptions,
         correctIndex: correctIndex,
-        explanation: explanationTemplate // Use the template as a placeholder for the mock
+        marks: baseMarks,
+        rationale: explanationTemplate
       };
 
       // Use the service to validate the response format and content
