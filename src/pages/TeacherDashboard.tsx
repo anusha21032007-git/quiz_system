@@ -23,11 +23,11 @@ import {
   CheckCircle2,
   Timer,
   Loader2,
-  Trophy // Imported Trophy icon
+  Trophy
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useStudentCount } from '@/integrations/supabase/users'; // Import the new hook
+import { useStudentCount } from '@/integrations/supabase/users';
 
 const StatCard = ({ title, value, trend, icon: Icon, color, isLoading }: any) => (
   <div className={cn("bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm transition-all hover:shadow-md", color)}>
@@ -194,6 +194,70 @@ const TeacherDashboard = () => {
       });
   }, [quizAttempts, quizzes, isQuizzesLoading]);
 
+  // Logic for Top Ranks card
+  const topRanksData = useMemo(() => {
+    const relevantQuizzes = quizzes.filter(q =>
+      (q.title.includes('(AI Generated)') || q.id.startsWith('qz-local-')) && !q.isCompetitive
+    );
+    const relevantQuizIds = new Set(relevantQuizzes.map(q => q.id));
+
+    const filteredAttempts = quizAttempts.filter(attempt => relevantQuizIds.has(attempt.quizId));
+
+    const performanceMap: {
+      [studentName: string]: {
+        totalScore: number;
+        totalMaxPossibleMarks: number;
+        totalTimeTakenSeconds: number;
+      };
+    } = {};
+
+    filteredAttempts.forEach(attempt => {
+      const studentName = attempt.studentName;
+      if (!performanceMap[studentName]) {
+        performanceMap[studentName] = {
+          totalScore: 0,
+          totalMaxPossibleMarks: 0,
+          totalTimeTakenSeconds: 0,
+        };
+      }
+
+      const studentPerf = performanceMap[studentName];
+      studentPerf.totalScore += attempt.score;
+      studentPerf.totalTimeTakenSeconds += attempt.timeTakenSeconds;
+
+      const quiz = quizzes.find(q => q.id === attempt.quizId);
+      if (quiz) {
+        const quizMaxMarks = quiz.questions.reduce((sum, q) => sum + q.marks, 0);
+        studentPerf.totalMaxPossibleMarks += quizMaxMarks;
+      }
+    });
+
+    const sortedStudents = Object.entries(performanceMap)
+      .map(([studentName, data]) => ({
+        studentName,
+        totalScore: data.totalScore,
+        totalMaxPossibleMarks: data.totalMaxPossibleMarks,
+        totalTimeTakenSeconds: data.totalTimeTakenSeconds,
+      }))
+      .sort((a, b) => {
+        if (b.totalScore !== a.totalScore) {
+          return b.totalScore - a.totalScore;
+        }
+        return a.totalTimeTakenSeconds - b.totalTimeTakenSeconds;
+      });
+
+    const top3 = sortedStudents.slice(0, 3);
+    if (top3.length === 0) {
+      return "N/A";
+    } else if (top3.length === 1) {
+      return top3[0].studentName;
+    } else if (top3.length === 2) {
+      return `${top3[0].studentName}, ${top3[1].studentName}`;
+    } else {
+      return `${top3[0].studentName}, ${top3[1].studentName}, ${top3[2].studentName}`;
+    }
+  }, [quizAttempts, quizzes]);
+
 
   const overviewContent = (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -238,7 +302,7 @@ const TeacherDashboard = () => {
         />
         <StatCard
           title="Top Ranks"
-          value="Top 5"
+          value={topRanksData}
           trend="+12%"
           icon={Trophy}
           color="border-orange-100"
