@@ -25,25 +25,61 @@ const Leaderboard = () => {
     return quizAttempts.filter(attempt => relevantQuizzes.has(attempt.quizId));
   }, [quizAttempts, relevantQuizzes]);
 
-  // Group attempts by quiz
-  const groupedAttempts: { [quizId: string]: QuizAttempt[] } = {};
-  filteredAttempts.forEach(attempt => {
-    if (!groupedAttempts[attempt.quizId]) {
-      groupedAttempts[attempt.quizId] = [];
-    }
-    groupedAttempts[attempt.quizId].push(attempt);
-  });
+  // Aggregate scores and times for each student across all relevant quizzes
+  const studentOverallPerformance = useMemo(() => {
+    const performanceMap: {
+      [studentName: string]: {
+        totalScore: number;
+        totalMaxPossibleMarks: number;
+        totalTimeTakenSeconds: number;
+        lastAttemptTimestamp: number;
+      };
+    } = {};
 
-  // Sort attempts by score (desc), then time taken (asc) and take top 3
-  Object.keys(groupedAttempts).forEach(quizId => {
-    groupedAttempts[quizId].sort((a, b) => {
-      if (b.score !== a.score) {
-        return b.score - a.score;
+    filteredAttempts.forEach(attempt => {
+      const studentName = attempt.studentName;
+      if (!performanceMap[studentName]) {
+        performanceMap[studentName] = {
+          totalScore: 0,
+          totalMaxPossibleMarks: 0,
+          totalTimeTakenSeconds: 0,
+          lastAttemptTimestamp: 0,
+        };
       }
-      return a.timeTakenSeconds - b.timeTakenSeconds; // Tie-breaker: faster time wins
+
+      const studentPerf = performanceMap[studentName];
+      studentPerf.totalScore += attempt.score;
+      studentPerf.totalTimeTakenSeconds += attempt.timeTakenSeconds;
+      studentPerf.lastAttemptTimestamp = Math.max(studentPerf.lastAttemptTimestamp, attempt.timestamp);
+
+      // Calculate total possible marks for this specific quiz attempt
+      const quiz = quizzes.find(q => q.id === attempt.quizId);
+      if (quiz) {
+        const quizMaxMarks = quiz.questions.reduce((sum, q) => sum + q.marks, 0);
+        studentPerf.totalMaxPossibleMarks += quizMaxMarks;
+      }
     });
-    groupedAttempts[quizId] = groupedAttempts[quizId].slice(0, 3); // Take only top 3
-  });
+
+    // Convert map to array and sort
+    const sortedStudents = Object.entries(performanceMap)
+      .map(([studentName, data]) => ({
+        studentName,
+        totalScore: data.totalScore,
+        totalMaxPossibleMarks: data.totalMaxPossibleMarks,
+        totalTimeTakenSeconds: data.totalTimeTakenSeconds,
+        averagePercentage: data.totalMaxPossibleMarks > 0 ? (data.totalScore / data.totalMaxPossibleMarks) * 100 : 0,
+      }))
+      .sort((a, b) => {
+        // Primary sort: totalScore (descending)
+        if (b.totalScore !== a.totalScore) {
+          return b.totalScore - a.totalScore;
+        }
+        // Secondary sort: totalTimeTakenSeconds (ascending - lower is better)
+        return a.totalTimeTakenSeconds - b.totalTimeTakenSeconds;
+      });
+
+    return sortedStudents;
+  }, [filteredAttempts, quizzes]);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -56,7 +92,7 @@ const Leaderboard = () => {
       <header className="max-w-4xl mx-auto space-y-4 mb-10">
         <BackButton />
         <div className="pb-4 border-b-2 border-gray-100 flex items-center justify-between">
-          <h1 className="text-4xl font-bold text-black tracking-tight">Top Ranks Leaderboard</h1>
+          <h1 className="text-4xl font-bold text-black tracking-tight">Global Student Leaderboard</h1>
           <div className="px-4 py-1 bg-gray-50 border border-gray-200 rounded-full text-xs font-mono text-gray-500">
             AI & Manual Quizzes
           </div>
@@ -64,95 +100,69 @@ const Leaderboard = () => {
       </header>
 
       <div className="max-w-4xl mx-auto space-y-12">
-        {Object.keys(groupedAttempts).length === 0 ? (
+        {studentOverallPerformance.length === 0 ? (
           <div className="py-24 bg-white rounded-[40px] border-2 border-dashed border-slate-100 text-center">
             <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
               <Trophy className="h-10 w-10 text-slate-200" />
             </div>
             <h3 className="text-xl font-bold text-slate-900 mb-2">No Relevant Quiz Results Yet</h3>
             <p className="text-slate-500 max-w-xs mx-auto italic">
-              "Top rankings for AI-generated and manually created quizzes will appear here."
+              "Students will appear here once they complete AI-generated or manually created quizzes."
             </p>
           </div>
         ) : (
-          Object.keys(groupedAttempts).map(quizId => {
-            const quiz = quizzes.find(q => q.id === quizId);
-            if (!quiz) return null;
-
-            return (
-              <div key={quizId} className="space-y-6">
-                <div className="flex items-center justify-between px-2">
-                  <h3 className="text-xl font-black text-slate-800 flex items-center gap-3">
-                    <Trophy className="h-7 w-7 text-yellow-500" />
-                    {quiz.title}
-                  </h3>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                      {groupedAttempts[quizId].length} Top Participant{groupedAttempts[quizId].length !== 1 && 's'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  {groupedAttempts[quizId].map((attempt, index) => (
-                    <div key={attempt.id} className={cn(
-                      "group p-4 rounded-2xl border transition-all flex items-center justify-between relative overflow-hidden",
-                      index === 0 ? "bg-amber-50/50 border-amber-200 shadow-amber-100 shadow-md" :
-                        index === 1 ? "bg-slate-50/50 border-slate-200" :
-                          index === 2 ? "bg-orange-50/10 border-orange-100" : "bg-white border-slate-100 shadow-sm hover:shadow-md"
-                    )}>
-                      <div className="flex items-center gap-6">
-                        {/* Rank Indicator */}
-                        <div className={cn(
-                          "flex items-center justify-center w-10 h-10 rounded-full font-black text-sm border-2 transition-all shrink-0",
-                          index === 0 ? "bg-yellow-400 border-yellow-500 text-white shadow-lg shadow-yellow-100 rotate-3 scale-110" :
-                            index === 1 ? "bg-slate-300 border-slate-400 text-white rotate-2" :
-                              index === 2 ? "bg-orange-300 border-orange-400 text-white -rotate-2" :
-                                "bg-slate-50 border-slate-100 text-slate-400"
+          <Card className="shadow-sm border-gray-200">
+            <CardHeader className="flex flex-row items-center justify-between pb-4 border-b bg-gray-50/50">
+              <CardTitle className="flex items-center gap-2 text-xl text-gray-800">
+                <Trophy className="h-5 w-5 text-yellow-600" /> Overall Rankings
+              </CardTitle>
+              <span className="text-sm text-gray-500 font-medium bg-gray-50 px-3 py-1 rounded-full border">
+                {studentOverallPerformance.length} Students Ranked
+              </span>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50 hover:bg-gray-50">
+                    <TableHead className="font-semibold text-gray-600 w-[80px]">Rank</TableHead>
+                    <TableHead className="font-semibold text-gray-600">Student Name</TableHead>
+                    <TableHead className="font-semibold text-gray-600 text-center">Total Score</TableHead>
+                    <TableHead className="font-semibold text-gray-600 text-center">Percentage</TableHead>
+                    <TableHead className="font-semibold text-gray-600 text-right">Time Taken</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {studentOverallPerformance.map((student, index) => (
+                    <TableRow key={student.studentName} className="hover:bg-gray-50/50 transition-colors">
+                      <TableCell className="font-bold text-lg text-center">
+                        <span className={cn(
+                          "inline-flex items-center justify-center w-8 h-8 rounded-full",
+                          index === 0 ? "bg-yellow-400 text-white" :
+                          index === 1 ? "bg-slate-300 text-white" :
+                          index === 2 ? "bg-orange-300 text-white" :
+                          "bg-gray-100 text-gray-600"
                         )}>
                           {index + 1}
-                        </div>
-
-                        <div className="w-12 h-12 bg-white rounded-xl border border-slate-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm">
-                          <Users className="h-6 w-6 text-indigo-500" />
-                        </div>
-
-                        <div>
-                          <h4 className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
-                            {attempt.studentName}
-                          </h4>
-                          <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-400 mt-1">
-                            <span className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {formatTime(attempt.timeTakenSeconds)}
-                            </span>
-                            <span className="w-1 h-1 bg-slate-200 rounded-full" />
-                            <span>{new Date(attempt.timestamp).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-end gap-1">
-                        <div className="text-2xl font-black text-indigo-600 tracking-tighter">
-                          {attempt.score.toFixed(0)}
-                          <span className="text-xs text-slate-300 ml-1">/ {attempt.totalQuestions}</span>
-                        </div>
-                        <div className="px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded-full text-[9px] font-black uppercase tracking-widest">
-                          Final Grade
-                        </div>
-                      </div>
-
-                      {index === 0 && (
-                        <div className="absolute top-0 right-0 px-3 py-1 bg-yellow-400 text-white text-[8px] font-black uppercase tracking-widest rounded-bl-xl shadow-sm">
-                          Top Performer
-                        </div>
-                      )}
-                    </div>
+                        </span>
+                      </TableCell>
+                      <TableCell className="font-medium text-gray-900">{student.studentName}</TableCell>
+                      <TableCell className="text-center font-bold text-indigo-600">
+                        {student.totalScore.toFixed(0)} / {student.totalMaxPossibleMarks.toFixed(0)}
+                      </TableCell>
+                      <TableCell className="text-center font-bold text-emerald-600">
+                        {student.averagePercentage.toFixed(1)}%
+                      </TableCell>
+                      <TableCell className="text-right text-gray-600">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-100">
+                          <Clock className="h-3 w-3" /> {formatTime(student.totalTimeTakenSeconds)}
+                        </span>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </div>
-              </div>
-            );
-          })
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>
