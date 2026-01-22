@@ -4,7 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Download, CheckCircle, XCircle, FileText, History } from 'lucide-react';
+import { Download, CheckCircle, XCircle, FileText, History, ShieldAlert } from 'lucide-react';
 import { QuizAttempt, Quiz } from '@/context/QuizContext';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -119,16 +119,25 @@ const StudentResultsList = ({ studentAttempts, quizzes }: StudentResultsListProp
                                         <TableCell className="text-center">
                                             <Badge variant="outline" className={cn(
                                                 "font-normal",
-                                                isPassed
-                                                    ? "bg-green-100 text-green-700 border-green-200 hover:bg-green-100"
-                                                    : "bg-red-100 text-red-700 border-red-200 hover:bg-red-100"
+                                                attempt.status === 'CORRUPTED'
+                                                    ? "bg-red-900 text-white border-red-900"
+                                                    : isPassed
+                                                        ? "bg-green-100 text-green-700 border-green-200 hover:bg-green-100"
+                                                        : "bg-red-100 text-red-700 border-red-200 hover:bg-red-100"
                                             )}>
-                                                {isPassed ? (
+                                                {attempt.status === 'CORRUPTED' ? (
+                                                    <><ShieldAlert className="h-3 w-3 mr-1" /> Corrupted</>
+                                                ) : isPassed ? (
                                                     <><CheckCircle className="h-3 w-3 mr-1" /> Pass</>
                                                 ) : (
                                                     <><XCircle className="h-3 w-3 mr-1" /> Fail</>
                                                 )}
                                             </Badge>
+                                            {attempt.violationCount > 0 && (
+                                                <div className="text-[10px] text-orange-600 font-bold mt-1 uppercase tracking-tighter">
+                                                    {attempt.violationCount} {attempt.violationCount === 1 ? 'Violation' : 'Violations'}
+                                                </div>
+                                            )}
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <Button

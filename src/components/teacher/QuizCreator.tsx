@@ -330,41 +330,39 @@ const QuizCreator = () => {
 
     setIsGeneratingAI(true);
     try {
-      // Generate 5x questions for the pool
-      const poolSize = (quizData.totalQuestions as number || 5) * 5;
+      // Generate questions for the pool (requested: always relevant to topic)
+      const countToGenerate = Number(quizData.totalQuestions) || 5;
+
       const generated = await generateAIQuestions(
         topicToUse,
         aiDifficulty,
-        poolSize,
+        countToGenerate,
         quizData.optionsPerQuestion,
         aiMarksPerQuestion,
         aiTimePerQuestionSeconds
       );
 
-      // Check if generation failed (likely due to unrelated topic)
+      // Check if generation failed
       if (generated.length === 0) {
-        toast.error("Limit reached or Subject Unrelated: Please enter a recognized educational module (e.g., Math, Science, History).");
+        toast.error("AI Generation failed. Please try a different topic or try again.");
         return;
       }
 
       setQuizData(prev => ({
         ...prev,
-        // If the title was modified by user, we append (AI Generated) if it's not already there
         quizTitle: prev.quizTitle.includes('(AI Generated)') ? prev.quizTitle : `${prev.quizTitle} (AI Generated)`,
         questions: generated.map(q => ({
           questionText: q.questionText,
           options: q.options,
           correctAnswerIndex: q.options.indexOf(q.correctAnswer),
-          marks: aiMarksPerQuestion,
-          timeLimitMinutes: aiTimePerQuestionSeconds / 60,
+          marks: q.marks,
+          timeLimitMinutes: q.timeLimitMinutes,
           explanation: q.explanation || ''
         })),
-        // Do NOT update totalQuestions to match generated length. 
-        // Keep original totalQuestions (the subset size for students).
-        // effectively: totalQuestions = N, questions.length = 5N
+        totalQuestions: generated.length // Adjust total questions to what was actually generated
       }));
 
-      toast.success(`Generated ${generated.length} questions for a ${quizData.totalQuestions}-question quiz pool!`);
+      toast.success(`Generated ${generated.length} high-quality questions for "${topicToUse}"!`);
     } catch (error) {
       console.error("AI Generation failed:", error);
       toast.error("Something went wrong during AI generation.");

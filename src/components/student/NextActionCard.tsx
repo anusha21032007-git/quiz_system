@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { AlertTriangle, Clock, TrendingUp, BookOpen, CheckCircle } from 'lucide-react';
-import { useQuiz } from '@/context/QuizContext';
+import { useQuiz, Quiz } from '@/context/QuizContext';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils'; // FIX: Import cn
@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'; // FIX: Import cn
 interface NextActionCardProps {
   studentName: string;
   averageScore: number;
-  quizzes: any[]; // Changed to accept quizzes prop
+  quizzes: Quiz[]; // Using Quiz type from context
 }
 
 // Utility function to combine date and time strings into a Date object
@@ -25,7 +25,7 @@ const NextActionCard = ({ studentName, averageScore, quizzes: propQuizzes }: Nex
 
   // Filter out interviews and non-ACTIVE quizzes from the next action card
   const quizzes = useMemo(() =>
-    propQuizzes.filter(q => !q.isInterview && q.status === 'ACTIVE'),
+    propQuizzes.filter(q => !q.isCompetitive && q.status === 'ACTIVE'),
     [propQuizzes]);
 
   const recommendation = useMemo(() => {

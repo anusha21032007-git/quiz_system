@@ -88,7 +88,7 @@ const QuizStatusTimeline = ({ studentName, quizzes: propQuizzes }: QuizStatusTim
 
   const processedQuizzes = useMemo(() => {
     return quizzes
-      .filter(q => !q.isInterview && q.status !== 'DELETED')
+      .filter(q => !q.isCompetitive && q.status !== 'DELETED')
       .map(quiz => {
         const start = createDateTime(quiz.scheduledDate, quiz.startTime);
         const end = createDateTime(quiz.scheduledDate, quiz.endTime);

@@ -18,12 +18,12 @@ interface StudentSidebarProps {
 const StudentSidebar = ({ activeView, setActiveView, isMobile }: StudentSidebarProps) => {
   const { hasNewQuizzes } = useQuiz();
   const { signOut } = useAuth();
-  
+
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'my-courses', label: 'My Courses', icon: BookOpen },
     { id: 'quizzes', label: 'Quizzes', icon: ListChecks },
-    { id: 'interview-mode', label: 'Interview Mode', icon: Brain },
+    { id: 'competitive-mode', label: 'Competitive Mode', icon: Brain },
     { id: 'my-results', label: 'My Results', icon: BarChart },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
   ];

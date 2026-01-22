@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useQuiz, Quiz, Question } from '@/context/QuizContext';
 
-const InterviewMode = () => {
+const CompetitiveMode = () => {
     const navigate = useNavigate();
     const { addQuiz } = useQuiz();
     const [creationMode, setCreationMode] = useState<'selection' | 'manual' | 'pdf'>('selection');
@@ -29,8 +29,8 @@ const InterviewMode = () => {
     const [manualStep, setManualStep] = useState<'setup' | 'input'>('setup');
 
     /* Manual Setup Criteria */
-    const [setupNumQuestions, setSetupNumQuestions] = useState<number>(0);
-    const [setupNumOptions, setSetupNumOptions] = useState<number>(0);
+    const [setupNumQuestions, setSetupNumQuestions] = useState<number>(5);
+    const [setupNumOptions, setSetupNumOptions] = useState<number>(4);
     const [setupTimePerQuestion, setSetupTimePerQuestion] = useState<number>(30);
     const [setupMarksPerQuestion, setSetupMarksPerQuestion] = useState<number>(0);
     const [setupNegativeMarks, setSetupNegativeMarks] = useState<number>(0);
@@ -38,15 +38,15 @@ const InterviewMode = () => {
     /* Manual Question Form State */
     const [manualQuestionText, setManualQuestionText] = useState<string>('');
     const [manualHints, setManualHints] = useState<string>('');
-    const [manualQuestions, setManualQuestions] = useState<any[]>([]);
+    const [manualQuestions, setManualQuestions] = useState<Question[]>([]);
 
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [pdfQuestions, setPdfQuestions] = useState<any[]>([]);
+    const [pdfQuestions, setPdfQuestions] = useState<Question[]>([]);
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
 
-    // Persistence logic for InterviewMode
+    // Persistence logic for CompetitiveMode
     useEffect(() => {
-        const saved = localStorage.getItem('interviewModeState');
+        const saved = localStorage.getItem('competitiveModeState');
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
@@ -64,7 +64,7 @@ const InterviewMode = () => {
                 if (parsed.startTime) setStartTime(parsed.startTime);
                 if (parsed.endTime) setEndTime(parsed.endTime);
             } catch (e) {
-                console.error("Failed to restore InterviewMode session", e);
+                console.error("Failed to restore CompetitiveMode session", e);
             }
         }
     }, []);
@@ -85,7 +85,7 @@ const InterviewMode = () => {
             startTime,
             endTime
         };
-        localStorage.setItem('interviewModeState', JSON.stringify(stateToSave));
+        localStorage.setItem('competitiveModeState', JSON.stringify(stateToSave));
     }, [
         creationMode, pdfSubMode, manualStep, setupNumQuestions, setupNumOptions,
         setupTimePerQuestion, setupMarksPerQuestion, setupNegativeMarks,
@@ -188,7 +188,7 @@ const InterviewMode = () => {
     };
 
     const handlePublishToStudents = () => {
-        let questionsToPublish: any[] = [];
+        let questionsToPublish: Question[] = [];
         if (creationMode === 'manual') {
             questionsToPublish = manualQuestions;
         } else if (creationMode === 'pdf') {
@@ -200,27 +200,26 @@ const InterviewMode = () => {
             return;
         }
 
-        const quizId = `qz-interview-${Date.now()}`;
-        const quizTitle = `INT: ${creationMode === 'pdf' ? selectedFile?.name : 'Manual Interview'} - ${new Date().toLocaleDateString()}`;
+        const quizId = `qz-competitive-${Date.now()}`;
+        const quizTitle = `CMP: ${creationMode === 'pdf' ? selectedFile?.name : 'Manual Competitive'} - ${new Date().toLocaleDateString()}`;
 
-        const quizToAdd: Omit<Quiz, 'id' | 'status'> = {
+        const quizToAdd: Omit<Quiz, 'id' | 'status' | 'isCompetitive'> = {
             quizId: quizId,
             title: quizTitle,
-            courseName: 'Interview Selection',
+            courseName: 'Competitive Selection',
             questions: [], // Will be populated by addQuiz
             timeLimitMinutes: (setupTimePerQuestion * questionsToPublish.length) / 60,
             negativeMarking: setupNegativeMarks > 0,
-            competitionMode: false,
+            competitionMode: true,
             scheduledDate: scheduledDate,
             startTime: startTime,
             endTime: endTime,
             negativeMarksValue: setupNegativeMarks,
             difficulty: 'Medium',
-            passPercentage: 0, // Interview mode doesn't have pass/fail
+            passPercentage: 0,
             totalQuestions: questionsToPublish.length,
-            requiredCorrectAnswers: 0, // Interview mode doesn't have pass/fail
+            requiredCorrectAnswers: 0,
             createdAt: '', // Will be set by addQuiz
-            isInterview: true, // Mark as interview
         };
 
         const questionsData: Omit<Question, 'id'>[] = questionsToPublish.map(q => ({
@@ -230,10 +229,12 @@ const InterviewMode = () => {
             correctAnswer: q.correctAnswer || q.hints || 'No answer provided',
             marks: q.marks || 1,
             timeLimitMinutes: (q.timeLimit || setupTimePerQuestion) / 60,
+            explanation: '',
         }));
 
-        addQuiz(quizToAdd, questionsData);
-        toast.success("Interview session published to students!");
+        // @ts-ignore - explicitly setting isCompetitive for the context to handle
+        addQuiz({ ...quizToAdd, isCompetitive: true }, questionsData);
+        toast.success("Competitive session published to students!");
     };
 
     return (
@@ -480,7 +481,7 @@ const InterviewMode = () => {
                                 <div className="space-y-2">
                                     <h3 className="text-xl font-bold text-gray-800">Generate by PDF</h3>
                                     <p className="text-sm text-gray-500 max-w-xs mx-auto">
-                                        Upload your study material in PDF format to generate relevant interview questions automatically.
+                                        Upload your study material in PDF format to generate relevant competitive questions automatically.
                                     </p>
                                 </div>
 
@@ -584,4 +585,4 @@ const InterviewMode = () => {
     );
 };
 
-export default InterviewMode;
+export default CompetitiveMode;

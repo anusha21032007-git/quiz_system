@@ -7,7 +7,7 @@ import { PlusCircle, History, Clock, Trash2, Wand2, FileText, ArrowLeft, Brain, 
 import { toast } from 'sonner';
 import QuestionCreator from './QuestionCreator';
 import QuizCreator from './QuizCreator';
-import InterviewMode from './InterviewMode';
+import CompetitiveMode from './CompetitiveMode';
 
 import { useSearchParams } from 'react-router-dom';
 import BackButton from '@/components/ui/BackButton';
@@ -74,7 +74,7 @@ const GenerateQuizLanding = () => {
     const handleBack = () => {
         if (view === 'selection') {
             setView('initial');
-        } else if (view === 'manual' || view === 'automated' || view === 'interview') {
+        } else if (view === 'manual' || view === 'automated' || view === 'competitive') {
             setView('selection');
         } else {
             // Default dashboard back behavior
@@ -134,14 +134,14 @@ const GenerateQuizLanding = () => {
         );
     }
 
-    if (view === 'interview') {
+    if (view === 'competitive') {
         return (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
                 <div className="flex items-center justify-between">
                     <BackButton onClick={handleBack} className="bg-white shadow-xl shadow-gray-100/50 border border-gray-100 px-8 py-7 rounded-[24px] hover:bg-black hover:text-white transition-all duration-300" />
-                    <div className="px-6 py-2 bg-rose-600 text-white rounded-full text-[10px] font-black uppercase tracking-[0.2em]">Interview Mode</div>
+                    <div className="px-6 py-2 bg-rose-600 text-white rounded-full text-[10px] font-black uppercase tracking-[0.2em]">Competitive Mode</div>
                 </div>
-                <InterviewMode />
+                <CompetitiveMode />
             </div>
         );
     }
@@ -222,7 +222,7 @@ const GenerateQuizLanding = () => {
 
                         <Card
                             className="group cursor-pointer border-2 border-gray-100 hover:border-rose-600 transition-all duration-700 hover:shadow-[0_40px_100px_-20px_rgba(225,29,72,0.2)] rounded-[48px] overflow-hidden bg-white active:scale-[0.98] relative"
-                            onClick={() => setView('interview')}
+                            onClick={() => setView('competitive')}
                         >
                             <div className="absolute top-0 left-0 w-full h-2 bg-rose-50 group-hover:bg-rose-600 transition-colors" />
                             <CardContent className="p-10 flex flex-col items-center text-center gap-8">
@@ -230,11 +230,11 @@ const GenerateQuizLanding = () => {
                                     <Brain className="h-10 w-10 text-rose-600 group-hover:text-white transition-colors" />
                                 </div>
                                 <div className="space-y-4">
-                                    <h3 className="text-3xl font-black text-gray-900 tracking-tighter">Interview</h3>
+                                    <h3 className="text-3xl font-black text-gray-900 tracking-tighter">Competitive</h3>
                                     <p className="text-gray-500 font-bold leading-relaxed px-2 text-base">Interactive challenge mode with real-time feedback.</p>
                                 </div>
                                 <Button className="w-full h-14 rounded-[24px] bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(225,29,72,0.3)] border-transparent">
-                                    Start Interview
+                                    Start Competitive
                                 </Button>
                             </CardContent>
                         </Card>

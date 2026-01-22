@@ -42,7 +42,7 @@ export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | '
   scheduledDate: string;
   negativeMarksValue: number;
   difficulty: 'Easy' | 'Medium' | 'Hard';
-  isInterview?: boolean;
+  isCompetitive?: boolean;
   maxAttempts?: number;
 }
 
@@ -54,6 +54,8 @@ export interface QuizAttempt {
   totalQuestions: number;
   correctAnswersCount: number;
   passed: boolean;
+  status: 'SUBMITTED' | 'CORRUPTED';
+  violationCount: number;
   answers: { questionId: string; selectedAnswer: string; isCorrect: boolean; marksObtained: number }[];
   timestamp: number;
   timeTakenSeconds: number;
@@ -100,7 +102,7 @@ const mapSupabaseQuizToLocal = (sQuiz: SupabaseQuiz): Quiz => ({
   quizId: sQuiz.id,
   title: sQuiz.title,
   courseName: sQuiz.course_name,
-  questions: [], 
+  questions: [],
   timeLimitMinutes: sQuiz.time_limit_minutes,
   negativeMarking: sQuiz.negative_marking,
   competitionMode: sQuiz.competition_mode,
@@ -108,13 +110,13 @@ const mapSupabaseQuizToLocal = (sQuiz: SupabaseQuiz): Quiz => ({
   startTime: sQuiz.start_time,
   endTime: sQuiz.end_time,
   negativeMarksValue: sQuiz.negative_marks_value,
-  status: sQuiz.status === 'published' ? 'ACTIVE' : sQuiz.status as any,
+  status: sQuiz.status === 'published' ? 'ACTIVE' : sQuiz.status as Quiz['status'],
   difficulty: sQuiz.difficulty,
   passPercentage: sQuiz.pass_mark_percentage || 0,
   totalQuestions: sQuiz.total_questions || 0,
   requiredCorrectAnswers: sQuiz.required_correct_answers || 0,
   createdAt: sQuiz.created_at,
-  isInterview: sQuiz.title.startsWith('INT:') || sQuiz.course_name.includes('Interview'),
+  isCompetitive: sQuiz.competition_mode || sQuiz.title.startsWith('CMP:') || sQuiz.course_name.includes('Competitive'),
 });
 
 export const QuizProvider = ({ children }: { children: ReactNode }) => {
@@ -275,10 +277,10 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
       id: localId,
       quizId: localId,
       questions: newLocalQuestions,
-      passPercentage: (quiz as any).passPercentage || (quiz as any).passMarkPercentage || 0,
+      passPercentage: quiz.passPercentage || 0,
       status: 'ACTIVE',
       createdAt: new Date().toISOString(),
-      maxAttempts: (quiz as any).maxAttempts || 1,
+      maxAttempts: quiz.maxAttempts || 1,
     };
 
     setLocalQuizzes(prev => [...prev, newLocalQuiz]);
@@ -302,7 +304,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
         course_name: quiz.courseName,
         time_limit_minutes: quiz.timeLimitMinutes,
         negative_marking: quiz.negativeMarking,
-        competition_mode: quiz.competition_mode,
+        competition_mode: quiz.competitionMode,
         scheduled_date: quiz.scheduledDate,
         start_time: quiz.startTime,
         end_time: quiz.endTime,
@@ -366,7 +368,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
         const found = questions.filter((q: Question) => q.quizId === quizId);
         if (found.length > 0) return found;
       }
-    } catch (e) {}
+    } catch (e) { }
 
     if (quizId.startsWith('qz-local-')) return [];
 
@@ -387,7 +389,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
         correctAnswer: sQ.correct_answer,
         marks: sQ.marks,
         timeLimitMinutes: sQ.time_limit_minutes,
-        explanation: (sQ as any).explanation || '',
+        explanation: sQ.explanation || '',
       }));
     } catch (error) {
       console.error("Error fetching questions:", quizId, error);
@@ -408,27 +410,23 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     timePerQuestionSeconds: number
   ): Promise<Question[]> => {
     try {
-      const prompt = aiService.generatePrompt({
-        subjectName: coursePaperName,
-        totalQuestions: numQuestions,
-        mcqOptions: numOptions,
-        difficulty: difficulty,
-        marksPerQuestion: marksPerQuestion,
-        timePerQuestionSeconds: timePerQuestionSeconds
+      const response = await aiService.generateQuestions({
+        topic: coursePaperName,
+        count: numQuestions,
+        difficulty: difficulty.toLowerCase() as 'easy' | 'medium' | 'hard',
+        marks: marksPerQuestion,
+        timeLimitSeconds: timePerQuestionSeconds
       });
-
-      const response = await aiService.callGeminiAPI(prompt);
 
       if (response && response.questions && response.questions.length > 0) {
         return aiService.mapResponseToQuestions(
           response.questions,
-          'ai-generated',
-          marksPerQuestion,
-          timePerQuestionSeconds
+          'ai-generated'
         );
       }
     } catch (error) {
-      console.error("Gemini API failed:", error);
+      console.error("AI Generation failed:", error);
+      toast.error("AI Generation failed. Please try again.");
     }
     return [];
   };

@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { User, BookOpen, BarChart, Trophy, ListChecks, Brain, MessageSquare, Briefcase, PlayCircle, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import StudentInterviewSession from './StudentInterviewSession';
+import StudentCompetitiveSession from './StudentCompetitiveSession';
 
 interface StudentDashboardContentProps {
   activeView: string;
@@ -45,7 +45,7 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
   // Note: allQuizzes is already filtered for ACTIVE, so this is just a pass-through or re-memoization
   const quizzes = useMemo(() => allQuizzes, [allQuizzes]);
 
-  const [selectedInterview, setSelectedInterview] = React.useState<Quiz | null>(null);
+  const [selectedCompetitive, setSelectedCompetitive] = React.useState<Quiz | null>(null);
 
   // Clear new quiz notification/flag when viewing quizzes page
   React.useEffect(() => {
@@ -157,32 +157,32 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
     </div>
   );
 
-  const renderInterviewMode = () => {
-    if (selectedInterview) {
+  const renderCompetitiveMode = () => {
+    if (selectedCompetitive) {
       return (
-        <StudentInterviewSession
-          quiz={selectedInterview}
+        <StudentCompetitiveSession
+          quiz={selectedCompetitive}
           studentName={studentName}
-          onExit={() => setSelectedInterview(null)}
+          onExit={() => setSelectedCompetitive(null)}
         />
       );
     }
 
-    const interviewSessions = quizzes.filter(q => q.isInterview);
+    const competitiveSessions = quizzes.filter(q => q.isCompetitive);
 
     return (
       <div className="space-y-8 animate-in fade-in duration-500">
         <div className="flex flex-col gap-2">
           <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
             <Brain className="h-8 w-8 text-purple-600" />
-            Interview Prep Sessions
+            Competitive Prep Sessions
           </h2>
           <p className="text-gray-500 max-w-2xl">
-            Join self-paced interview practice sessions published by your instructors. These focus on concept clarity and open-ended responses.
+            Join self-paced competitive practice sessions published by your instructors. These focus on concept clarity and open-ended responses.
           </p>
         </div>
 
-        {interviewSessions.length === 0 ? (
+        {competitiveSessions.length === 0 ? (
           <Card className="p-16 text-center border-dashed border-2 bg-gray-50/50">
             <div className="flex flex-col items-center gap-4">
               <div className="bg-white p-4 rounded-full shadow-sm border">
@@ -190,13 +190,13 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
               </div>
               <div className="space-y-1">
                 <h3 className="text-xl font-semibold text-gray-700">No active sessions</h3>
-                <p className="text-gray-500">Check back later for new interview practice sessions.</p>
+                <p className="text-gray-500">Check back later for new competitive practice sessions.</p>
               </div>
             </div>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {interviewSessions.map((session) => {
+            {competitiveSessions.map((session) => {
               const isCompleted = quizAttempts.some(a => a.quizId === session.id && a.studentName === studentName);
 
               return (
@@ -214,10 +214,10 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
                       )}
                     </div>
                     <CardTitle className="text-xl line-clamp-1 group-hover:text-purple-700 transition-colors">
-                      {session.title.replace('INT: ', '')}
+                      {session.title.replace('CMP: ', '').replace('INT: ', '')}
                     </CardTitle>
                     <CardDescription className="line-clamp-2">
-                      Practical interview preparation for {session.courseName}.
+                      Practical competitive preparation for {session.courseName}.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="flex-grow">
@@ -230,7 +230,7 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
                   </CardContent>
                   <CardFooter className="pt-4 border-t bg-gray-50/50">
                     <Button
-                      onClick={() => setSelectedInterview(session)}
+                      onClick={() => setSelectedCompetitive(session)}
                       className={cn(
                         "w-full shadow-md group-hover:scale-[1.02] transition-transform gap-2",
                         isCompleted ? "bg-gray-800 hover:bg-gray-900" : "bg-purple-600 hover:bg-purple-700"
@@ -291,8 +291,8 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
       return renderMyCourses();
     case 'quizzes':
       return renderQuizzes();
-    case 'interview-mode':
-      return renderInterviewMode();
+    case 'competitive-mode':
+      return renderCompetitiveMode();
     case 'my-results':
       return renderMyResults();
     case 'leaderboard':

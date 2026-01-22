@@ -38,6 +38,15 @@ const StudentDashboard = () => {
   const studentName = studentData?.name || 'Loading...';
   const registerNumber = studentData?.register_number || 'N/A';
 
+  const isCompetitiveMode = activeView === 'competitive-mode';
+
+  if (isCompetitiveMode) {
+    return (
+      <div className="h-screen bg-white">
+        <StudentDashboardContent activeView={activeView} studentName={studentName} registerNumber={registerNumber} />
+      </div>
+    );
+  }
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <header className="flex items-center justify-between p-4 border-b bg-white shadow-sm lg:hidden flex-shrink-0">
