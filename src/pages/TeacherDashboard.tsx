@@ -139,7 +139,7 @@ const TeacherDashboard = () => {
           isLoading={isQuizzesLoading}
         />
         <StatCard
-          title="Avg. Score"
+          title="Avg. Attendance"
           value="82%"
           trend="+12%"
           icon={TrendingUp}
