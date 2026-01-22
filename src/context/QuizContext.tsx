@@ -135,8 +135,12 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
       const stored = localStorage.getItem('ALL_QUIZZES');
       if (stored) {
         const parsed = JSON.parse(stored);
+        const sanitizedQuizzes = (parsed.quizzes || []).map((q: any) => ({
+          ...q,
+          questions: q.questions || []
+        }));
         return {
-          quizzes: parsed.quizzes || [],
+          quizzes: sanitizedQuizzes,
           questions: parsed.questions || [],
           attempts: parsed.attempts || [],
           courses: parsed.courses || [],
@@ -415,7 +419,8 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
         count: numQuestions,
         difficulty: difficulty.toLowerCase() as 'easy' | 'medium' | 'hard',
         marks: marksPerQuestion,
-        timeLimitSeconds: timePerQuestionSeconds
+        timeLimitSeconds: timePerQuestionSeconds,
+        optionsCount: numOptions
       });
 
       if (response && response.questions && response.questions.length > 0) {

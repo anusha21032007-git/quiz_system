@@ -9,7 +9,6 @@ import PerformanceOverview from './PerformanceOverview';
 import StudentResultsList from './StudentResultsList';
 import QuizStatusTimeline from './QuizStatusTimeline';
 import NextActionCard from './NextActionCard';
-import InstructorNoticeCard from './InstructorNoticeCard';
 import ScheduledQuizAlert from './ScheduledQuizAlert';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -112,12 +111,9 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
             <span className="flex h-3 w-3 rounded-full bg-red-600 animate-pulse ring-2 ring-white absolute -right-4 top-1" />
           )}
         </h2>
-        {/* Top Row: Next Action & Notice Card */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <NextActionCard studentName={studentName} averageScore={averageScore} quizzes={quizzes} />
-          </div>
-          <InstructorNoticeCard />
+        {/* Top Row: Next Action Card (Full Width) */}
+        <div className="grid gap-6 grid-cols-1">
+          <NextActionCard studentName={studentName} averageScore={averageScore} quizzes={quizzes} />
         </div>
 
         {/* Display Active Quizzes List */}

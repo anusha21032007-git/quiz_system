@@ -244,13 +244,13 @@ const QuizCreator = () => {
   }, [quizData.quizTitle, step]);
 
   useEffect(() => {
-    const sumOfTimes = quizData.questions.reduce((sum, q) => {
+    const sumOfTimes = (quizData.questions || []).reduce((sum, q) => {
       return sum + (typeof q.timeLimitMinutes === 'number' && q.timeLimitMinutes > 0 ? q.timeLimitMinutes : 0);
     }, 0);
     setTotalCalculatedQuizTime(sumOfTimes);
   }, [quizData.questions]);
 
-  const totalQuizMarks = quizData.questions.reduce((sum, q) => sum + (typeof q.marks === 'number' ? q.marks : 0), 0);
+  const totalQuizMarks = (quizData.questions || []).reduce((sum, q) => sum + (typeof q.marks === 'number' ? q.marks : 0), 0);
 
   const validateQuizDraft = (): boolean => {
     if (!quizData.quizTitle.trim()) { toast.error("Please provide a quiz title."); return false; }
@@ -849,7 +849,7 @@ const QuizCreator = () => {
                     ) : (
                       <>
                         <Wand2 className="h-5 w-5 mr-2" />
-                        Generate {quizData.totalQuestions} Expert Questions for "{aiCoursePaperName || quizData.quizTitle || 'Topic'}"
+                        {quizData.questions.length > 0 ? 'Regenerate' : 'Generate'} {quizData.totalQuestions} Expert Questions for "{aiCoursePaperName || quizData.quizTitle || 'Topic'}"
                       </>
                     )}
                   </Button>

@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { PanelLeft, LayoutDashboard, BookOpen, ListChecks, Trophy, LogOut, BarChart, ArrowLeft, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useQuiz } from '@/context/QuizContext';
+import { useQuiz, Quiz } from '@/context/QuizContext';
 import { useAuth } from '@/context/AuthContext';
+import { Bell } from 'lucide-react';
 
 interface StudentSidebarProps {
   activeView: string;
@@ -16,8 +17,25 @@ interface StudentSidebarProps {
 }
 
 const StudentSidebar = ({ activeView, setActiveView, isMobile }: StudentSidebarProps) => {
-  const { hasNewQuizzes } = useQuiz();
+  const { hasNewQuizzes, quizzes } = useQuiz();
   const { signOut } = useAuth();
+
+  // Notice Logic: Get upcoming active quizzes
+  const upcomingQuizzes = React.useMemo(() => {
+    const now = new Date();
+    return quizzes
+      .filter(quiz => {
+        const scheduledTime = new Date(`${quiz.scheduledDate}T${quiz.startTime}`);
+        return quiz.status === 'ACTIVE' && scheduledTime > now;
+      })
+      .sort((a, b) => {
+        const timeA = new Date(`${a.scheduledDate}T${a.startTime}`).getTime();
+        const timeB = new Date(`${b.scheduledDate}T${b.startTime}`).getTime();
+        return timeA - timeB;
+      })
+      .slice(0, 3); // Show top 3 upcoming
+  }, [quizzes]);
+
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -59,6 +77,27 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile }: StudentSidebarP
             )}
           </Button>
         ))}
+      </div>
+
+      {/* Notice Section */}
+      <div className="mt-4 p-4 bg-indigo-50 rounded-xl border border-indigo-100 mx-1">
+        <h3 className="text-[10px] font-bold text-indigo-900 mb-3 flex items-center gap-2 uppercase tracking-widest">
+          <Bell className="h-3 w-3" /> Notices
+        </h3>
+        <div className="space-y-3">
+          {upcomingQuizzes.length > 0 ? (
+            upcomingQuizzes.map((quiz) => (
+              <div key={quiz.id} className="text-[11px] border-l-2 border-indigo-200 pl-2">
+                <p className="font-bold text-indigo-700 leading-tight mb-0.5">{quiz.title}</p>
+                <p className="text-indigo-500/80 font-medium">
+                  {new Date(quiz.scheduledDate).toLocaleDateString([], { month: 'short', day: 'numeric' })} • {quiz.startTime}
+                </p>
+              </div>
+            ))
+          ) : (
+            <p className="text-[11px] text-indigo-400 italic font-medium">No upcoming quizzes scheduled.</p>
+          )}
+        </div>
       </div>
 
       <div className="mt-auto pt-4 border-t-2 border-gray-100">

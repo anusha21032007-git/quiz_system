@@ -1,4 +1,5 @@
 import { Question } from '@/context/QuizContext';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface AIQuestionResponse {
     id: number;
@@ -28,23 +29,19 @@ export const aiService = {
         difficulty: 'easy' | 'medium' | 'hard';
         marks: number;
         timeLimitSeconds: number;
+        optionsCount: number;
     }): Promise<AIRootResponse | null> => {
         try {
-            const response = await fetch('http://localhost:5000/api/ai/generate-questions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(params),
+            const { data, error } = await supabase.functions.invoke('generate-quiz-questions', {
+                body: params,
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error("AI Generation failed:", errorData.error);
+            if (error) {
+                console.error("AI Generation failed:", error);
                 return null;
             }
 
-            return await response.json() as AIRootResponse;
+            return data as AIRootResponse;
         } catch (error) {
             console.error("Error calling AI backend:", error);
             return null;
@@ -64,7 +61,7 @@ export const aiService = {
                 correctAnswer: item.options[item.correctIndex],
                 marks: item.marks,
                 timeLimitMinutes: item.timeLimitSeconds / 60,
-                explanation: "" // Explanation is not in the new enforced format but can be added if needed
+                explanation: item.explanation || ""
             };
         });
     }

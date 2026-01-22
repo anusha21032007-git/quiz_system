@@ -126,50 +126,6 @@ const TeacherDashboard = () => {
     }).length;
   }, [quizzes, isQuizzesLoading]);
 
-  const upcomingDeadlines = useMemo(() => {
-    if (isQuizzesLoading) return [];
-    const now = new Date();
-    const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-
-    return quizzes
-      .filter(quiz => {
-        const quizDeadline = new Date(`${quiz.scheduledDate}T${quiz.endTime}`);
-        return (
-          quiz.status === 'ACTIVE' &&
-          quizDeadline > now &&
-          quizDeadline <= twentyFourHoursFromNow
-        );
-      })
-      .sort((a, b) => {
-        const deadlineA = new Date(`${a.scheduledDate}T${a.endTime}`).getTime();
-        const deadlineB = new Date(`${b.scheduledDate}T${b.endTime}`).getTime();
-        return deadlineA - deadlineB;
-      })
-      .map(quiz => {
-        const deadline = new Date(`${quiz.scheduledDate}T${quiz.endTime}`);
-        const diffMs = deadline.getTime() - now.getTime();
-        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-        const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-        let status = 'Pending';
-        let color = 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20';
-
-        if (diffHours < 3) {
-          status = 'Urgent';
-          color = 'bg-red-500/10 text-red-500 border border-red-500/20';
-        } else if (diffHours < 12) {
-          status = 'Active';
-          color = 'bg-orange-500/10 text-orange-500 border border-orange-500/20';
-        }
-
-        return {
-          title: quiz.title,
-          time: `Ends in ${diffHours}h ${diffMinutes}m`,
-          status,
-          color,
-        };
-      });
-  }, [quizzes, isQuizzesLoading]);
 
   const recentActivity = useMemo(() => {
     if (isQuizzesLoading) return []; // Depend on quizzes loading for quiz titles
@@ -227,7 +183,7 @@ const TeacherDashboard = () => {
 
       const quiz = quizzes.find(q => q.id === attempt.quizId);
       if (quiz) {
-        const quizMaxMarks = quiz.questions.reduce((sum, q) => sum + q.marks, 0);
+        const quizMaxMarks = (quiz.questions || []).reduce((sum, q) => sum + q.marks, 0);
         studentPerf.totalMaxPossibleMarks += quizMaxMarks;
       }
     });
@@ -311,7 +267,7 @@ const TeacherDashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recent Activity */}
-        <div className="lg:col-span-2 bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm">
+        <div className="lg:col-span-3 bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm">
           <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
             Recent Activity
           </h3>
@@ -332,25 +288,6 @@ const TeacherDashboard = () => {
             ) : (
               <div className="text-center py-10 text-slate-400">
                 No recent quiz submissions.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Upcoming Deadlines */}
-        <div className="bg-slate-900 rounded-[32px] p-8 shadow-2xl flex flex-col">
-          <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-            <Clock className="h-5 w-5 text-orange-400" />
-            Upcoming Deadlines
-          </h3>
-          <div className="space-y-4 flex-1">
-            {upcomingDeadlines.length > 0 ? (
-              upcomingDeadlines.map((item, index) => (
-                <DeadlineItem key={index} title={item.title} time={item.time} status={item.status} color={item.color} />
-              ))
-            ) : (
-              <div className="text-center py-10 text-slate-400">
-                No upcoming deadlines in the next 24 hours.
               </div>
             )}
           </div>

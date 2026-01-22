@@ -86,9 +86,9 @@ const QuizPage = () => {
       return;
     }
 
-    if (questions.length > 0) {
+    if (questions && questions.length > 0) {
       // Calculate total time limit based on individual question times
-      const totalDuration = questions.reduce((sum, q) => sum + q.timeLimitMinutes, 0) * 60; // Convert minutes to seconds
+      const totalDuration = (questions || []).reduce((sum, q) => sum + q.timeLimitMinutes, 0) * 60; // Convert minutes to seconds
       setInitialTime(totalDuration);
       setTimeLeft(totalDuration);
     }
@@ -206,8 +206,8 @@ const QuizPage = () => {
       }
     }
 
-    const totalScore = finalAnswers.reduce((sum, ans) => sum + ans.marksObtained, 0);
-    const correctAnswersCount = finalAnswers.filter(ans => ans.isCorrect).length;
+    const totalScore = (finalAnswers || []).reduce((sum, ans) => sum + ans.marksObtained, 0);
+    const correctAnswersCount = (finalAnswers || []).filter(ans => ans.isCorrect).length;
     const timeTaken = initialTime - timeLeft;
     const passed = correctAnswersCount >= (quiz.requiredCorrectAnswers || 0);
 
@@ -289,8 +289,8 @@ const QuizPage = () => {
   };
 
   if (showResults) {
-    const finalScore = answers.reduce((sum, ans) => sum + ans.marksObtained, 0);
-    const totalPossibleMarks = questions.reduce((sum, q) => sum + q.marks, 0);
+    const finalScore = (answers || []).reduce((sum, ans) => sum + ans.marksObtained, 0);
+    const totalPossibleMarks = (questions || []).reduce((sum, q) => sum + q.marks, 0);
     const timeTaken = initialTime - timeLeft;
     const totalCorrectAnswers = answers.filter(ans => ans.isCorrect).length;
     const totalWrongAnswers = answers.filter(ans => !ans.isCorrect && ans.selectedAnswer !== null).length;

@@ -55,7 +55,7 @@ const Leaderboard = () => {
       // Calculate total possible marks for this specific quiz attempt
       const quiz = quizzes.find(q => q.id === attempt.quizId);
       if (quiz) {
-        const quizMaxMarks = quiz.questions.reduce((sum, q) => sum + q.marks, 0);
+        const quizMaxMarks = (quiz.questions || []).reduce((sum, q) => sum + q.marks, 0);
         studentPerf.totalMaxPossibleMarks += quizMaxMarks;
       }
     });
@@ -138,9 +138,9 @@ const Leaderboard = () => {
                         <span className={cn(
                           "inline-flex items-center justify-center w-8 h-8 rounded-full",
                           index === 0 ? "bg-yellow-400 text-white" :
-                          index === 1 ? "bg-slate-300 text-white" :
-                          index === 2 ? "bg-orange-300 text-white" :
-                          "bg-gray-100 text-gray-600"
+                            index === 1 ? "bg-slate-300 text-white" :
+                              index === 2 ? "bg-orange-300 text-white" :
+                                "bg-gray-100 text-gray-600"
                         )}>
                           {index + 1}
                         </span>
