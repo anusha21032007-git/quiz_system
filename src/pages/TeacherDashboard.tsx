@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { useQuiz } from '@/context/QuizContext';
+import { useQuiz, Quiz } from '@/context/QuizContext'; // Import Quiz type
 import GenerateQuizLanding from '@/components/teacher/GenerateQuizLanding';
 import UsersList from '@/components/teacher/UsersList';
 import HistoryList from '@/components/teacher/HistoryList';
@@ -104,6 +104,51 @@ const TeacherDashboard = () => {
     }).length;
   }, [quizzes, isQuizzesLoading]);
 
+  const upcomingDeadlines = useMemo(() => {
+    if (isQuizzesLoading) return [];
+    const now = new Date();
+    const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    return quizzes
+      .filter(quiz => {
+        const quizDeadline = new Date(`${quiz.scheduledDate}T${quiz.endTime}`);
+        return (
+          quiz.status === 'ACTIVE' &&
+          quizDeadline > now &&
+          quizDeadline <= twentyFourHoursFromNow
+        );
+      })
+      .sort((a, b) => {
+        const deadlineA = new Date(`${a.scheduledDate}T${a.endTime}`).getTime();
+        const deadlineB = new Date(`${b.scheduledDate}T${b.endTime}`).getTime();
+        return deadlineA - deadlineB;
+      })
+      .map(quiz => {
+        const deadline = new Date(`${quiz.scheduledDate}T${quiz.endTime}`);
+        const diffMs = deadline.getTime() - now.getTime();
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+        let status = 'Pending';
+        let color = 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20';
+
+        if (diffHours < 3) {
+          status = 'Urgent';
+          color = 'bg-red-500/10 text-red-500 border border-red-500/20';
+        } else if (diffHours < 12) {
+          status = 'Active';
+          color = 'bg-orange-500/10 text-orange-500 border border-orange-500/20';
+        }
+
+        return {
+          title: quiz.title,
+          time: `Ends in ${diffHours}h ${diffMinutes}m`,
+          status,
+          color,
+        };
+      });
+  }, [quizzes, isQuizzesLoading]);
+
   const overviewContent = (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Welcome Header */}
@@ -198,24 +243,15 @@ const TeacherDashboard = () => {
             Upcoming Deadlines
           </h3>
           <div className="space-y-4 flex-1">
-            <DeadlineItem
-              title="Cryptography Final"
-              time="Starts in 3 hours"
-              status="Urgent"
-              color="bg-red-500/10 text-red-500 border border-red-500/20"
-            />
-            <DeadlineItem
-              title="OS Lab Submission"
-              time="Starts Tomorrow"
-              status="Active"
-              color="bg-orange-500/10 text-orange-500 border border-orange-500/20"
-            />
-            <DeadlineItem
-              title="DBMS Group Quiz"
-              time="Starts in 2 Days"
-              status="Pending"
-              color="bg-indigo-500/10 text-indigo-500 border border-indigo-500/20"
-            />
+            {upcomingDeadlines.length > 0 ? (
+              upcomingDeadlines.map((item, index) => (
+                <DeadlineItem key={index} title={item.title} time={item.time} status={item.status} color={item.color} />
+              ))
+            ) : (
+              <div className="text-center py-10 text-slate-400">
+                No upcoming deadlines in the next 24 hours.
+              </div>
+            )}
           </div>
         </div>
       </div>
