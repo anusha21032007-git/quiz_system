@@ -1,11 +1,10 @@
 "use client";
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuiz, QuizAttempt } from '@/context/QuizContext';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
 import { Trophy, Users, Clock } from 'lucide-react';
 import BackButton from '@/components/ui/BackButton';
 import { cn } from '@/lib/utils';
@@ -13,16 +12,29 @@ import { cn } from '@/lib/utils';
 const Leaderboard = () => {
   const { quizAttempts, quizzes } = useQuiz();
 
+  // Filter quizzes to include only AI-generated or manually created (non-competitive)
+  const relevantQuizzes = useMemo(() => {
+    const aiOrManualQuizzes = quizzes.filter(q =>
+      (q.title.includes('(AI Generated)') || q.id.startsWith('qz-local-')) && !q.isCompetitive
+    );
+    return new Set(aiOrManualQuizzes.map(q => q.id));
+  }, [quizzes]);
+
+  // Filter attempts to only include those from relevant quizzes
+  const filteredAttempts = useMemo(() => {
+    return quizAttempts.filter(attempt => relevantQuizzes.has(attempt.quizId));
+  }, [quizAttempts, relevantQuizzes]);
+
   // Group attempts by quiz
   const groupedAttempts: { [quizId: string]: QuizAttempt[] } = {};
-  quizAttempts.forEach(attempt => {
+  filteredAttempts.forEach(attempt => {
     if (!groupedAttempts[attempt.quizId]) {
       groupedAttempts[attempt.quizId] = [];
     }
     groupedAttempts[attempt.quizId].push(attempt);
   });
 
-  // Sort attempts by score (desc), then time taken (asc)
+  // Sort attempts by score (desc), then time taken (asc) and take top 3
   Object.keys(groupedAttempts).forEach(quizId => {
     groupedAttempts[quizId].sort((a, b) => {
       if (b.score !== a.score) {
@@ -30,6 +42,7 @@ const Leaderboard = () => {
       }
       return a.timeTakenSeconds - b.timeTakenSeconds; // Tie-breaker: faster time wins
     });
+    groupedAttempts[quizId] = groupedAttempts[quizId].slice(0, 3); // Take only top 3
   });
 
   const formatTime = (seconds: number) => {
@@ -43,9 +56,9 @@ const Leaderboard = () => {
       <header className="max-w-4xl mx-auto space-y-4 mb-10">
         <BackButton />
         <div className="pb-4 border-b-2 border-gray-100 flex items-center justify-between">
-          <h1 className="text-4xl font-bold text-black tracking-tight">Leaderboard</h1>
+          <h1 className="text-4xl font-bold text-black tracking-tight">Top Ranks Leaderboard</h1>
           <div className="px-4 py-1 bg-gray-50 border border-gray-200 rounded-full text-xs font-mono text-gray-500">
-            Live Ranking
+            AI & Manual Quizzes
           </div>
         </div>
       </header>
@@ -56,9 +69,9 @@ const Leaderboard = () => {
             <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
               <Trophy className="h-10 w-10 text-slate-200" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">No Quiz Results Yet</h3>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">No Relevant Quiz Results Yet</h3>
             <p className="text-slate-500 max-w-xs mx-auto italic">
-              "Competitive rankings will manifest here as students complete their assessments."
+              "Top rankings for AI-generated and manually created quizzes will appear here."
             </p>
           </div>
         ) : (
@@ -75,7 +88,7 @@ const Leaderboard = () => {
                   </h3>
                   <div className="flex items-center gap-3">
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                      {groupedAttempts[quizId].length} Participants
+                      {groupedAttempts[quizId].length} Top Participant{groupedAttempts[quizId].length !== 1 && 's'}
                     </span>
                   </div>
                 </div>
