@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useQuiz } from '@/context/QuizContext';
 import GenerateQuizLanding from '@/components/teacher/GenerateQuizLanding';
 import UsersList from '@/components/teacher/UsersList';
@@ -86,6 +86,23 @@ const TeacherDashboard = () => {
   const activeView = searchParams.get('view') || 'overview';
 
   const { data: studentCount, isLoading: isStudentCountLoading } = useStudentCount();
+  const { quizzes, isQuizzesLoading } = useQuiz();
+
+  const activeQuizzesCount = useMemo(() => {
+    if (isQuizzesLoading) return 0;
+    const now = new Date();
+    const todayDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
+
+    return quizzes.filter(quiz => {
+      const isToday = quiz.scheduledDate === todayDate;
+      if (!isToday) return false;
+
+      const startTime = new Date(`${quiz.scheduledDate}T${quiz.startTime}`);
+      const endTime = new Date(`${quiz.scheduledDate}T${quiz.endTime}`);
+
+      return now >= startTime && now <= endTime && quiz.status === 'ACTIVE';
+    }).length;
+  }, [quizzes, isQuizzesLoading]);
 
   const overviewContent = (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -115,10 +132,11 @@ const TeacherDashboard = () => {
         />
         <StatCard
           title="Active Quizzes"
-          value="24"
+          value={activeQuizzesCount}
           trend="+12%"
           icon={BookOpen}
           color="border-indigo-100"
+          isLoading={isQuizzesLoading}
         />
         <StatCard
           title="Avg. Score"
