@@ -22,7 +22,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Timer,
-  Loader2
+  Loader2,
+  Trophy // Imported Trophy icon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -236,10 +237,10 @@ const TeacherDashboard = () => {
           color="border-emerald-100"
         />
         <StatCard
-          title="Hours Taught"
-          value="156"
+          title="Top Ranks"
+          value="Top 5"
           trend="+12%"
-          icon={Clock}
+          icon={Trophy}
           color="border-orange-100"
         />
       </div>
