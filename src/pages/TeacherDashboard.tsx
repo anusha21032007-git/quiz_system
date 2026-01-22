@@ -21,17 +21,21 @@ import {
   Clock,
   AlertCircle,
   CheckCircle2,
-  Timer
+  Timer,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useStudentCount } from '@/integrations/supabase/users'; // Import the new hook
 
-const StatCard = ({ title, value, trend, icon: Icon, color }: any) => (
+const StatCard = ({ title, value, trend, icon: Icon, color, isLoading }: any) => (
   <div className={cn("bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm transition-all hover:shadow-md", color)}>
     <div className="flex justify-between items-start mb-4">
       <div>
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{title}</p>
-        <p className="text-3xl font-bold text-slate-900">{value}</p>
+        <p className="text-3xl font-bold text-slate-900">
+          {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-indigo-600" /> : value}
+        </p>
       </div>
       <div className={cn("p-2 rounded-xl", color.replace('bg-', 'bg-').replace('border-', 'bg-').split(' ')[0] + "/10")}>
         <Icon className={cn("h-5 w-5", color.replace('bg-', 'text-').split(' ')[1])} />
@@ -81,6 +85,8 @@ const TeacherDashboard = () => {
   const [searchParams] = useSearchParams();
   const activeView = searchParams.get('view') || 'overview';
 
+  const { data: studentCount, isLoading: isStudentCountLoading } = useStudentCount();
+
   const overviewContent = (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Welcome Header */}
@@ -101,10 +107,11 @@ const TeacherDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Students"
-          value="1,284"
+          value={studentCount}
           trend="+12%"
           icon={UsersIcon}
           color="border-indigo-100"
+          isLoading={isStudentCountLoading}
         />
         <StatCard
           title="Active Quizzes"
