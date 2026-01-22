@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { useQuiz, Quiz } from '@/context/QuizContext'; // Import Quiz type
+import { useQuiz, QuizAttempt } from '@/context/QuizContext';
 import GenerateQuizLanding from '@/components/teacher/GenerateQuizLanding';
 import UsersList from '@/components/teacher/UsersList';
 import HistoryList from '@/components/teacher/HistoryList';
@@ -69,7 +69,7 @@ const ActivityItem = ({ user, action, target, time, score, initials, color }: an
 );
 
 const DeadlineItem = ({ title, time, status, color }: any) => (
-  <div className="p-4 bg-slate-800/50 border border-slate-700/50 rounded-2xl hover:bg-slate-800 transition-colors">
+  <div className="p-4 bg-slate-900/50 border border-slate-700/50 rounded-2xl hover:bg-slate-800 transition-colors">
     <div className="flex justify-between items-start mb-2">
       <p className="text-sm font-bold text-white">{title}</p>
       <div className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider", color)}>
@@ -80,13 +80,34 @@ const DeadlineItem = ({ title, time, status, color }: any) => (
   </div>
 );
 
+// Helper function to get initials
+const getInitials = (name: string) => {
+  if (!name) return '??';
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+};
+
+// Helper function to format time ago
+const formatTimeAgo = (timestamp: number) => {
+  const now = Date.now();
+  const seconds = Math.floor((now - timestamp) / 1000);
+
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+};
+
+
 const TeacherDashboard = () => {
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const activeView = searchParams.get('view') || 'overview';
 
   const { data: studentCount, isLoading: isStudentCountLoading } = useStudentCount();
-  const { quizzes, isQuizzesLoading } = useQuiz();
+  const { quizzes, isQuizzesLoading, quizAttempts } = useQuiz();
 
   const activeQuizzesCount = useMemo(() => {
     if (isQuizzesLoading) return 0;
@@ -149,6 +170,30 @@ const TeacherDashboard = () => {
       });
   }, [quizzes, isQuizzesLoading]);
 
+  const recentActivity = useMemo(() => {
+    if (isQuizzesLoading) return []; // Depend on quizzes loading for quiz titles
+    return quizAttempts
+      .filter(attempt => attempt.status === 'SUBMITTED') // Only show successfully submitted quizzes
+      .sort((a, b) => b.timestamp - a.timestamp) // Sort by most recent
+      .slice(0, 5) // Get top 5 recent activities
+      .map((attempt: QuizAttempt) => {
+        const quiz = quizzes.find(q => q.id === attempt.quizId);
+        const quizTitle = quiz?.title || 'Unknown Quiz';
+        const scorePercentage = (attempt.score / attempt.totalQuestions) * 100;
+
+        return {
+          user: attempt.studentName,
+          action: "completed",
+          target: quizTitle,
+          time: formatTimeAgo(attempt.timestamp),
+          score: scorePercentage.toFixed(0),
+          initials: getInitials(attempt.studentName),
+          color: "bg-indigo-100 text-indigo-600" // Consistent color for activity items
+        };
+      });
+  }, [quizAttempts, quizzes, isQuizzesLoading]);
+
+
   const overviewContent = (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Welcome Header */}
@@ -206,33 +251,24 @@ const TeacherDashboard = () => {
             Recent Activity
           </h3>
           <div className="space-y-2">
-            <ActivityItem
-              user="John Doe"
-              action="completed"
-              target="Cryptography Quiz"
-              time="2m ago"
-              score="95"
-              initials="JD"
-              color="bg-indigo-100 text-indigo-600"
-            />
-            <ActivityItem
-              user="Alice Smith"
-              action="completed"
-              target="DBMS Assessment"
-              time="15m ago"
-              score="88"
-              initials="AS"
-              color="bg-blue-100 text-blue-600"
-            />
-            <ActivityItem
-              user="Robert Fox"
-              action="completed"
-              target="Network Essentials"
-              time="1h ago"
-              score="92"
-              initials="RF"
-              color="bg-emerald-100 text-emerald-600"
-            />
+            {recentActivity.length > 0 ? (
+              recentActivity.map((item, index) => (
+                <ActivityItem
+                  key={index}
+                  user={item.user}
+                  action={item.action}
+                  target={item.target}
+                  time={item.time}
+                  score={item.score}
+                  initials={item.initials}
+                  color={item.color}
+                />
+              ))
+            ) : (
+              <div className="text-center py-10 text-slate-400">
+                No recent quiz submissions.
+              </div>
+            )}
           </div>
         </div>
 
