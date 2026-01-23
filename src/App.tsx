@@ -5,7 +5,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Index from "./pages/Index";
+import HomePage from "./pages/HomePage";
+import AboutPage from "./pages/AboutPage";
+import LoginPage from "./pages/LoginPage";
+import SignupPage from "./pages/SignupPage";
 import NotFound from "./pages/NotFound";
 import { QuizProvider } from "@/context/QuizContext";
 import { AuthProvider } from "@/context/AuthContext";
@@ -32,26 +35,30 @@ const App = () => (
         <AuthProvider>
           <QuizProvider>
             <Routes>
-              <Route path="/" element={<Index />} />
-              
+              {/* Public Routes */}
+              <Route path="/" element={<HomePage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupPage />} />
+
               {/* Auth Routes */}
               <Route path="/teacher/login" element={<TeacherLogin />} />
               <Route path="/teacher/signup" element={<TeacherSignup />} />
               <Route path="/student/login" element={<StudentLogin />} />
-              
+
               {/* Teacher Protected Routes */}
               <Route path="/teacher" element={<AuthGuard allowedRole="teacher"><TeacherDashboard /></AuthGuard>} />
               <Route path="/teacher/courses" element={<AuthGuard allowedRole="teacher"><CoursesPage /></AuthGuard>} />
               <Route path="/teacher/history" element={<AuthGuard allowedRole="teacher"><HistoryPage /></AuthGuard>} />
-              
+
               {/* Student Protected Routes */}
               <Route path="/student" element={<AuthGuard allowedRole="student"><StudentDashboard /></AuthGuard>} />
               <Route path="/quiz/:quizId" element={<AuthGuard allowedRole="student"><QuizPage /></AuthGuard>} />
-              
+
               {/* Shared Protected Routes */}
               <Route path="/leaderboard" element={<AuthGuard><Leaderboard /></AuthGuard>} />
               <Route path="/quiz-preview/:quizId" element={<AuthGuard allowedRole="teacher"><QuizPreviewPage /></AuthGuard>} />
-              
+
               <Route path="*" element={<NotFound />} />
             </Routes>
           </QuizProvider>

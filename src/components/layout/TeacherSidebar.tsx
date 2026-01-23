@@ -1,6 +1,4 @@
-"use client";
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -23,8 +21,9 @@ interface TeacherSidebarProps {
 }
 
 const TeacherSidebar = ({ activeView, isMobile }: TeacherSidebarProps) => {
-  const { signOut, user } = useAuth();
-  
+  const { signOut, user, teacherData } = useAuth();
+  const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
+
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard, path: '/teacher?view=overview' },
     { id: 'create-quiz', label: 'Create Quiz', icon: PlusCircle, path: '/teacher?view=create-quiz' },
@@ -36,6 +35,8 @@ const TeacherSidebar = ({ activeView, isMobile }: TeacherSidebarProps) => {
 
   const renderNav = () => (
     <div className="flex flex-col h-full bg-white text-slate-600">
+
+      {/* ... (Header and Nav Items sections remain the same) */}
       <div className="p-6 flex items-center gap-3">
         <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
           <GraduationCap className="h-6 w-6 text-indigo-600" />
@@ -66,7 +67,7 @@ const TeacherSidebar = ({ activeView, isMobile }: TeacherSidebarProps) => {
         </nav>
       </div>
 
-      <div className="mt-auto p-6 space-y-6">
+      <div className="mt-auto p-6">
         <div className="bg-indigo-50/50 rounded-2xl p-5 border border-indigo-100/50">
           <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Teacher Account</p>
           <p className="text-xs font-semibold text-indigo-900 truncate">{user?.email}</p>
@@ -85,6 +86,7 @@ const TeacherSidebar = ({ activeView, isMobile }: TeacherSidebarProps) => {
   );
 
   if (isMobile) {
+    // ... (Mobile view implementation)
     return (
       <Sheet>
         <SheetTrigger asChild>

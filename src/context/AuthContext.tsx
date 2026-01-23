@@ -10,6 +10,7 @@ interface AuthContextType {
   role: 'teacher' | 'student' | null;
   loading: boolean;
   studentData: any | null;
+  teacherData: { full_name?: string; department?: string } | null;
   signOut: () => Promise<void>;
 }
 
@@ -20,6 +21,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<'teacher' | 'student' | null>(null);
   const [studentData, setStudentData] = useState<any | null>(null);
+  const [teacherData, setTeacherData] = useState<{ full_name?: string; department?: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,7 +31,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .select('role')
         .eq('id', userId)
         .single();
-      
+
       if (profile) {
         setRole(profile.role);
         if (profile.role === 'student') {
@@ -61,6 +63,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         setRole(null);
         setStudentData(null);
+        setTeacherData(null);
         setLoading(false);
       }
     });
@@ -74,7 +77,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, role, loading, studentData, signOut }}>
+    <AuthContext.Provider value={{ user, session, role, loading, studentData, teacherData, signOut }}>
       {children}
     </AuthContext.Provider>
   );

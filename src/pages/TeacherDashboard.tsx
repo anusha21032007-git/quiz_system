@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuiz, QuizAttempt } from '@/context/QuizContext';
 import GenerateQuizLanding from '@/components/teacher/GenerateQuizLanding';
 import UsersList from '@/components/teacher/UsersList';
@@ -10,6 +10,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useSearchParams } from 'react-router-dom';
 import TeacherSidebar from '@/components/layout/TeacherSidebar';
+import TeacherProfileEdit from '@/components/teacher/TeacherProfileEdit';
+import { useAuth } from '@/context/AuthContext';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import {
   Search,
@@ -23,11 +25,21 @@ import {
   CheckCircle2,
   Timer,
   Loader2,
-  Trophy
+  Trophy,
+  Edit,
+  LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useStudentCount } from '@/integrations/supabase/users';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const StatCard = ({ title, value, trend, icon: Icon, color, isLoading }: any) => (
   <div className={cn("bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm transition-all hover:shadow-md", color)}>
@@ -106,6 +118,8 @@ const TeacherDashboard = () => {
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const activeView = searchParams.get('view') || 'overview';
+  const { teacherData, user, signOut } = useAuth();
+  const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
 
   const { data: studentCount, isLoading: isStudentCountLoading } = useStudentCount();
   const { quizzes, isQuizzesLoading, quizAttempts } = useQuiz();
@@ -336,17 +350,43 @@ const TeacherDashboard = () => {
               <Bell className="h-5 w-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
             </button>
-            <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-slate-900">Dr. Sarah Smith</p>
-                <p className="text-[10px] text-slate-500 font-medium">Science Department</p>
-              </div>
-              <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
-                <User className="h-5 w-5 text-indigo-600" />
-              </div>
-            </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className="flex items-center gap-3 cursor-pointer p-2 hover:bg-slate-50 rounded-xl transition-colors">
+                  <div className="text-right hidden sm:block">
+                    <p className="text-sm font-bold text-slate-900">{teacherData?.full_name || user?.email?.split('@')[0] || 'Teacher'}</p>
+                    <p className="text-[10px] text-slate-500 font-medium">{teacherData?.department || 'No Department'}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+                    <User className="h-5 w-5 text-indigo-600" />
+                  </div>
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56" sideOffset={8}>
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{teacherData?.full_name || "Teacher Account"}</p>
+                    <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setIsProfileEditOpen(true)} className="cursor-pointer">
+                  <Edit className="mr-2 h-4 w-4" />
+                  <span>Edit Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => signOut()} className="text-red-600 cursor-pointer focus:text-red-600 focus:bg-red-50">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Logout</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
+
+        {/* Profile Edit Dialog */}
+        <TeacherProfileEdit open={isProfileEditOpen} onOpenChange={setIsProfileEditOpen} />
 
         {/* Content Area */}
         <main className="flex-1 p-8 lg:p-12 max-w-[1600px] mx-auto w-full">

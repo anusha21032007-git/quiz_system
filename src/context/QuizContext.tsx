@@ -10,6 +10,7 @@ import {
   SupabaseQuiz,
   SupabaseQuestion
 } from '@/integrations/supabase/quizzes';
+import { useSubmitAttempt, useAllAttempts, SupabaseQuizAttempt } from '@/integrations/supabase/attempts';
 import { supabase } from '@/integrations/supabase/client';
 import { aiService, AIQuestionResponse } from '@/services/aiService';
 
@@ -124,6 +125,10 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
   const { data: supabaseQuizzes = [], isLoading: isQuizzesLoading } = useQuizzes();
   const createQuizMutation = useCreateQuiz();
 
+  // Cloud Sync: Fetch all attempts
+  const { data: supabaseAttempts = [] } = useAllAttempts();
+  const submitAttemptMutation = useSubmitAttempt();
+
   const [localData, setLocalData] = useState<{
     quizzes: Quiz[];
     questions: Question[];
@@ -142,7 +147,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
         return {
           quizzes: sanitizedQuizzes,
           questions: parsed.questions || [],
-          attempts: parsed.attempts || [],
+          attempts: parsed.attempts || [], // Keep loading local attempts for now as fallback
           courses: parsed.courses || [],
           users: parsed.users || [],
         };
@@ -154,7 +159,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     }
   });
 
-  const { quizzes: localQuizzes, questions: localQuestionPool, attempts: quizAttempts, courses: manualCourses, users: managedUsers } = localData;
+  const { quizzes: localQuizzes, questions: localQuestionPool, attempts: localQuizAttempts, courses: manualCourses, users: managedUsers } = localData;
 
   const setLocalQuizzes = (updater: Quiz[] | ((prev: Quiz[]) => Quiz[])) => {
     setLocalData(prev => ({
@@ -190,6 +195,32 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
       users: typeof updater === 'function' ? updater(prev.users) : updater
     }));
   };
+
+  // Merge local and cloud attempts
+  // We prefer cloud attempts if IDs match, but since we are generating IDs differently, valid sync requires ID matching.
+  // For now, we'll simply combine them, filtering out potential duplicates if we can identify them, or just rely on Cloud being the truth for newer ones.
+  // Actually, let's map Supabase attempts to local format
+  const cloudAttemptsMapped: QuizAttempt[] = supabaseAttempts.map(sa => ({
+    id: sa.id,
+    quizId: sa.quiz_id,
+    studentName: sa.student_name,
+    score: sa.score,
+    totalQuestions: sa.total_questions,
+    timeTakenSeconds: sa.time_taken_seconds,
+    passed: sa.passed,
+    status: sa.status as 'SUBMITTED' | 'CORRUPTED',
+    violationCount: sa.violation_count,
+    answers: sa.answers,
+    timestamp: new Date(sa.created_at).getTime(),
+    correctAnswersCount: sa.score, // Assuming score = correct count for now
+  }));
+
+  const quizAttempts = useMemo(() => {
+    // Combine and deduplicate based on ID if possible, or just list.
+    // To avoid complex deduplication logic right now without a common ID scheme for old local data:
+    // We will display Cloud attempts FIRST, then Local attempts.
+    return [...cloudAttemptsMapped, ...localData.attempts.filter(la => !la.id.startsWith('att-cloud-'))];
+  }, [cloudAttemptsMapped, localData.attempts]);
 
   const quizzes = useMemo(() => [...supabaseQuizzes.map(mapSupabaseQuizToLocal), ...localQuizzes], [supabaseQuizzes, localQuizzes]);
 
@@ -355,8 +386,23 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const submitQuizAttempt = (attempt: Omit<QuizAttempt, 'id' | 'timestamp'>) => {
-    const newAttempt: QuizAttempt = { ...attempt, id: `att-${Date.now()}`, timestamp: Date.now() };
+    // 1. Save locally immediately for optimistic UI
+    const newAttempt: QuizAttempt = { ...attempt, id: `att-local-${Date.now()}`, timestamp: Date.now() };
     setQuizAttempts((prev) => [...prev, newAttempt]);
+
+    // 2. Sync to Cloud
+    submitAttemptMutation.mutate({
+      quiz_id: attempt.quizId,
+      student_name: attempt.studentName,
+      score: attempt.score,
+      total_questions: attempt.totalQuestions,
+      time_taken_seconds: attempt.timeTakenSeconds,
+      passed: attempt.passed,
+      answers: attempt.answers,
+      violation_count: attempt.violationCount,
+      status: attempt.status,
+    });
+
     toast.success("Quiz submitted!");
   };
 
