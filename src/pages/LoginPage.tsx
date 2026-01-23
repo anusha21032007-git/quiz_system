@@ -1,59 +1,103 @@
 
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { UserCircle, GraduationCap, ArrowLeft } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { GraduationCap, ArrowLeft, Loader2, Mail, Lock } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const LoginPage = () => {
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
+
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+        if (error) {
+            toast.error(error.message);
+            setLoading(false);
+        } else {
+            // Check session to determine where to go or just go to a default
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                // Determine role from metadata or profile table if needed
+                // For now, let's just go to teacher which is common for email login
+                navigate("/teacher");
+            }
+        }
+    };
+
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8fafc] p-4 font-sans">
-            <div className="w-full max-w-md">
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+            <div className="absolute top-8 left-8">
                 <Link to="/">
-                    <Button variant="ghost" className="mb-8 pl-0 hover:bg-transparent hover:text-indigo-600 transition-colors gap-2">
-                        <ArrowLeft className="h-4 w-4" /> Back Home
+                    <Button variant="ghost" className="gap-2 text-slate-500 hover:text-indigo-600 font-bold">
+                        <ArrowLeft className="h-4 w-4" /> Back to Home
                     </Button>
                 </Link>
-
-                <div className="text-center mb-10">
-                    <h1 className="text-3xl font-black text-slate-900 mb-2">Welcome Back</h1>
-                    <p className="text-slate-500">Choose your portal to login</p>
-                </div>
-
-                <div className="grid gap-4">
-                    <Link to="/student/login">
-                        <div className="bg-white hover:bg-indigo-50 p-6 rounded-[24px] border border-slate-100 hover:border-indigo-100 transition-all cursor-pointer group shadow-sm hover:shadow-md">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                                    <UserCircle className="h-6 w-6 text-indigo-600" />
-                                </div>
-                                <div className="text-left">
-                                    <h3 className="text-lg font-bold text-slate-900 group-hover:text-indigo-700">Student Login</h3>
-                                    <p className="text-sm text-slate-500">Access your quizzes and results</p>
-                                </div>
-                            </div>
-                        </div>
-                    </Link>
-
-                    <Link to="/teacher/login">
-                        <div className="bg-white hover:bg-emerald-50 p-6 rounded-[24px] border border-slate-100 hover:border-emerald-100 transition-all cursor-pointer group shadow-sm hover:shadow-md">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                                    <GraduationCap className="h-6 w-6 text-emerald-600" />
-                                </div>
-                                <div className="text-left">
-                                    <h3 className="text-lg font-bold text-slate-900 group-hover:text-emerald-700">Teacher Login</h3>
-                                    <p className="text-sm text-slate-500">Manage courses and students</p>
-                                </div>
-                            </div>
-                        </div>
-                    </Link>
-                </div>
-
-                <div className="mt-8 text-center">
-                    <p className="text-sm text-slate-500">
-                        Don't have an account? <Link to="/signup" className="text-indigo-600 font-bold hover:underline">Sign up</Link>
-                    </p>
-                </div>
             </div>
+
+            <Card className="w-full max-w-md border-0 shadow-2xl shadow-indigo-100/50 rounded-[32px] overflow-hidden">
+                <CardHeader className="pt-10 pb-6 text-center space-y-2">
+                    <div className="mx-auto w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-indigo-100">
+                        <GraduationCap className="h-8 w-8 text-white" />
+                    </div>
+                    <CardTitle className="text-3xl font-black text-slate-900 tracking-tight">Sign In</CardTitle>
+                    <CardDescription className="text-slate-500 font-medium tracking-tight">
+                        Enter your credentials to access EduFlow
+                    </CardDescription>
+                </CardHeader>
+                <form onSubmit={handleLogin}>
+                    <CardContent className="space-y-4 px-8 pb-8">
+                        <div className="space-y-2">
+                            <Label htmlFor="email" className="text-slate-700 font-bold">Email</Label>
+                            <div className="relative">
+                                <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    placeholder="name@college.edu"
+                                    className="pl-10 h-11 bg-slate-50 border-slate-100 focus:bg-white focus:ring-indigo-500 rounded-xl"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="password" className="text-slate-700 font-bold">Password</Label>
+                            <div className="relative">
+                                <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    placeholder="••••••••"
+                                    className="pl-10 h-11 bg-slate-50 border-slate-100 focus:bg-white focus:ring-indigo-500 rounded-xl"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                />
+                            </div>
+                        </div>
+                    </CardContent>
+                    <CardFooter className="flex flex-col gap-6 px-8 pb-10">
+                        <Button type="submit" className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 rounded-xl text-lg font-bold shadow-lg shadow-indigo-100" disabled={loading}>
+                            {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null} Sign In
+                        </Button>
+                        <p className="text-sm text-center text-slate-500 font-medium">
+                            Don't have an account? <Link to="/signup" className="text-indigo-600 font-bold hover:underline">Sign Up</Link>
+                        </p>
+                    </CardFooter>
+                </form>
+            </Card>
         </div>
     );
 };
