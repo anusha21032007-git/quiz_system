@@ -15,6 +15,16 @@ import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useQuiz, Quiz, Question } from '@/context/QuizContext';
 
+interface DraftQuestion {
+    questionText: string;
+    options: string[];
+    correctAnswer: string;
+    marks?: number;
+    negativeMarks?: number;
+    timeLimit?: number; // in seconds
+    hints?: string;
+}
+
 const CompetitiveMode = () => {
     const navigate = useNavigate();
     const { addQuiz } = useQuiz();
@@ -38,10 +48,10 @@ const CompetitiveMode = () => {
     /* Manual Question Form State */
     const [manualQuestionText, setManualQuestionText] = useState<string>('');
     const [manualHints, setManualHints] = useState<string>('');
-    const [manualQuestions, setManualQuestions] = useState<Question[]>([]);
+    const [manualQuestions, setManualQuestions] = useState<DraftQuestion[]>([]);
 
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [pdfQuestions, setPdfQuestions] = useState<Question[]>([]);
+    const [pdfQuestions, setPdfQuestions] = useState<DraftQuestion[]>([]);
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
 
     // Persistence logic for CompetitiveMode
@@ -138,7 +148,12 @@ const CompetitiveMode = () => {
                 }
             ];
 
-            setPdfQuestions(mockGenerated);
+            setPdfQuestions(mockGenerated.map(q => ({
+                questionText: q.questionText,
+                options: [], // PDF gen implementation might need options?
+                correctAnswer: q.correctAnswer,
+                hints: q.hints
+            })));
             setIsGenerating(false);
             toast.dismiss(loadToast);
             toast.success(pdfSubMode === 'ai' ? "AI Questions Generated!" : "Questions Extracted!");
@@ -159,7 +174,7 @@ const CompetitiveMode = () => {
             return;
         }
 
-        const questions = Array.from({ length: setupNumQuestions }).map(() => ({
+        const questions: DraftQuestion[] = Array.from({ length: setupNumQuestions }).map(() => ({
             questionText: '',
             options: Array.from({ length: setupNumOptions }).map(() => ''),
             correctAnswer: '',
@@ -173,22 +188,33 @@ const CompetitiveMode = () => {
     };
 
     const handleManualQuestionChange = (qIdx: number, field: string, value: any, optIdx?: number) => {
-        const updatedQuestions = [...manualQuestions];
-        if (field === 'questionText') {
-            updatedQuestions[qIdx].questionText = value;
-        } else if (field === 'option' && optIdx !== undefined) {
-            updatedQuestions[qIdx].options[optIdx] = value;
-            if (updatedQuestions[qIdx].correctAnswer === manualQuestions[qIdx].options[optIdx]) {
+        setManualQuestions(prev => {
+            const updatedQuestions = [...prev];
+            updatedQuestions[qIdx] = { ...updatedQuestions[qIdx] }; // Deep copy the question object to avoid mutation
+
+            // Ensure options array is also copied if we are modifying it
+            if (updatedQuestions[qIdx].options) {
+                updatedQuestions[qIdx].options = [...updatedQuestions[qIdx].options];
+            }
+
+            if (field === 'questionText') {
+                updatedQuestions[qIdx].questionText = value;
+            } else if (field === 'option' && optIdx !== undefined) {
+                updatedQuestions[qIdx].options[optIdx] = value;
+                // Auto-update correct answer if it matched the old value of this option
+                // Note: This logic assumes simple string matching; might be fragile if multiple options have same text
+                if (prev[qIdx].correctAnswer === prev[qIdx].options[optIdx]) {
+                    updatedQuestions[qIdx].correctAnswer = value;
+                }
+            } else if (field === 'correctAnswer') {
                 updatedQuestions[qIdx].correctAnswer = value;
             }
-        } else if (field === 'correctAnswer') {
-            updatedQuestions[qIdx].correctAnswer = value;
-        }
-        setManualQuestions(updatedQuestions);
+            return updatedQuestions;
+        });
     };
 
     const handlePublishToStudents = () => {
-        let questionsToPublish: Question[] = [];
+        let questionsToPublish: DraftQuestion[] = [];
         if (creationMode === 'manual') {
             questionsToPublish = manualQuestions;
         } else if (creationMode === 'pdf') {
@@ -197,6 +223,23 @@ const CompetitiveMode = () => {
 
         if (questionsToPublish.length === 0) {
             toast.error("No questions to publish.");
+            return;
+        }
+
+        // Validate Questions
+        const invalidQuestion = questionsToPublish.find((q, idx) => {
+            if (!q.questionText || !q.questionText.trim()) return true;
+            // For manual mode (MCQ), check options
+            if (creationMode === 'manual') {
+                const validOptions = q.options.filter(o => o && o.trim());
+                if (validOptions.length < 2) return true;
+                if (!q.correctAnswer) return true;
+            }
+            return false;
+        });
+
+        if (invalidQuestion) {
+            toast.error("Please ensure all questions have text, at least 2 options, and a correct answer selected.");
             return;
         }
 
@@ -215,7 +258,6 @@ const CompetitiveMode = () => {
             startTime: startTime,
             endTime: endTime,
             negativeMarksValue: setupNegativeMarks,
-            difficulty: 'Medium',
             passPercentage: 0,
             totalQuestions: questionsToPublish.length,
             requiredCorrectAnswers: 0,
@@ -229,7 +271,7 @@ const CompetitiveMode = () => {
             correctAnswer: q.correctAnswer || q.hints || 'No answer provided',
             marks: q.marks || 1,
             timeLimitMinutes: (q.timeLimit || setupTimePerQuestion) / 60,
-            explanation: '',
+            explanation: q.hints || '',
         }));
 
         // @ts-ignore - explicitly setting isCompetitive for the context to handle

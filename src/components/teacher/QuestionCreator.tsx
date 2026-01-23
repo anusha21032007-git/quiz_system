@@ -78,7 +78,7 @@ const QuestionCreator = () => {
   const [questionSetName, setQuestionSetName] = useState('');
   const [courseName, setCourseName] = useState('');
   const [passMarkPercentage, setPassMarkPercentage] = useState<number | ''>(0);
-  const [maxAttempts, setMaxAttempts] = useState<number | ''>(1); 
+  const [maxAttempts, setMaxAttempts] = useState<number | ''>(1);
   const [showErrors, setShowErrors] = useState(false);
   const [creationStatus, setCreationStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
@@ -201,7 +201,7 @@ const QuestionCreator = () => {
   }, [polls, addQuestion]);
 
   const isConfigValid =
-    courseName.trim().length > 0 && 
+    courseName.trim().length > 0 &&
     typeof numQuestions === 'number' && numQuestions > 0 &&
     typeof numOptions === 'number' && numOptions >= 2 && numOptions <= 6 &&
     typeof passMarkPercentage === 'number' && passMarkPercentage >= 0 && passMarkPercentage <= 100;
@@ -478,7 +478,7 @@ const QuestionCreator = () => {
     }
 
     const quizId = `qz-direct-${Date.now()}`;
-    
+
     const quizToAdd: Omit<Quiz, 'id' | 'status'> = {
       quizId: quizId,
       title: finalTitle,
@@ -513,7 +513,7 @@ const QuestionCreator = () => {
     toast.success("Quiz created successfully!");
     logQuestionAction(currentSetId || quizId, draftQuestions.length, 'Completed');
     clearActiveSession();
-    
+
     setTimeout(() => {
       window.location.href = '/student';
     }, 1500);
@@ -632,7 +632,19 @@ const QuestionCreator = () => {
                     </div>
                     <div className="w-1/3 text-center font-bold text-gray-600">{poll.numberOfQuestions} Questions</div>
                     <div className="w-1/3 flex justify-end items-center gap-4">
-                      <Button variant="ghost" size="sm" onClick={() => handleEditPoll(poll)} className="h-8 px-2 text-blue-600">Edit</Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditPoll(poll)}
+                        disabled={poll.status === 'completed' || (poll.status === 'scheduled' && (poll.scheduledAt || 0) <= Date.now())}
+                        className={cn("h-8 px-2",
+                          (poll.status === 'completed' || (poll.status === 'scheduled' && (poll.scheduledAt || 0) <= Date.now()))
+                            ? "text-gray-300 cursor-not-allowed"
+                            : "text-blue-600"
+                        )}
+                      >
+                        Edit
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleDeletePoll(poll.pollId)} className="h-7 px-2 text-red-600">Delete</Button>
                       <span className="text-[11px] font-bold uppercase tracking-wider text-violet-600">{poll.status}</span>
                     </div>

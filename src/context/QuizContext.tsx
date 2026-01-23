@@ -41,7 +41,7 @@ export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | '
   competitionMode: boolean;
   scheduledDate: string;
   negativeMarksValue: number;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  difficulty?: 'Easy' | 'Medium' | 'Hard';
   isCompetitive?: boolean;
   maxAttempts?: number;
 }

@@ -46,6 +46,10 @@ const QuizItem = ({ quiz, studentName, handleStartQuiz }: { quiz: QuizTimelineIt
   const getButton = () => {
     switch (quiz.status) {
       case 'Live':
+        // Strict check for Competitive Mode: Single Attempt Only
+        if (quiz.competitionMode && attemptsCount > 0) {
+          return <Button disabled variant="outline" className="w-full sm:w-auto text-orange-500 border-orange-200">Single Attempt Only</Button>;
+        }
         if (isMaxAttemptsReached) return <Button disabled variant="outline" className="w-full sm:w-auto text-orange-500 border-orange-200">Max Attempts Reached</Button>;
         return <Button onClick={() => handleStartQuiz(quiz)} className="w-full sm:w-auto bg-green-600 hover:bg-green-700 animate-pulse"><ListChecks className="h-4 w-4 mr-2" /> Start Quiz</Button>;
       case 'Completed':

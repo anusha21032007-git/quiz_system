@@ -30,7 +30,7 @@ export interface SupabaseQuiz {
   end_time: string;
   negative_marks_value: number;
   status: 'draft' | 'published';
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  difficulty?: 'Easy' | 'Medium' | 'Hard';
   pass_mark_percentage: number;
   total_questions: number;
   required_correct_answers: number;
