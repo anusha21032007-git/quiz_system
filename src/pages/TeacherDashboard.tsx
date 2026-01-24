@@ -27,7 +27,8 @@ import {
   Loader2,
   Trophy,
   Edit,
-  LogOut
+  LogOut,
+  Mail
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -81,18 +82,6 @@ const ActivityItem = ({ user, action, target, time, score, initials, color }: an
   </div>
 );
 
-const DeadlineItem = ({ title, time, status, color }: any) => (
-  <div className="p-4 bg-slate-900/50 border border-slate-700/50 rounded-2xl hover:bg-slate-800 transition-colors">
-    <div className="flex justify-between items-start mb-2">
-      <p className="text-sm font-bold text-white">{title}</p>
-      <div className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider", color)}>
-        {status}
-      </div>
-    </div>
-    <p className="text-xs text-slate-400">{time}</p>
-  </div>
-);
-
 // Helper function to get initials
 const getInitials = (name: string) => {
   if (!name) return '??';
@@ -142,15 +131,19 @@ const TeacherDashboard = () => {
 
 
   const recentActivity = useMemo(() => {
-    if (isQuizzesLoading) return []; // Depend on quizzes loading for quiz titles
+    if (isQuizzesLoading) return []; 
+    const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000); // Filter: within last 24 hours
+
     return quizAttempts
-      .filter(attempt => attempt.status === 'SUBMITTED') // Only show successfully submitted quizzes
-      .sort((a, b) => b.timestamp - a.timestamp) // Sort by most recent
-      .slice(0, 5) // Get top 5 recent activities
+      .filter(attempt => attempt.status === 'SUBMITTED' && attempt.timestamp >= twentyFourHoursAgo) 
+      .sort((a, b) => b.timestamp - a.timestamp) 
+      .slice(0, 5) 
       .map((attempt: QuizAttempt) => {
         const quiz = quizzes.find(q => q.id === attempt.quizId);
         const quizTitle = quiz?.title || 'Unknown Quiz';
-        const scorePercentage = (attempt.score / attempt.totalQuestions) * 100;
+        
+        // Use scorePercentage from attempt object
+        const scorePercentage = attempt.scorePercentage || 0;
 
         return {
           user: attempt.studentName,
@@ -159,7 +152,7 @@ const TeacherDashboard = () => {
           time: formatTimeAgo(attempt.timestamp),
           score: scorePercentage.toFixed(0),
           initials: getInitials(attempt.studentName),
-          color: "bg-indigo-100 text-indigo-600" // Consistent color for activity items
+          color: "bg-indigo-100 text-indigo-600" 
         };
       });
   }, [quizAttempts, quizzes, isQuizzesLoading]);
@@ -167,7 +160,7 @@ const TeacherDashboard = () => {
   // Logic for Top Ranks card
   const topRanksData = useMemo(() => {
     const relevantQuizzes = quizzes.filter(q =>
-      (q.title.includes('(AI Generated)') || q.id.startsWith('qz-local-')) && !q.isCompetitive
+      (q.title.includes('(AI Generated)') || q.id.startsWith('qz-local-')) && !q.competitionMode
     );
     const relevantQuizIds = new Set(relevantQuizzes.map(q => q.id));
 
@@ -195,11 +188,8 @@ const TeacherDashboard = () => {
       studentPerf.totalScore += attempt.score;
       studentPerf.totalTimeTakenSeconds += attempt.timeTakenSeconds;
 
-      const quiz = quizzes.find(q => q.id === attempt.quizId);
-      if (quiz) {
-        const quizMaxMarks = (quiz.questions || []).reduce((sum, q) => sum + q.marks, 0);
-        studentPerf.totalMaxPossibleMarks += quizMaxMarks;
-      }
+      // Use totalMarksPossible from attempt object
+      studentPerf.totalMaxPossibleMarks += attempt.totalMarksPossible || 0;
     });
 
     const sortedStudents = Object.entries(performanceMap)
@@ -235,7 +225,7 @@ const TeacherDashboard = () => {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight">
-            Welcome back, <span className="text-indigo-600 underline decoration-indigo-200 underline-offset-8">Professor</span>
+            Welcome back, <span className="text-indigo-600 underline decoration-indigo-200 underline-offset-8">{teacherData?.full_name || user?.email?.split('@')[0] || 'Professor'}</span>
           </h2>
           <p className="text-slate-500 mt-2 font-medium">Here's a professional overview of your classes today.</p>
         </div>
@@ -283,7 +273,7 @@ const TeacherDashboard = () => {
         {/* Recent Activity */}
         <div className="lg:col-span-3 bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm">
           <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-            Recent Activity
+            Recent Activity (Last 24h)
           </h3>
           <div className="space-y-2">
             {recentActivity.length > 0 ? (
@@ -301,7 +291,7 @@ const TeacherDashboard = () => {
               ))
             ) : (
               <div className="text-center py-10 text-slate-400">
-                No recent quiz submissions.
+                No recent quiz submissions in the last 24 hours.
               </div>
             )}
           </div>
@@ -363,12 +353,17 @@ const TeacherDashboard = () => {
                   </div>
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56" sideOffset={8}>
-                <DropdownMenuLabel>
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{teacherData?.full_name || "Teacher Account"}</p>
-                    <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
-                  </div>
+              <DropdownMenuContent align="end" className="w-64" sideOffset={8}>
+                <DropdownMenuLabel className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                        <User className="h-5 w-5 text-indigo-600" />
+                    </div>
+                    <div className="flex flex-col space-y-0.5">
+                        <p className="text-sm font-bold leading-none text-slate-900">{teacherData?.full_name || "Teacher Account"}</p>
+                        <p className="text-xs leading-none text-muted-foreground flex items-center gap-1">
+                            <Mail className="h-3 w-3" /> {user?.email}
+                        </p>
+                    </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setIsProfileEditOpen(true)} className="cursor-pointer">

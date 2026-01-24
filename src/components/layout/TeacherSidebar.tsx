@@ -22,7 +22,6 @@ interface TeacherSidebarProps {
 
 const TeacherSidebar = ({ activeView, isMobile }: TeacherSidebarProps) => {
   const { signOut, user, teacherData } = useAuth();
-  const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard, path: '/teacher?view=overview' },
@@ -55,10 +54,10 @@ const TeacherSidebar = ({ activeView, isMobile }: TeacherSidebarProps) => {
                   variant="ghost"
                   className={cn(
                     "w-full justify-start gap-3 h-11 px-4 transition-all duration-200 rounded-xl font-medium",
-                    isActive ? "bg-indigo-50 text-indigo-600 shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                    activeView === item.id ? "bg-indigo-50 text-indigo-600 shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                   )}
                 >
-                  <item.icon className={cn("h-5 w-5", isActive ? "text-indigo-600" : "text-slate-400")} />
+                  <item.icon className={cn("h-5 w-5", activeView === item.id ? "text-indigo-600" : "text-slate-400")} />
                   {item.label}
                 </Button>
               </Link>
@@ -70,7 +69,7 @@ const TeacherSidebar = ({ activeView, isMobile }: TeacherSidebarProps) => {
       <div className="mt-auto p-6">
         <div className="bg-indigo-50/50 rounded-2xl p-5 border border-indigo-100/50">
           <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Teacher Account</p>
-          <p className="text-xs font-semibold text-indigo-900 truncate">{user?.email}</p>
+          <p className="text-xs font-semibold text-indigo-900 truncate">{teacherData?.full_name || user?.email}</p>
         </div>
 
         <Button

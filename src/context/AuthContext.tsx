@@ -4,13 +4,18 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 
+interface TeacherProfileData {
+  full_name?: string;
+  department?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   role: 'teacher' | 'student' | null;
   loading: boolean;
   studentData: any | null;
-  teacherData: { full_name?: string; department?: string } | null;
+  teacherData: TeacherProfileData | null;
   signOut: () => Promise<void>;
 }
 
@@ -21,14 +26,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<'teacher' | 'student' | null>(null);
   const [studentData, setStudentData] = useState<any | null>(null);
-  const [teacherData, setTeacherData] = useState<{ full_name?: string; department?: string } | null>(null);
+  const [teacherData, setTeacherData] = useState<TeacherProfileData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async (userId: string) => {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, full_name, department')
         .eq('id', userId)
         .single();
 
@@ -41,6 +46,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             .eq('auth_user_id', userId)
             .single();
           setStudentData(sData);
+          setTeacherData(null);
+        } else if (profile.role === 'teacher') {
+          setTeacherData({ full_name: profile.full_name, department: profile.department });
+          setStudentData(null);
         }
       }
     };

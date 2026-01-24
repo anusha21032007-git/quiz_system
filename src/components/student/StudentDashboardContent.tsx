@@ -91,8 +91,9 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
 
   const averageScore = useMemo(() => {
     if (totalQuizzesAttempted === 0) return 0;
-    const totalScore = studentAttempts.reduce((sum, attempt) => sum + attempt.score, 0);
-    return Math.round(totalScore / totalQuizzesAttempted);
+    // Calculate average score based on percentage
+    const totalPercentage = studentAttempts.reduce((sum, attempt) => sum + attempt.scorePercentage, 0);
+    return Math.round(totalPercentage / totalQuizzesAttempted);
   }, [studentAttempts, totalQuizzesAttempted]);
 
   const currentRank = useMemo(() => {
@@ -164,7 +165,7 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
       );
     }
 
-    const competitiveSessions = quizzes.filter(q => q.isCompetitive);
+    const competitiveSessions = quizzes.filter(q => q.competitionMode);
 
     return (
       <div className="space-y-8 animate-in fade-in duration-500">
@@ -256,7 +257,7 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
 
   const renderLeaderboard = () => (
     <div className="space-y-8">
-      <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2"><Trophy className="h-7 w-7 text-yellow-600" /> Leaderboard</h2>
+      <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2"><Trophy className="h-7 w-7 text-yellow-600" /> Global Leaderboard</h2>
       <Card className="p-6 shadow-lg">
         <p className="text-gray-600 mb-4">View overall rankings across all quizzes and compare your performance with peers.</p>
         <Link to="/leaderboard">

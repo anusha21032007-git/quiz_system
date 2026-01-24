@@ -8,12 +8,12 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/componen
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle, XCircle, Info, Loader2, Trophy } from 'lucide-react';
+import { CheckCircle, XCircle, Info, Loader2, Trophy, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import QuizHeader from '@/components/quiz/QuizHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Input } from '@/components/ui/input'; // Ensure Input is imported
+import { Input } from '@/components/ui/input'; 
 
 // Map SupabaseQuestion to LocalQuestionType for internal use
 const mapSupabaseQuestionToLocal = (sQuestion: any): LocalQuestionType => ({
@@ -24,6 +24,7 @@ const mapSupabaseQuestionToLocal = (sQuestion: any): LocalQuestionType => ({
   correctAnswer: sQuestion.correct_answer,
   marks: sQuestion.marks,
   timeLimitMinutes: sQuestion.time_limit_minutes,
+  explanation: sQuestion.explanation || '',
 });
 
 
@@ -31,7 +32,8 @@ const QuizPage = () => {
   const { quizId } = useParams<{ quizId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { studentName } = (location.state || {}) as { studentName?: string };
+  const { studentData } = (location.state || {}) as { studentData?: any };
+  const studentNameFromState = studentData?.name || 'Guest';
 
   const { getQuizById, submitQuizAttempt, getQuestionsForQuiz, quizAttempts } = useQuiz();
   const quiz = quizId ? getQuizById(quizId) : undefined;
@@ -39,51 +41,60 @@ const QuizPage = () => {
   const [questions, setQuestions] = useState<LocalQuestionType[]>([]);
   const [isQuestionsLoading, setIsQuestionsLoading] = useState(true);
 
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [answers, setAnswers] = useState<{ questionId: string; selectedAnswer: string; isCorrect: boolean; marksObtained: number }[]>([]);
+  const [showResults, setShowResults] = useState(false);
+  const [quizStudentName, setQuizStudentName] = useState(studentNameFromState);
+  const [initialTime, setInitialTime] = useState<number>(0);
+  const [timeLeft, setTimeLeft] = useState<number>(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const isMobile = useIsMobile();
+
+  // Check for existing attempt
+  const existingAttempt = useMemo(() => {
+    // Find the latest attempt by the current student for this quiz
+    return quizAttempts
+      .filter(a => a.quizId === quizId && a.studentName === quizStudentName)
+      .sort((a, b) => b.timestamp - a.timestamp)[0];
+  }, [quizAttempts, quizId, quizStudentName]);
+
   // Unified question fetching (handles local and cloud)
   useEffect(() => {
     const fetchQuestions = async () => {
-      if (!quizId) return;
+      if (!quizId || existingAttempt) return; // Skip if already attempted
       setIsQuestionsLoading(true);
       try {
         const allQuestions = await getQuestionsForQuiz(quizId);
 
-        // --- RANDOM SHUFFLING LOGIC ---
-        // The quiz might have a large pool. We need to select `quiz.totalQuestions` items randomly.
         const requiredCount = quiz?.totalQuestions || allQuestions.length;
 
-        // Shuffle the full pool
         const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
 
-        // Select the subset (ensure we don't try to slice more than we have)
         const selectedQuestions = shuffled.slice(0, Math.min(requiredCount, allQuestions.length));
 
         setQuestions(selectedQuestions);
       } catch (error) {
         console.error("Failed to load questions:", error);
         toast.error("Failed to load quiz questions.");
-        setQuestions([]); // Ensure state is reset on error
+        setQuestions([]); 
       } finally {
         setIsQuestionsLoading(false);
       }
     };
     fetchQuestions();
-  }, [quizId, getQuestionsForQuiz, quiz?.totalQuestions]); // Added quiz?.totalQuestions dependency
-
-  const isMobile = useIsMobile();
-
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [answers, setAnswers] = useState<{ questionId: string; selectedAnswer: string; isCorrect: boolean; marksObtained: number }[]>([]);
-  const [showResults, setShowResults] = useState(false);
-  const [quizStudentName, setQuizStudentName] = useState(studentName || '');
-  const [initialTime, setInitialTime] = useState<number>(0);
-  const [timeLeft, setTimeLeft] = useState<number>(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  }, [quizId, getQuestionsForQuiz, quiz?.totalQuestions, existingAttempt]); 
 
   // Initialize quiz state and handle missing quiz/questions
   useEffect(() => {
     if (!quizId || !quiz) {
       return;
+    }
+
+    if (existingAttempt) {
+        setShowResults(true);
+        return;
     }
 
     if (questions && questions.length > 0) {
@@ -92,15 +103,15 @@ const QuizPage = () => {
       setInitialTime(totalDuration);
       setTimeLeft(totalDuration);
     }
-  }, [quizId, quiz, questions.length, navigate]);
+  }, [quizId, quiz, questions.length, navigate, existingAttempt]);
 
   // Timer logic
   useEffect(() => {
-    if (timeLeft > 0 && !showResults && questions.length > 0) {
+    if (timeLeft > 0 && !showResults && questions.length > 0 && !existingAttempt) {
       timerRef.current = setInterval(() => {
         setTimeLeft((prevTime) => prevTime - 1);
       }, 1000);
-    } else if (timeLeft === 0 && !showResults && questions.length > 0) {
+    } else if (timeLeft === 0 && !showResults && questions.length > 0 && !existingAttempt) {
       // Auto-submit when time runs out
       handleSubmitQuiz(true);
     }
@@ -110,12 +121,11 @@ const QuizPage = () => {
         clearInterval(timerRef.current);
       }
     };
-  }, [timeLeft, showResults, questions.length]);
+  }, [timeLeft, showResults, questions.length, existingAttempt]);
 
   const currentQuestionId = questions[currentQuestionIndex]?.id;
 
   // Load previously selected answer for current question
-  // DEPEND ON ID, NOT ARRAY REFERENCE
   useEffect(() => {
     if (currentQuestionId) {
       const existingAnswer = answers.find(
@@ -139,7 +149,7 @@ const QuizPage = () => {
     );
   }
 
-  if (questions.length === 0) {
+  if (questions.length === 0 && !existingAttempt) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-8">
         <Alert className="max-w-md">
@@ -209,17 +219,19 @@ const QuizPage = () => {
     const totalScore = (finalAnswers || []).reduce((sum, ans) => sum + ans.marksObtained, 0);
     const correctAnswersCount = (finalAnswers || []).filter(ans => ans.isCorrect).length;
     const timeTaken = initialTime - timeLeft;
-    const passed = correctAnswersCount >= (quiz.requiredCorrectAnswers || 0);
-
+    
+    // Pass/Fail calculation is now handled inside submitQuizAttempt in QuizContext
+    
     submitQuizAttempt({
       quizId: quiz.id,
       studentName: quizStudentName,
       score: totalScore,
       totalQuestions: questions.length,
       correctAnswersCount,
-      passed,
       answers: finalAnswers,
       timeTakenSeconds: timeTaken,
+      status: 'SUBMITTED',
+      violationCount: 0, // Assuming no competitive mode integrity checks here
     });
 
     if (timerRef.current) {
@@ -278,7 +290,7 @@ const QuizPage = () => {
   };
 
   const handleBack = () => {
-    if (!showResults) {
+    if (!showResults && !existingAttempt) {
       const confirmed = window.confirm("Are you sure you want to leave the quiz? Your progress will be lost.");
       if (confirmed) {
         navigate('/student');
@@ -288,56 +300,62 @@ const QuizPage = () => {
     }
   };
 
-  if (showResults) {
-    const finalScore = (answers || []).reduce((sum, ans) => sum + ans.marksObtained, 0);
-    const totalPossibleMarks = (questions || []).reduce((sum, q) => sum + q.marks, 0);
-    const timeTaken = initialTime - timeLeft;
-    const totalCorrectAnswers = answers.filter(ans => ans.isCorrect).length;
-    const totalWrongAnswers = answers.filter(ans => !ans.isCorrect && ans.selectedAnswer !== null).length;
+  const renderResults = (attempt: any) => {
+    const finalScore = attempt.score;
+    const totalPossibleMarks = attempt.totalMarksPossible;
+    const timeTaken = attempt.timeTakenSeconds;
+    const totalCorrectAnswers = attempt.correctAnswersCount;
+    const totalWrongAnswers = attempt.answers.filter((ans: any) => !ans.isCorrect && ans.selectedAnswer !== null).length;
+    const scorePercentage = attempt.scorePercentage;
+    const isPassed = attempt.passed;
 
-    // Rank calculation
+    // Rank calculation (simplified for display)
     const attemptsForQuiz = quizAttempts.filter(a => a.quizId === quiz.id);
-    const sortedScores = [...attemptsForQuiz, { score: finalScore }].sort((a, b) => b.score - a.score);
-    const rank = sortedScores.findIndex(s => s.score === finalScore) + 1;
-    const totalParticipants = attemptsForQuiz.length + 1;
+    const sortedScores = [...attemptsForQuiz].sort((a, b) => b.score - a.score);
+    const rank = sortedScores.findIndex(s => s.id === attempt.id) + 1;
+    const totalParticipants = attemptsForQuiz.length;
 
     // Top performers for leaderboard
-    const topPerformers = [...attemptsForQuiz, { studentName: quizStudentName, score: finalScore }]
+    const topPerformers = attemptsForQuiz
       .sort((a, b) => b.score - a.score)
       .slice(0, 3);
 
+    const handleTryAgain = () => {
+        // Reset state and navigate to start the quiz again
+        setShowResults(false);
+        setQuestions([]);
+        setAnswers([]);
+        setCurrentQuestionIndex(0);
+        setSelectedAnswer(null);
+        setInitialTime(0);
+        setTimeLeft(0);
+        navigate(0); // Reload component to re-fetch questions and restart timer
+    };
 
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-blue-100 p-8">
         <Card className="w-full max-w-2xl shadow-xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-4xl font-bold text-green-700">Quiz Completed!</CardTitle>
+            <CardTitle className={cn("text-4xl font-bold", isPassed ? "text-green-700" : "text-red-700")}>
+                Quiz {isPassed ? "Completed" : "Attempted"}!
+            </CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            <p className="text-2xl text-gray-800">Congratulations, <span className="font-semibold">{quizStudentName}</span>!</p>
+            <p className="text-2xl text-gray-800">Result for <span className="font-semibold">{quizStudentName}</span></p>
 
             <div className="py-6 px-4 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200">
-              <p className="text-lg text-gray-600 font-medium">YOUR FINAL RESULT</p>
+              <p className="text-lg text-gray-600 font-medium">FINAL STATUS</p>
               <div className={cn(
                 "text-6xl font-black mb-2",
-                totalCorrectAnswers >= (quiz.requiredCorrectAnswers || 0) ? "text-green-600" : "text-red-600"
+                isPassed ? "text-green-600" : "text-red-600"
               )}>
-                {totalCorrectAnswers >= (quiz.requiredCorrectAnswers || 0) ? "PASSED" : "FAILED"}
+                {isPassed ? "PASSED" : "FAILED"}
               </div>
-              <p className="text-3xl font-bold text-blue-600 mb-1">Score: {finalScore.toFixed(2)} / {totalPossibleMarks}</p>
-              <p className="text-sm text-gray-500">
-                Criteria: {quiz.requiredCorrectAnswers} / {questions.length} correct answers required to pass.
+              <p className="text-3xl font-bold text-blue-600 mb-1">Score: {finalScore.toFixed(2)} / {totalPossibleMarks.toFixed(2)}</p>
+              <p className="text-xl font-bold text-indigo-600">Percentage: {scorePercentage.toFixed(1)}%</p>
+              <p className="text-sm text-gray-500 mt-1">
+                Pass Mark: {quiz.passPercentage}%
               </p>
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-lg">
-              <div className="flex flex-col items-center">
-                <CheckCircle className="h-8 w-8 text-green-500 mb-1" />
-                <span className="font-semibold">Correct Answers:</span> {totalCorrectAnswers}
-              </div>
-              <div className="flex flex-col items-center">
-                <XCircle className="h-8 w-8 text-red-500 mb-1" />
-                <span className="font-semibold">Wrong Answers:</span> {totalWrongAnswers}
-              </div>
             </div>
             <p className="text-xl text-gray-700">Time Taken: <span className="font-semibold">{formatTime(timeTaken)}</span></p>
 
@@ -353,46 +371,17 @@ const QuizPage = () => {
               </div>
             </div>
 
-            {/* Mini Leaderboard Section */}
-            <div className="py-4 px-6 bg-indigo-50/50 rounded-xl border border-indigo-100">
-              <h3 className="text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
-                <Trophy className="h-4 w-4" /> TOP PERFORMERS
-              </h3>
-              <div className="space-y-2">
-                {topPerformers.map((perf, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className={cn(
-                        "w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold",
-                        idx === 0 ? "bg-yellow-400 text-yellow-950" :
-                          idx === 1 ? "bg-gray-300 text-gray-900" :
-                            "bg-orange-300 text-orange-950"
-                      )}>
-                        {idx + 1}
-                      </span>
-                      <span className={cn(
-                        "font-medium",
-                        perf.studentName === quizStudentName && "text-indigo-600 font-bold"
-                      )}>
-                        {perf.studentName} {perf.studentName === quizStudentName && "(You)"}
-                      </span>
-                    </div>
-                    <span className="font-mono font-bold text-indigo-700">{perf.score.toFixed(1)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
+            {/* Review Answers Section */}
             <div className="mt-6">
               <h3 className="text-xl font-semibold mb-3">Review Your Answers:</h3>
               <div className="space-y-6 max-h-80 overflow-y-auto p-4 border rounded-md bg-gray-50">
-                {questions.map((q, index) => {
-                  const studentAnswer = answers.find(ans => ans.questionId === q.id);
-                  const isCorrect = studentAnswer?.isCorrect;
-                  const marksObtained = studentAnswer?.marksObtained || 0;
+                {attempt.answers.map((ans: any, index: number) => {
+                  const q = questions.find(q => q.id === ans.questionId) || { questionText: 'Unknown Question', options: [], correctAnswer: '', marks: 0 };
+                  const isCorrect = ans.isCorrect;
+                  const marksObtained = ans.marksObtained || 0;
 
                   return (
-                    <div key={q.id} className="p-4 rounded-md bg-white shadow-sm">
+                    <div key={ans.questionId} className="p-4 rounded-md bg-white shadow-sm">
                       <div className="flex items-start space-x-3 mb-3">
                         {isCorrect ? <CheckCircle className="text-green-600 mt-1" /> : <XCircle className="text-red-600 mt-1" />}
                         <div className="text-left flex-grow">
@@ -402,7 +391,7 @@ const QuizPage = () => {
                       </div>
                       <div className="space-y-2">
                         {q.options.map((option, optIndex) => {
-                          const isSelected = studentAnswer?.selectedAnswer === option;
+                          const isSelected = ans.selectedAnswer === option;
                           const isCorrectOption = q.correctAnswer === option;
 
                           return (
@@ -441,13 +430,31 @@ const QuizPage = () => {
             <Button onClick={() => navigate('/student')} className="bg-blue-600 hover:bg-blue-700">
               Back to Student Dashboard
             </Button>
+            {!isPassed && (quiz.maxAttempts === undefined || quiz.maxAttempts > attemptsForQuiz.length) && (
+                <Button onClick={handleTryAgain} variant="destructive" className="bg-red-600 hover:bg-red-700">
+                    <RefreshCw className="h-4 w-4 mr-2" /> Try Again
+                </Button>
+            )}
             <Button onClick={() => navigate('/leaderboard')} variant="outline">
-              View Leaderboard
+              View Global Leaderboard
             </Button>
           </CardFooter>
         </Card>
       </div>
     );
+  };
+
+  if (showResults || existingAttempt) {
+    return renderResults(existingAttempt || { 
+        score: 0, 
+        totalMarksPossible: 0, 
+        timeTakenSeconds: 0, 
+        correctAnswersCount: 0, 
+        scorePercentage: 0, 
+        passed: false, 
+        answers: [], 
+        id: 'temp' 
+    });
   }
 
   return (
@@ -466,7 +473,7 @@ const QuizPage = () => {
             <CardTitle className="text-3xl font-bold text-gray-800 text-center">{quiz.title}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {!studentName && (
+            {!studentData && (
               <div className="mb-4">
                 <Label htmlFor="quizStudentName" className="text-lg font-semibold">Your Name</Label>
                 <Input

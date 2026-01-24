@@ -1,9 +1,10 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trophy, Clock, MinusCircle, Users, Loader2, Trash } from 'lucide-react';
+import { Trophy, Clock, MinusCircle, Users, Loader2, Trash, Edit } from 'lucide-react';
 import { Quiz, useQuiz } from '@/context/QuizContext';
+import { toast } from 'sonner';
 
 interface AvailableQuizzesListProps {
   quizzes: Quiz[];
@@ -11,11 +12,47 @@ interface AvailableQuizzesListProps {
 
 const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
   const { isQuizzesLoading, deleteQuiz } = useQuiz();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const handleDelete = (id: string, title: string) => {
     if (window.confirm(`Are you sure you want to delete "${title}"?`)) {
       deleteQuiz(id);
     }
+  };
+
+  const handleEditAsNew = (quiz: Quiz) => {
+    // 1. Map Quiz data back to the format expected by QuestionCreator's session storage (Poll structure)
+    const draftQuestions = quiz.questions.map(q => ({
+        questionText: q.questionText,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        marks: q.marks,
+        timeLimitMinutes: q.timeLimitMinutes,
+    }));
+
+    const sessionData = {
+        numQuestions: quiz.totalQuestions,
+        numOptions: quiz.questions[0]?.options?.length || 4,
+        draftQuestions: draftQuestions,
+        questionSetName: quiz.title.replace(' (AI Generated)', '').replace(' (Copy)', ''),
+        courseName: quiz.courseName,
+        step: 2, // Resume directly to the editor
+        currentSetId: null, // Crucial: Treat as new draft
+        passMarkPercentage: quiz.passPercentage,
+        scheduledEndTime: quiz.endTime,
+        // Scheduling fields are usually set in step 2, but we can pre-fill them if needed
+    };
+
+    localStorage.setItem('activeCreationSession', JSON.stringify(sessionData));
+
+    // 2. Navigate to manual creation mode (QuestionCreator)
+    const params = new URLSearchParams(searchParams);
+    params.set('view', 'create-quiz');
+    params.set('step', 'manual');
+    params.set('qStep', '2');
+    setSearchParams(params);
+    toast.info(`Loaded "${quiz.title}" for editing as a new quiz.`);
   };
 
   if (isQuizzesLoading) {
@@ -120,6 +157,14 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
               </div>
 
               <div className="flex items-center gap-3 ml-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEditAsNew(quiz)}
+                  className="h-9 px-4 rounded-xl text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 transition-all font-bold text-[10px] uppercase tracking-widest"
+                >
+                  <Edit className="h-4 w-4 mr-1" /> Edit & Post New
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"

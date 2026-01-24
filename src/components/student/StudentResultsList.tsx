@@ -25,21 +25,21 @@ const StudentResultsList = ({ studentAttempts, quizzes }: StudentResultsListProp
     const generateCsv = (attempts: QuizAttempt[]) => {
         if (attempts.length === 0) return '';
 
-        const headers = ["Quiz Title", "Date", "Score", "Total Questions", "Percentage", "Status", "Time Taken (s)"];
+        const headers = ["Quiz Title", "Date", "Score (Marks)", "Total Marks Possible", "Percentage (%)", "Status", "Time Taken (s)", "Violations"];
         const rows = attempts.map(attempt => {
             const date = new Date(attempt.timestamp).toLocaleDateString();
             const status = attempt.passed ? 'Passed' : 'Failed';
             const title = getQuizTitle(attempt.quizId);
-            const percentage = (attempt.score / attempt.totalQuestions) * 100;
-
+            
             return [
                 `"${title}"`, // Quote title to handle commas
                 date,
                 attempt.score.toFixed(2),
-                attempt.totalQuestions,
-                percentage.toFixed(1) + '%',
-                status,
+                attempt.totalMarksPossible.toFixed(2),
+                attempt.scorePercentage.toFixed(1),
+                attempt.status === 'CORRUPTED' ? 'Corrupted' : status,
                 attempt.timeTakenSeconds,
+                attempt.violationCount,
             ].join(',');
         });
 
@@ -91,7 +91,7 @@ const StudentResultsList = ({ studentAttempts, quizzes }: StudentResultsListProp
                             <TableRow className="bg-gray-50 hover:bg-gray-50">
                                 <TableHead className="font-semibold text-gray-600">Quiz Title</TableHead>
                                 <TableHead className="font-semibold text-gray-600 text-center">Date</TableHead>
-                                <TableHead className="font-semibold text-gray-600 text-center">Score</TableHead>
+                                <TableHead className="font-semibold text-gray-600 text-center">Score (%)</TableHead>
                                 <TableHead className="font-semibold text-gray-600 text-center">Status</TableHead>
                                 <TableHead className="font-semibold text-gray-600 text-right">Action</TableHead>
                             </TableRow>
@@ -113,7 +113,7 @@ const StudentResultsList = ({ studentAttempts, quizzes }: StudentResultsListProp
                                                 "px-2 py-1 rounded-md bg-gray-100",
                                                 isPassed ? "text-green-700 bg-green-50" : "text-red-700 bg-red-50"
                                             )}>
-                                                {attempt.correctAnswersCount} / {attempt.totalQuestions}
+                                                {attempt.scorePercentage.toFixed(1)}%
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-center">

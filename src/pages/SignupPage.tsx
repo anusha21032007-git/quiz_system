@@ -1,3 +1,4 @@
+"use client";
 
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -25,8 +26,8 @@ const SignupPage = () => {
             password,
             options: {
                 data: {
-                    full_name: name,
-                    role: 'teacher' // Default to teacher for email signup
+                    full_name: name, // Pass full_name to user metadata
+                    role: 'teacher' 
                 }
             }
         });
