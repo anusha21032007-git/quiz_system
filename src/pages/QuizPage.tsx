@@ -24,6 +24,7 @@ const mapSupabaseQuestionToLocal = (sQuestion: any): LocalQuestionType => ({
   correctAnswer: sQuestion.correct_answer,
   marks: sQuestion.marks,
   timeLimitMinutes: sQuestion.time_limit_minutes,
+  explanation: sQuestion.explanation || '',
 });
 
 
@@ -58,6 +59,10 @@ const QuizPage = () => {
         const selectedQuestions = shuffled.slice(0, Math.min(requiredCount, allQuestions.length));
 
         setQuestions(selectedQuestions);
+        // Initialize timer for the first question
+        if (selectedQuestions.length > 0) {
+          setTimeLeft(selectedQuestions[0].timeLimitMinutes * 60);
+        }
       } catch (error) {
         console.error("Failed to load questions:", error);
         toast.error("Failed to load quiz questions.");
@@ -80,37 +85,51 @@ const QuizPage = () => {
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize quiz state and handle missing quiz/questions
+  // Quiz state initialization
   useEffect(() => {
     if (!quizId || !quiz) {
       return;
     }
+  }, [quizId, quiz, navigate]);
 
-    if (questions && questions.length > 0) {
-      // Calculate total time limit based on individual question times
-      const totalDuration = (questions || []).reduce((sum, q) => sum + q.timeLimitMinutes, 0) * 60; // Convert minutes to seconds
-      setInitialTime(totalDuration);
-      setTimeLeft(totalDuration);
-    }
-  }, [quizId, quiz, questions.length, navigate]);
-
-  // Timer logic
+  // Per-Question Timer Logic
   useEffect(() => {
-    if (timeLeft > 0 && !showResults && questions.length > 0) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prevTime) => prevTime - 1);
-      }, 1000);
-    } else if (timeLeft === 0 && !showResults && questions.length > 0) {
-      // Auto-submit when time runs out
-      handleSubmitQuiz(true);
+    // Clear any existing timer when question changes or results are shown
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    if (showResults || questions.length === 0) return;
+
+    // Reset timer for new question
+    const currentQ = questions[currentQuestionIndex];
+    if (currentQ) {
+      setTimeLeft(Math.floor(currentQ.timeLimitMinutes * 60));
     }
+
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          // Time is up for this question
+          clearInterval(timerRef.current!);
+
+          if (currentQuestionIndex < questions.length - 1) {
+            // Move to next question automatically
+            // Direct call to avoid double ticks and ensure speed
+            handleNextQuestion(true);
+            return 0;
+          } else {
+            // Auto-submit quiz
+            handleSubmitQuiz(true);
+            return 0;
+          }
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [timeLeft, showResults, questions.length]);
+  }, [currentQuestionIndex, questions.length, showResults]);
 
   const currentQuestionId = questions[currentQuestionIndex]?.id;
 
@@ -207,9 +226,10 @@ const QuizPage = () => {
     }
 
     const totalScore = (finalAnswers || []).reduce((sum, ans) => sum + ans.marksObtained, 0);
+    const totalPossibleMarks = (questions || []).reduce((sum, q) => sum + q.marks, 0);
     const correctAnswersCount = (finalAnswers || []).filter(ans => ans.isCorrect).length;
-    const timeTaken = initialTime - timeLeft;
-    const passed = correctAnswersCount >= (quiz.requiredCorrectAnswers || 0);
+    const timeTaken = 0; // Per-question timing makes total time calculation distinct, optional to sum up actuals if tracked
+    const passed = (totalScore / totalPossibleMarks) * 100 >= (quiz.passPercentage || 0);
 
     submitQuizAttempt({
       quizId: quiz.id,
@@ -220,6 +240,8 @@ const QuizPage = () => {
       passed,
       answers: finalAnswers,
       timeTakenSeconds: timeTaken,
+      status: 'SUBMITTED',
+      violationCount: 0,
     });
 
     if (timerRef.current) {
@@ -233,8 +255,8 @@ const QuizPage = () => {
     }
   };
 
-  const handleNextQuestion = () => {
-    if (selectedAnswer === null) {
+  const handleNextQuestion = (isAutoAdvance: boolean = false) => {
+    if (selectedAnswer === null && !isAutoAdvance) {
       toast.error("Please select an answer before proceeding.");
       return;
     }
@@ -265,6 +287,7 @@ const QuizPage = () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
       setSelectedAnswer(null);
+      // Timer useEffect will trigger reset
     } else {
       // End of quiz, submit
       handleSubmitQuiz();
@@ -297,12 +320,16 @@ const QuizPage = () => {
 
     // Rank calculation
     const attemptsForQuiz = quizAttempts.filter(a => a.quizId === quiz.id);
-    const sortedScores = [...attemptsForQuiz, { score: finalScore }].sort((a, b) => b.score - a.score);
+    const sortedScores = [...attemptsForQuiz].sort((a, b) => b.score - a.score);
     const rank = sortedScores.findIndex(s => s.score === finalScore) + 1;
-    const totalParticipants = attemptsForQuiz.length + 1;
+    const totalParticipants = attemptsForQuiz.length;
+
+    // Calculate total time taken correctly if needed, or just show N/A for now since structure changed
+    // For now, let's just display "Completed" or similar, or sum up answer times if we tracked them.
+    // Since we didn't add detailed tracking, we'll omit detailed total time or show estimated.
 
     // Top performers for leaderboard
-    const topPerformers = [...attemptsForQuiz, { studentName: quizStudentName, score: finalScore }]
+    const topPerformers = [...attemptsForQuiz]
       .sort((a, b) => b.score - a.score)
       .slice(0, 3);
 
@@ -320,13 +347,13 @@ const QuizPage = () => {
               <p className="text-lg text-gray-600 font-medium">YOUR FINAL RESULT</p>
               <div className={cn(
                 "text-6xl font-black mb-2",
-                totalCorrectAnswers >= (quiz.requiredCorrectAnswers || 0) ? "text-green-600" : "text-red-600"
+                (finalScore / totalPossibleMarks) * 100 >= (quiz.passPercentage || 0) ? "text-green-600" : "text-red-600"
               )}>
-                {totalCorrectAnswers >= (quiz.requiredCorrectAnswers || 0) ? "PASSED" : "FAILED"}
+                {(finalScore / totalPossibleMarks) * 100 >= (quiz.passPercentage || 0) ? "PASSED" : "FAILED"}
               </div>
               <p className="text-3xl font-bold text-blue-600 mb-1">Score: {finalScore.toFixed(2)} / {totalPossibleMarks}</p>
               <p className="text-sm text-gray-500">
-                Criteria: {quiz.requiredCorrectAnswers} / {questions.length} correct answers required to pass.
+                Criteria: Minimum {quiz.passPercentage}% marks required to pass.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4 text-lg">
@@ -339,7 +366,7 @@ const QuizPage = () => {
                 <span className="font-semibold">Wrong Answers:</span> {totalWrongAnswers}
               </div>
             </div>
-            <p className="text-xl text-gray-700">Time Taken: <span className="font-semibold">{formatTime(timeTaken)}</span></p>
+            {/* <p className="text-xl text-gray-700">Time Taken: <span className="font-semibold">{formatTime(timeTaken)}</span></p> */ /* Removed Global Time Display */}
 
             <div className="flex justify-center items-center gap-6 py-4">
               <div className="text-center">
@@ -517,14 +544,14 @@ const QuizPage = () => {
           <CardFooter className="flex justify-between mt-6">
             <Button
               onClick={handlePreviousQuestion}
-              disabled={currentQuestionIndex === 0}
+              disabled={true} // Strict per-question timer means no going back
               variant="outline"
-              className="text-lg px-6 py-3"
+              className="text-lg px-6 py-3 opacity-50 cursor-not-allowed"
             >
               Previous
             </Button>
             <Button
-              onClick={handleNextQuestion}
+              onClick={() => handleNextQuestion(false)}
               className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-6 py-3"
             >
               {currentQuestionIndex < questions.length - 1 ? 'Next Question' : 'Submit Quiz'}

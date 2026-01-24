@@ -29,7 +29,7 @@ const TeacherSidebar = ({ activeView, isMobile }: TeacherSidebarProps) => {
     { id: 'create-quiz', label: 'Create Quiz', icon: PlusCircle, path: '/teacher?view=create-quiz' },
     { id: 'courses', label: 'Courses', icon: GraduationCap, path: '/teacher?view=courses' },
     { id: 'users', label: 'Users', icon: Users, path: '/teacher?view=users' },
-    { id: 'leaderboard', label: 'Leaderboard', icon: Trophy, path: '/leaderboard' },
+    { id: 'leaderboard', label: 'Global Leader Board', icon: Trophy, path: '/leaderboard' },
     { id: 'history', label: 'History', icon: History, path: '/teacher/history' },
   ];
 

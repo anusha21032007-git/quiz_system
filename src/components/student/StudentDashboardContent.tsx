@@ -256,11 +256,11 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
 
   const renderLeaderboard = () => (
     <div className="space-y-8">
-      <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2"><Trophy className="h-7 w-7 text-yellow-600" /> Leaderboard</h2>
+      <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2"><Trophy className="h-7 w-7 text-yellow-600" /> Global Leader Board</h2>
       <Card className="p-6 shadow-lg">
         <p className="text-gray-600 mb-4">View overall rankings across all quizzes and compare your performance with peers.</p>
         <Link to="/leaderboard">
-          <Button className="bg-indigo-600 hover:bg-indigo-700">Go to Global Leaderboard</Button>
+          <Button className="bg-indigo-600 hover:bg-indigo-700 font-bold uppercase tracking-wider">Show Global Leader Board</Button>
         </Link>
       </Card>
     </div>

@@ -43,7 +43,7 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile }: StudentSidebarP
     { id: 'quizzes', label: 'Quizzes', icon: ListChecks },
     { id: 'competitive-mode', label: 'Competitive Mode', icon: Brain },
     { id: 'my-results', label: 'My Results', icon: BarChart },
-    { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
+    { id: 'leaderboard', label: 'Global Leader Board', icon: Trophy },
   ];
 
   const renderNav = () => (

@@ -51,7 +51,13 @@ const QuizItem = ({ quiz, studentName, handleStartQuiz }: { quiz: QuizTimelineIt
           return <Button disabled variant="outline" className="w-full sm:w-auto text-orange-500 border-orange-200">Single Attempt Only</Button>;
         }
         if (isMaxAttemptsReached) return <Button disabled variant="outline" className="w-full sm:w-auto text-orange-500 border-orange-200">Max Attempts Reached</Button>;
-        return <Button onClick={() => handleStartQuiz(quiz)} className="w-full sm:w-auto bg-green-600 hover:bg-green-700 animate-pulse"><ListChecks className="h-4 w-4 mr-2" /> Start Quiz</Button>;
+
+        return (
+          <Button onClick={() => handleStartQuiz(quiz)} className={cn("w-full sm:w-auto", attemptsCount > 0 ? "bg-amber-500 hover:bg-amber-600" : "bg-green-600 hover:bg-green-700 animate-pulse")}>
+            <ListChecks className="h-4 w-4 mr-2" />
+            {attemptsCount > 0 ? "Try Again" : "Start Quiz"}
+          </Button>
+        );
       case 'Completed':
         return <Link to="/leaderboard"><Button variant="secondary" className="w-full sm:w-auto"><CheckCircle className="h-4 w-4 mr-2" /> Result Available</Button></Link>;
       case 'Expired':
@@ -65,7 +71,15 @@ const QuizItem = ({ quiz, studentName, handleStartQuiz }: { quiz: QuizTimelineIt
       <div className="flex-1 space-y-1 mb-3 lg:mb-0">
         <div className="flex items-center gap-3">
           <h3 className="font-bold text-lg text-gray-800">{quiz.title}</h3>
-          <Badge className={cn(quiz.status === 'Live' ? "bg-green-100 text-green-700 border-green-200" : "bg-gray-100 text-gray-600")}>{quiz.status}</Badge>
+          <Badge
+            className={cn(
+              quiz.status === 'Live'
+                ? (attemptsCount > 0 ? "bg-red-100 text-red-700 border-red-200" : "bg-green-100 text-green-700 border-green-200")
+                : "bg-gray-100 text-gray-600"
+            )}
+          >
+            {quiz.status === 'Live' && attemptsCount > 0 ? "Not Completed" : quiz.status}
+          </Badge>
         </div>
         <p className="text-xs text-gray-500 font-medium">Course: {quiz.courseName}</p>
         <div className="flex items-center gap-4 text-[11px] text-slate-400 pt-1">
@@ -96,14 +110,15 @@ const QuizStatusTimeline = ({ studentName, quizzes: propQuizzes }: QuizStatusTim
       .map(quiz => {
         const start = createDateTime(quiz.scheduledDate, quiz.startTime);
         const end = createDateTime(quiz.scheduledDate, quiz.endTime);
-        const isCompleted = quizAttempts.some(a => a.quizId === quiz.id && a.studentName === studentName);
+        const attempts = quizAttempts.filter(a => a.quizId === quiz.id && a.studentName === studentName);
+        const isPassed = attempts.some(a => a.passed);
 
         let status = 'Upcoming';
-        if (isCompleted) status = 'Completed';
+        if (isPassed) status = 'Completed';
         else if (now >= start && now <= end) status = 'Live';
         else if (now > end) status = 'Expired';
 
-        return { ...quiz, startTime: start, endTime: end, status, isCompleted };
+        return { ...quiz, startTime: start, endTime: end, status, isCompleted: isPassed };
       })
       .filter(q => q.status !== 'Upcoming');
   }, [quizzes, quizAttempts, studentName, now]);

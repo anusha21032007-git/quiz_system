@@ -75,9 +75,11 @@ const ActivityItem = ({ user, action, target, time, score, initials, color }: an
         <p className="text-xs text-slate-400">{time}</p>
       </div>
     </div>
-    <div className="text-emerald-500 font-bold text-sm bg-emerald-50 px-3 py-1 rounded-full group-hover:scale-110 transition-transform">
-      {score}%
-    </div>
+    {score !== null && (
+      <div className="text-emerald-500 font-bold text-sm bg-emerald-50 px-3 py-1 rounded-full group-hover:scale-110 transition-transform">
+        {score}%
+      </div>
+    )}
   </div>
 );
 
@@ -140,13 +142,30 @@ const TeacherDashboard = () => {
     }).length;
   }, [quizzes, isQuizzesLoading]);
 
+  const [teacherActions, setTeacherActions] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    const updateHistory = () => {
+      const storedHistory = localStorage.getItem('questionActionHistory');
+      if (storedHistory) {
+        setTeacherActions(JSON.parse(storedHistory));
+      }
+    };
+
+    updateHistory();
+    window.addEventListener('storage', updateHistory);
+    return () => window.removeEventListener('storage', updateHistory);
+  }, []);
+
 
   const recentActivity = useMemo(() => {
-    if (isQuizzesLoading) return []; // Depend on quizzes loading for quiz titles
-    return quizAttempts
-      .filter(attempt => attempt.status === 'SUBMITTED') // Only show successfully submitted quizzes
-      .sort((a, b) => b.timestamp - a.timestamp) // Sort by most recent
-      .slice(0, 5) // Get top 5 recent activities
+    if (isQuizzesLoading) return [];
+
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+
+    // 1. Map Student Attempts
+    const studentActs = quizAttempts
+      .filter(attempt => attempt.status === 'SUBMITTED' && attempt.timestamp > oneDayAgo)
       .map((attempt: QuizAttempt) => {
         const quiz = quizzes.find(q => q.id === attempt.quizId);
         const quizTitle = quiz?.title || 'Unknown Quiz';
@@ -157,12 +176,32 @@ const TeacherDashboard = () => {
           action: "completed",
           target: quizTitle,
           time: formatTimeAgo(attempt.timestamp),
+          timestamp: attempt.timestamp,
           score: scorePercentage.toFixed(0),
           initials: getInitials(attempt.studentName),
-          color: "bg-indigo-100 text-indigo-600" // Consistent color for activity items
+          color: "bg-indigo-100 text-indigo-600"
         };
       });
-  }, [quizAttempts, quizzes, isQuizzesLoading]);
+
+    // 2. Map Teacher Actions
+    const teacherActs = teacherActions
+      .filter(action => action.timestamp > oneDayAgo)
+      .map(action => ({
+        user: "You",
+        action: action.action.toLowerCase(),
+        target: action.paperName,
+        time: formatTimeAgo(action.timestamp),
+        timestamp: action.timestamp,
+        score: null,
+        initials: "ME",
+        color: action.action === 'Published' ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"
+      }));
+
+    // 3. Combine and sort
+    return [...studentActs, ...teacherActs]
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 8);
+  }, [quizAttempts, quizzes, isQuizzesLoading, teacherActions]);
 
   // Logic for Top Ranks card
   const topRanksData = useMemo(() => {

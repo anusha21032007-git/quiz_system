@@ -216,10 +216,28 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
   }));
 
   const quizAttempts = useMemo(() => {
-    // Combine and deduplicate based on ID if possible, or just list.
-    // To avoid complex deduplication logic right now without a common ID scheme for old local data:
-    // We will display Cloud attempts FIRST, then Local attempts.
-    return [...cloudAttemptsMapped, ...localData.attempts.filter(la => !la.id.startsWith('att-cloud-'))];
+    // 1. Start with cloud attempts as the primary source of truth
+    const combined = [...cloudAttemptsMapped];
+
+    // 2. Add local attempts only if they don't have a near-identical matching cloud attempt
+    // (Checked by quizId, studentName, score, and timestamp within 5 minutes)
+    localData.attempts.forEach(local => {
+      // Don't duplicate if it was already a cloud attempt we tracked locally
+      if (local.id.startsWith('att-cloud-')) return;
+
+      const isAlreadyInCloud = cloudAttemptsMapped.some(cloud =>
+        cloud.quizId === local.quizId &&
+        cloud.studentName === local.studentName &&
+        Math.abs(cloud.score - local.score) < 0.01 && // Handle float precision
+        Math.abs(cloud.timestamp - local.timestamp) < 300000 // 5 minute window
+      );
+
+      if (!isAlreadyInCloud) {
+        combined.push(local);
+      }
+    });
+
+    return combined.sort((a, b) => b.timestamp - a.timestamp);
   }, [cloudAttemptsMapped, localData.attempts]);
 
   const quizzes = useMemo(() => [...supabaseQuizzes.map(mapSupabaseQuizToLocal), ...localQuizzes], [supabaseQuizzes, localQuizzes]);
@@ -239,12 +257,12 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     const dataToSave = {
       quizzes: localQuizzes,
       questions: localQuestionPool,
-      attempts: quizAttempts,
+      attempts: localQuizAttempts, // Store ONLY the local data state
       courses: manualCourses,
       users: managedUsers,
     };
     localStorage.setItem('ALL_QUIZZES', JSON.stringify(dataToSave));
-  }, [localQuizzes, localQuestionPool, quizAttempts, manualCourses, managedUsers]);
+  }, [localQuizzes, localQuestionPool, localQuizAttempts, manualCourses, managedUsers]);
 
   const logToHistory = (quiz: Quiz, action: 'Published' | 'Deleted') => {
     const historyJson = localStorage.getItem('questionActionHistory');

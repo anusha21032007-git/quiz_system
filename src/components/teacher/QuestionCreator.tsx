@@ -316,8 +316,10 @@ const QuestionCreator = () => {
   const handleUpdateQuestion = (index: number, field: keyof DraftQuestion, value: any) => {
     setDraftQuestions(prev => {
       const updated = [...prev];
-      if (field === 'marks' || field === 'timeLimitMinutes') {
+      if (field === 'marks') {
         updated[index] = { ...updated[index], [field]: value === '' ? '' : parseInt(value) };
+      } else if (field === 'timeLimitMinutes') {
+        updated[index] = { ...updated[index], [field]: value === '' ? '' : parseFloat(value) };
       } else {
         updated[index] = { ...updated[index], [field]: value };
       }
@@ -333,6 +335,12 @@ const QuestionCreator = () => {
       updated[qIndex] = { ...updated[qIndex], options };
       return updated;
     });
+  };
+
+  const handleDeleteQuestionFromDraft = (index: number) => {
+    setDraftQuestions(prev => prev.filter((_, i) => i !== index));
+    setCreationStatus({ type: 'success', message: "Question removed from draft" });
+    setTimeout(() => setCreationStatus(null), 2000);
   };
 
   const handleSaveDraft = () => {
@@ -369,9 +377,17 @@ const QuestionCreator = () => {
     setDraftQuestions(poll.draftQuestions || []);
     setQuestionSetName(poll.questionSetName || '');
     setCourseName(poll.courseName || '');
-    setCurrentSetId(poll.pollId);
     setPassMarkPercentage(poll.passMarkPercentage || 0);
     setScheduledEndTime(poll.scheduledEndTime || '');
+
+    // If the poll is already completed, we treat "Edit" as "Reuse/Cloning"
+    // by resetting the currentSetId so it saves as a new unique poll.
+    if (poll.status === 'completed') {
+      setCurrentSetId(null);
+      toast.info("Reusing previous quiz - will be saved as new.");
+    } else {
+      setCurrentSetId(poll.pollId);
+    }
 
     if (poll.status === 'scheduled' && poll.scheduledAt) {
       const date = new Date(poll.scheduledAt);
@@ -487,7 +503,7 @@ const QuestionCreator = () => {
       timeLimitMinutes: draftQuestions.reduce((acc, q) => acc + (Number(q.timeLimitMinutes) || 0), 0),
       negativeMarking: false,
       competitionMode: false,
-      scheduledDate: scheduledDate || new Date().toISOString().split('T')[0],
+      scheduledDate: scheduledDate || new Date().toLocaleDateString('en-CA'),
       startTime: scheduledTime || "00:00",
       endTime: scheduledEndTime || "23:59",
       negativeMarksValue: 0,
@@ -505,12 +521,18 @@ const QuestionCreator = () => {
       options: q.options,
       correctAnswer: q.correctAnswer,
       marks: Number(q.marks) || 1,
-      timeLimitMinutes: Number(q.timeLimitMinutes) || 1,
+      timeLimitMinutes: parseFloat(String(q.timeLimitMinutes)) || 1,
       explanation: ''
     }));
 
     addQuiz(quizToAdd, questionsToAdd);
     toast.success("Quiz created successfully!");
+
+    // Mark the source poll as completed if we started from an existing one
+    if (currentSetId) {
+      setPolls(prev => prev.map(p => p.pollId === currentSetId ? { ...p, status: 'completed' } : p));
+    }
+
     logQuestionAction(currentSetId || quizId, draftQuestions.length, 'Completed');
     clearActiveSession();
 
@@ -624,10 +646,10 @@ const QuestionCreator = () => {
             <div className="space-y-4">
               <h3 className="text-lg font-bold flex items-center gap-2 text-gray-700"><History className="h-5 w-5" /> Question History</h3>
               <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                {polls.filter(p => p.status === 'pending' || p.status === 'scheduled').map(poll => (
+                {polls.map(poll => (
                   <div key={poll.pollId} className="group flex items-center p-4 bg-gray-50 rounded-xl border border-transparent hover:border-blue-200 hover:bg-white transition-all text-sm">
                     <div className="w-1/3 flex items-center gap-3">
-                      <div className={`h-1.5 w-1.5 rounded-full ${poll.status === 'pending' ? 'bg-violet-400' : 'bg-amber-400'}`} />
+                      <div className={`h-1.5 w-1.5 rounded-full ${poll.status === 'pending' ? 'bg-violet-400' : poll.status === 'scheduled' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
                       <span className="font-bold text-gray-800 truncate">{poll.questionSetName || `ID: ${poll.pollId.slice(-6)}`}</span>
                     </div>
                     <div className="w-1/3 text-center font-bold text-gray-600">{poll.numberOfQuestions} Questions</div>
@@ -636,17 +658,20 @@ const QuestionCreator = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleEditPoll(poll)}
-                        disabled={poll.status === 'completed' || (poll.status === 'scheduled' && (poll.scheduledAt || 0) <= Date.now())}
-                        className={cn("h-8 px-2",
-                          (poll.status === 'completed' || (poll.status === 'scheduled' && (poll.scheduledAt || 0) <= Date.now()))
+                        disabled={poll.status === 'scheduled' && (poll.scheduledAt || 0) <= Date.now()}
+                        className={cn("h-8 px-2 font-bold",
+                          (poll.status === 'scheduled' && (poll.scheduledAt || 0) <= Date.now())
                             ? "text-gray-300 cursor-not-allowed"
-                            : "text-blue-600"
+                            : poll.status === 'completed' ? "text-emerald-600 hover:text-emerald-700" : "text-blue-600"
                         )}
                       >
-                        Edit
+                        {poll.status === 'completed' ? 'Reuse' : 'Edit'}
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleDeletePoll(poll.pollId)} className="h-7 px-2 text-red-600">Delete</Button>
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-violet-600">{poll.status}</span>
+                      <span className={cn(
+                        "text-[11px] font-black uppercase tracking-wider",
+                        poll.status === 'completed' ? "text-emerald-500" : "text-violet-600"
+                      )}>{poll.status}</span>
                     </div>
                   </div>
                 ))}
@@ -686,7 +711,7 @@ const QuestionCreator = () => {
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-bold text-gray-600">Time (mins)</Label>
-                        <Input type="number" value={q.timeLimitMinutes} onChange={(e) => handleUpdateQuestion(qIndex, 'timeLimitMinutes', e.target.value)} className="font-bold text-blue-600" />
+                        <Input type="number" step="any" value={q.timeLimitMinutes} onChange={(e) => handleUpdateQuestion(qIndex, 'timeLimitMinutes', e.target.value)} className="font-bold text-blue-600" />
                       </div>
                     </div>
                     <div className="space-y-4">

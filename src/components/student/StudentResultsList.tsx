@@ -25,21 +25,26 @@ const StudentResultsList = ({ studentAttempts, quizzes }: StudentResultsListProp
     const generateCsv = (attempts: QuizAttempt[]) => {
         if (attempts.length === 0) return '';
 
-        const headers = ["Quiz Title", "Date", "Score", "Total Questions", "Percentage", "Status", "Time Taken (s)"];
+        const headers = ["Course", "Quiz Title", "Date", "Marks Obtained", "Total Marks", "Percentage", "Pass/Fail Status", "Attempts Count"];
         const rows = attempts.map(attempt => {
+            const quiz = quizzes.find(q => q.id === attempt.quizId);
+            const title = quiz ? quiz.title : 'Unknown Quiz';
+            const course = quiz ? quiz.courseName : 'N/A';
+            const totalMarks = quiz ? (quiz.questions || []).reduce((sum, q) => sum + q.marks, 0) : attempt.totalQuestions;
+
             const date = new Date(attempt.timestamp).toLocaleDateString();
-            const status = attempt.passed ? 'Passed' : 'Failed';
-            const title = getQuizTitle(attempt.quizId);
-            const percentage = (attempt.score / attempt.totalQuestions) * 100;
+            const status = attempt.passed ? 'PASSED' : 'FAILED';
+            const percentage = totalMarks > 0 ? (attempt.score / totalMarks) * 100 : 0;
 
             return [
-                `"${title}"`, // Quote title to handle commas
+                `"${course}"`,
+                `"${title}"`,
                 date,
                 attempt.score.toFixed(2),
-                attempt.totalQuestions,
+                totalMarks.toFixed(2),
                 percentage.toFixed(1) + '%',
                 status,
-                attempt.timeTakenSeconds,
+                attempt.violationCount > 0 ? `Flagged (${attempt.violationCount})` : 'Clean'
             ].join(',');
         });
 
