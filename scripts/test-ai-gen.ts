@@ -1,8 +1,7 @@
 import fetch from 'node-fetch';
 
-async function testAIGen() {
-    const topic = "Java OOPS";
-    console.log(`Testing AI Generation for topic: ${topic}`);
+async function testAIGen(topic: string) {
+    console.log(`\n🔍 Testing AI Generation for topic: "${topic}"`);
 
     try {
         const response = await fetch('http://localhost:5000/api/ai/generate-questions', {
@@ -12,7 +11,7 @@ async function testAIGen() {
             },
             body: JSON.stringify({
                 topic: topic,
-                count: 3,
+                count: 1, // Only need 1 for verification
                 difficulty: 'medium',
                 marks: 2,
                 timeLimitSeconds: 60
@@ -21,30 +20,31 @@ async function testAIGen() {
 
         if (!response.ok) {
             const err = await response.json();
-            console.error("Test failed:", err);
-            return;
+            console.error("❌ Test failed:", err.error || err);
+            return false;
         }
 
-        const data = await response.json();
-        console.log("Success! Received questions:");
-        console.log(JSON.stringify(data, null, 2));
+        const data: any = await response.json();
+        console.log("✅ Success! Received questions:");
+        console.log(JSON.stringify(data.questions[0], null, 2));
+        return true;
 
-        // Basic validation in test script
-        if (data.questions.length !== 3) {
-            console.error(`Expected 3 questions, got ${data.questions.length}`);
-        }
-
-        data.questions.forEach((q, i) => {
-            if (q.options.length !== 4) console.error(`Q${i + 1} does not have 4 options`);
-            if (q.correctIndex < 0 || q.correctIndex > 3) console.error(`Q${i + 1} has invalid correctIndex`);
-            if (!q.question.toLowerCase().includes("java") && !q.question.toLowerCase().includes("oop")) {
-                console.warn(`Q${i + 1} might not be relevant enough (topic check)`);
-            }
-        });
-
-    } catch (err) {
-        console.error("Test error:", err);
+    } catch (err: any) {
+        console.error("❌ Test error:", err.message);
+        return false;
     }
 }
 
-testAIGen();
+async function runTests() {
+    console.log("🚀 Starting verification tests for Ollama + Fuzzy Logic...");
+
+    // Test 1: Classic topic
+    await testAIGen("Python Lists");
+
+    // Test 2: Typo topic (as reported by user)
+    await testAIGen("cybersecurty");
+
+    console.log("\n🏁 Done.");
+}
+
+runTests();

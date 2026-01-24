@@ -95,7 +95,16 @@ interface QuizContextType {
   submitQuizAttempt: (attempt: Omit<QuizAttempt, 'id' | 'timestamp' | 'scorePercentage' | 'totalMarksPossible' | 'passed'>) => void;
   getQuestionsForQuiz: (quizId: string) => Promise<Question[]>;
   getQuizById: (quizId: string) => Quiz | undefined;
-  generateAIQuestions: (coursePaperName: string, difficulty: 'Easy' | 'Medium' | 'Hard', numQuestions: number, numOptions: number, marksPerQuestion: number, timePerQuestionSeconds: number) => Promise<Question[]>;
+  getQuizById: (quizId: string) => Quiz | undefined;
+  generateAIQuestions: (params: {
+    coursePaperName: string;
+    difficulty: 'Easy' | 'Medium' | 'Hard';
+    numQuestions: number;
+    numOptions: number;
+    marksPerQuestion: number;
+    timePerQuestionSeconds: number;
+    onBatchComplete?: (questions: Question[]) => void;
+  }) => Promise<Question[]>;
   deleteQuiz: (quizId: string) => void;
 }
 
@@ -487,32 +496,70 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     return quizzes.find(q => q.id === quizId);
   };
 
-  const generateAIQuestions = async (
-    coursePaperName: string,
-    difficulty: 'Easy' | 'Medium' | 'Hard',
-    numQuestions: number,
-    numOptions: number,
-    marksPerQuestion: number,
-    timePerQuestionSeconds: number
-  ): Promise<Question[]> => {
+  const generateAIQuestions = async ({
+    coursePaperName,
+    difficulty,
+    numQuestions,
+    numOptions,
+    marksPerQuestion,
+    timePerQuestionSeconds,
+    onBatchComplete
+  }: {
+    coursePaperName: string;
+    difficulty: 'Easy' | 'Medium' | 'Hard';
+    numQuestions: number;
+    numOptions: number;
+    marksPerQuestion: number;
+    timePerQuestionSeconds: number;
+    onBatchComplete?: (questions: Question[]) => void;
+  }): Promise<Question[]> => {
     try {
-      const response = await aiService.generateQuestions({
-        topic: coursePaperName,
-        count: numQuestions,
-        difficulty: difficulty.toLowerCase() as 'easy' | 'medium' | 'hard',
-        marks: marksPerQuestion,
-        timeLimitSeconds: timePerQuestionSeconds,
-        optionsCount: numOptions
-      });
+      const allGeneratedQuestions: Question[] = [];
+      const BATCH_SIZE = 2;
+      const totalBatches = Math.ceil(numQuestions / BATCH_SIZE);
 
-      if (response && response.questions && response.questions.length > 0) {
-        return aiService.mapResponseToQuestions(
-          response.questions,
-          'ai-generated'
-        );
+      console.log(`🚀 Starting batch generation: ${numQuestions} questions in ${totalBatches} batches.`);
+
+      for (let i = 0; i < totalBatches; i++) {
+        const remaining = numQuestions - allGeneratedQuestions.length;
+        const currentBatchCount = Math.min(BATCH_SIZE, remaining);
+
+        console.log(`📦 Generating batch ${i + 1}/${totalBatches} (${currentBatchCount} questions)...`);
+
+        const response = await aiService.generateQuestions({
+          topic: coursePaperName,
+          count: currentBatchCount,
+          difficulty: difficulty.toLowerCase() as 'easy' | 'medium' | 'hard',
+          marks: marksPerQuestion,
+          timeLimitSeconds: timePerQuestionSeconds,
+          optionsCount: numOptions
+        });
+
+        if (response && response.questions && response.questions.length > 0) {
+          const mapped = aiService.mapResponseToQuestions(
+            response.questions,
+            'ai-generated'
+          );
+
+          allGeneratedQuestions.push(...mapped);
+
+          if (onBatchComplete) {
+            onBatchComplete(mapped);
+          }
+
+          console.log(`✅ Batch ${i + 1} complete. Total so far: ${allGeneratedQuestions.length}`);
+        } else {
+          console.warn(`⚠️ Batch ${i + 1} produced no questions.`);
+          // Optional: add a small retry delay or just continue. 
+          // We'll continue to avoid infinite loops.
+        }
+      }
+
+      if (allGeneratedQuestions.length > 0) {
+        return allGeneratedQuestions;
       }
     } catch (error) {
-      console.error("AI Generation failed:", error);
+      console.error("AI Batch Generation failed:", error);
       toast.error("AI Generation failed. Please try again.");
     }
     return [];

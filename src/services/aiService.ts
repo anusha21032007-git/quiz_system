@@ -1,5 +1,4 @@
 import { Question } from '@/context/QuizContext';
-import { supabase } from '@/integrations/supabase/client';
 
 export interface AIQuestionResponse {
     id: number;
@@ -9,6 +8,7 @@ export interface AIQuestionResponse {
     difficulty: 'easy' | 'medium' | 'hard';
     marks: number;
     timeLimitSeconds: number;
+    explanation?: string;
 }
 
 export interface AIRootResponse {
@@ -16,12 +16,15 @@ export interface AIRootResponse {
     questions: AIQuestionResponse[];
 }
 
+const BACKEND_URL = 'http://localhost:5000/api/ai/generate-questions';
+
 /**
  * AI Service to handle high-quality MCQ generation via backend.
+ * Now configured to use local Ollama backend.
  */
 export const aiService = {
     /**
-     * Calls the backend API to generate questions.
+     * Calls the local backend API to generate questions.
      */
     generateQuestions: async (params: {
         topic: string;
@@ -32,15 +35,22 @@ export const aiService = {
         optionsCount: number;
     }): Promise<AIRootResponse | null> => {
         try {
-            const { data, error } = await supabase.functions.invoke('generate-quiz-questions', {
-                body: params,
+            console.log(`Requesting MCQ generation for: ${params.topic}...`);
+            const response = await fetch(BACKEND_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(params),
             });
 
-            if (error) {
-                console.error("AI Generation failed:", error);
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("AI Generation API failed:", errorData);
                 return null;
             }
 
+            const data = await response.json();
             return data as AIRootResponse;
         } catch (error) {
             console.error("Error calling AI backend:", error);
