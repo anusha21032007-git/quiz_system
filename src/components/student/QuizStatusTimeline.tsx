@@ -50,23 +50,20 @@ const QuizItem = ({ quiz, studentName, handleStartQuiz }: { quiz: QuizTimelineIt
   if (latestAttempt) {
     isSubmitted = latestAttempt.status === 'SUBMITTED';
     if (isSubmitted) {
-        status = latestAttempt.passed ? 'Completed' : 'Not Completed';
+      status = latestAttempt.passed ? 'Completed' : 'Not Completed';
     } else if (latestAttempt.status === 'CORRUPTED') {
-        // If corrupted, still count as an attempt, but don't mark as 'Completed' unless max attempts reached
-        if (isMaxAttemptsReached) {
-            status = 'Not Completed'; // Treat as failed attempt if max reached
-        } else {
-            status = quiz.status; // Revert to schedule status (Live/Expired/Upcoming)
-        }
+      if (isMaxAttemptsReached) {
+        status = 'Not Completed';
+      } else {
+        status = quiz.status;
+      }
     }
   }
 
-  // Correctly format Date objects to strings for rendering
   const formattedStartTime = quiz.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const formattedEndTime = quiz.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   const getButton = () => {
-    // Strict check for Competitive Mode: Single Attempt Only
     if (quiz.competitionMode && attemptsCount > 0) {
       if (latestAttempt?.passed) {
         return <Link to="/leaderboard"><Button variant="secondary" className="w-full sm:w-auto"><CheckCircle className="h-4 w-4 mr-2" /> Result Available</Button></Link>;
@@ -82,7 +79,6 @@ const QuizItem = ({ quiz, studentName, handleStartQuiz }: { quiz: QuizTimelineIt
       if (isMaxAttemptsReached) {
         return <Button disabled variant="destructive" className="w-full sm:w-auto opacity-70"><XCircle className="h-4 w-4 mr-2" /> Max Attempts Reached</Button>;
       }
-      // If not max attempts, allow retrying if the quiz is still live
       if (quiz.status === 'Live') {
         return <Button onClick={() => handleStartQuiz(quiz)} className={cn("w-full sm:w-auto", attemptsCount > 0 ? "bg-amber-500 hover:bg-amber-600" : "bg-red-600 hover:bg-red-700")}><RefreshCw className="h-4 w-4 mr-2" /> Try Again</Button>;
       }
@@ -151,35 +147,25 @@ const QuizStatusTimeline = ({ studentName, quizzes: propQuizzes }: QuizStatusTim
         const end = createDateTime(quiz.scheduledDate, quiz.endTime);
         const attempts = quizAttempts.filter(a => a.quizId === quiz.id && a.studentName === studentName);
 
-        // Determine status based on attempts and schedule
-        let status = 'Upcoming';
-<<<<<<< HEAD
-        if (attempts.length > 0) {
-          const latestAttempt = attempts.sort((a, b) => b.timestamp - a.timestamp)[0];
-          status = latestAttempt.passed ? 'Completed' : 'Not Completed';
-          if (status === 'Not Completed' && attempts.length < (quiz.maxAttempts || 1) && now >= start && now <= end) {
-            status = 'Live'; // Allow retrying if still within the live window
-          }
-=======
         const maxAttempts = quiz.maxAttempts || 1;
         const attemptsCount = attempts.length;
         const isMaxAttemptsReached = attemptsCount >= maxAttempts;
-        
+
         const latestSubmittedAttempt = attempts.find(a => a.status === 'SUBMITTED');
 
-        if (latestSubmittedAttempt) {
-            status = latestSubmittedAttempt.passed ? 'Completed' : 'Not Completed';
+        // Determine status based on attempts and schedule
+        let status = 'Upcoming';
+        if (latestSubmittedAttempt?.passed) {
+          status = 'Completed';
         } else if (isMaxAttemptsReached) {
-            // If max attempts reached, but no successful submission, mark as Not Completed/Failed
-            status = 'Not Completed';
->>>>>>> 6d2981f29ce79208baa4348fb9d60f04fbed3927
+          status = 'Not Completed';
         } else if (now >= start && now <= end) {
           status = 'Live';
         } else if (now > end) {
           status = 'Expired';
         }
 
-        return { ...quiz, startTime: start, endTime: end, status, isCompleted: !!latestSubmittedAttempt };
+        return { ...quiz, startTime: start, endTime: end, status, isCompleted: !!latestSubmittedAttempt?.passed };
       })
       .filter(q => q.status !== 'Upcoming');
   }, [quizzes, quizAttempts, studentName, now]);

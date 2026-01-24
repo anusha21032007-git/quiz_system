@@ -66,17 +66,13 @@ const QuizPage = () => {
   const attemptsCount = studentAttempts.length;
   const maxAttempts = quiz?.maxAttempts || 1;
   const isMaxAttemptsReached = attemptsCount >= maxAttempts;
-  
+
   // Determine which attempt to show results for, if any.
   const attemptToShow = useMemo(() => {
     const submittedAttempt = studentAttempts.find(a => a.status === 'SUBMITTED');
-    
-    // If a submitted attempt exists, show it.
     if (submittedAttempt) return submittedAttempt;
-    
-    // If max attempts reached, show the latest attempt (even if corrupted/zero score)
     if (isMaxAttemptsReached && studentAttempts.length > 0) {
-        return studentAttempts[0];
+      return studentAttempts[0];
     }
     return undefined;
   }, [studentAttempts, isMaxAttemptsReached]);
@@ -86,8 +82,8 @@ const QuizPage = () => {
     const fetchQuestions = async () => {
       if (!quizId) return;
 
-      // If max attempts reached, we don't need to fetch questions for a new attempt
-      if (isMaxAttemptsReached && existingAttempt) {
+      // If results should be shown (submitted or max reached), stop loading questions
+      if (attemptToShow || isMaxAttemptsReached) {
         setIsQuestionsLoading(false);
         setShowResults(true);
         return;
@@ -117,14 +113,14 @@ const QuizPage = () => {
       }
     };
     fetchQuestions();
-  }, [quizId, getQuestionsForQuiz, quiz?.totalQuestions, isMaxAttemptsReached, existingAttempt]);
+  }, [quizId, getQuestionsForQuiz, quiz?.totalQuestions, isMaxAttemptsReached, attemptToShow]);
 
   // Per-Question Timer Logic
   useEffect(() => {
     // Clear any existing timer when question changes or results are shown
     if (timerRef.current) clearInterval(timerRef.current);
 
-    if (showResults || questions.length === 0 || isMaxAttemptsReached) return;
+    if (showResults || questions.length === 0 || isMaxAttemptsReached || attemptToShow) return;
 
     // Reset timer for new question
     const currentQ = questions[currentQuestionIndex];
@@ -132,11 +128,9 @@ const QuizPage = () => {
       setTimeLeft(Math.floor(currentQ.timeLimitMinutes * 60));
     }
 
-<<<<<<< HEAD
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          // Time is up for this question
           clearInterval(timerRef.current!);
 
           if (currentQuestionIndex < questions.length - 1) {
@@ -150,37 +144,11 @@ const QuizPage = () => {
         return prev - 1;
       });
     }, 1000);
-=======
-    // Show results if max attempts reached OR a submitted attempt exists.
-    if (isMaxAttemptsReached || attemptToShow) {
-        setShowResults(true);
-        return;
-    }
-
-    if (questions && questions.length > 0) {
-      // Calculate total time limit based on individual question times
-      const totalDuration = (questions || []).reduce((sum, q) => sum + q.timeLimitMinutes, 0) * 60; // Convert minutes to seconds
-      setInitialTime(totalDuration);
-      setTimeLeft(totalDuration);
-    }
-  }, [quizId, quiz, questions.length, navigate, isMaxAttemptsReached, attemptToShow]);
-
-  // Timer logic
-  useEffect(() => {
-    if (timeLeft > 0 && !showResults && questions.length > 0 && !isMaxAttemptsReached) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prevTime) => prevTime - 1);
-      }, 1000);
-    } else if (timeLeft === 0 && !showResults && questions.length > 0 && !isMaxAttemptsReached) {
-      // Auto-submit when time runs out
-      handleSubmitQuiz(true);
-    }
->>>>>>> 6d2981f29ce79208baa4348fb9d60f04fbed3927
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [currentQuestionIndex, questions.length, showResults, isMaxAttemptsReached]);
+  }, [currentQuestionIndex, questions.length, showResults, isMaxAttemptsReached, attemptToShow]);
 
   const currentQuestionId = questions[currentQuestionIndex]?.id;
 
@@ -251,7 +219,7 @@ const QuizPage = () => {
       totalQuestions: questions.length,
       correctAnswersCount,
       answers: finalAnswers,
-      timeTakenSeconds: 0, // Simplified for per-question timing
+      timeTakenSeconds: 0,
       status: 'SUBMITTED',
       violationCount: 0,
     });
@@ -274,28 +242,30 @@ const QuizPage = () => {
       return;
     }
 
-    const isCorrect = selectedAnswer === currentQuestion.correctAnswer;
-    const marksObtained = calculateMarksForQuestion(currentQuestion, isCorrect);
+    const isCorrect = currentQuestion && selectedAnswer === currentQuestion.correctAnswer;
+    const marksObtained = currentQuestion ? calculateMarksForQuestion(currentQuestion, isCorrect) : 0;
 
-    setAnswers((prev) => {
-      const existingAnswerIndex = prev.findIndex(
-        (ans) => ans.questionId === currentQuestion.id
-      );
-      if (existingAnswerIndex > -1) {
-        const newAnswers = [...prev];
-        newAnswers[existingAnswerIndex] = {
-          questionId: currentQuestion.id,
-          selectedAnswer: selectedAnswer || '',
-          isCorrect,
-          marksObtained,
-        };
-        return newAnswers;
-      }
-      return [
-        ...prev,
-        { questionId: currentQuestion.id, selectedAnswer: selectedAnswer || '', isCorrect, marksObtained },
-      ];
-    });
+    if (currentQuestion) {
+      setAnswers((prev) => {
+        const existingAnswerIndex = prev.findIndex(
+          (ans) => ans.questionId === currentQuestion.id
+        );
+        if (existingAnswerIndex > -1) {
+          const newAnswers = [...prev];
+          newAnswers[existingAnswerIndex] = {
+            questionId: currentQuestion.id,
+            selectedAnswer: selectedAnswer || '',
+            isCorrect,
+            marksObtained,
+          };
+          return newAnswers;
+        }
+        return [
+          ...prev,
+          { questionId: currentQuestion.id, selectedAnswer: selectedAnswer || '', isCorrect, marksObtained },
+        ];
+      });
+    }
 
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
@@ -330,25 +300,22 @@ const QuizPage = () => {
     );
   }
 
-  if (showResults || isMaxAttemptsReached) {
-    const attempt = showResults ? {
+  if (showResults || isMaxAttemptsReached || attemptToShow) {
+    const attempt = attemptToShow || {
       score: (answers || []).reduce((sum, ans) => sum + ans.marksObtained, 0),
       totalQuestions: questions.length,
       correctAnswersCount: answers.filter(ans => ans.isCorrect).length,
       answers: answers
-    } : existingAttempt;
+    };
 
-    if (!attempt) return null;
-
-    const totalPossibleMarks = showResults
-      ? (questions || []).reduce((sum, q) => sum + q.marks, 0)
-      : (attempt as any).totalMarksPossible || attempt.totalQuestions;
+    const totalPossibleMarks = attemptToShow
+      ? (attempt as any).totalMarksPossible || attempt.totalQuestions
+      : (questions || []).reduce((sum, q) => sum + q.marks, 0);
 
     const finalScore = attempt.score;
     const totalCorrectAnswers = attempt.correctAnswersCount;
     const totalWrongAnswers = attempt.totalQuestions - totalCorrectAnswers;
 
-    // Rank calculation
     const attemptsForQuiz = quizAttempts.filter(a => a.quizId === quiz.id);
     const sortedScores = [...attemptsForQuiz].sort((a, b) => b.score - a.score);
     const rank = sortedScores.findIndex(s => s.score === finalScore) + 1;
@@ -363,8 +330,8 @@ const QuizPage = () => {
         <Card className="w-full max-w-2xl shadow-xl">
           <CardHeader className="text-center">
             <CardTitle className="text-4xl font-bold text-green-700">Quiz Completed!</CardTitle>
-            {isMaxAttemptsReached && !showResults && (
-              <p className="text-orange-600 font-semibold">You have already completed this quiz. Max attempts reached.</p>
+            {isMaxAttemptsReached && !attemptToShow && (
+              <p className="text-orange-600 font-semibold">You have reached the maximum number of attempts.</p>
             )}
           </CardHeader>
           <CardContent className="text-center space-y-4">
@@ -390,7 +357,7 @@ const QuizPage = () => {
               </div>
               <div className="flex flex-col items-center">
                 <XCircle className="h-8 w-8 text-red-500 mb-1" />
-                <span className="font-semibold">Incorrectly Answered:</span> {totalWrongAnswers}
+                <span className="font-semibold">Incorrect:</span> {totalWrongAnswers}
               </div>
             </div>
 
@@ -439,7 +406,6 @@ const QuizPage = () => {
             <div className="mt-6">
               <h3 className="text-xl font-semibold mb-3">Review Answers:</h3>
               <div className="space-y-6 max-h-80 overflow-y-auto p-4 border rounded-md bg-gray-50">
-                {/* Review details can be more complex, but simplified here for flow */}
                 <p className="text-gray-600">Review section is available for completed attempts.</p>
               </div>
             </div>
@@ -452,24 +418,6 @@ const QuizPage = () => {
         </Card>
       </div>
     );
-<<<<<<< HEAD
-=======
-  };
-
-  if (showResults || isMaxAttemptsReached) {
-    // If max attempts reached, we must have an attempt to show (even if corrupted/zero score)
-    const attemptToShowFinal = attemptToShow || { 
-        score: 0, 
-        totalMarksPossible: 0, 
-        timeTakenSeconds: 0, 
-        correctAnswersCount: 0, 
-        scorePercentage: 0, 
-        passed: false, 
-        answers: [], 
-        id: 'temp' 
-    };
-    return renderResults(attemptToShowFinal);
->>>>>>> 6d2981f29ce79208baa4348fb9d60f04fbed3927
   }
 
   if (questions.length === 0) {
@@ -551,7 +499,7 @@ const QuizPage = () => {
           </CardContent>
           <CardFooter className="flex justify-between mt-6">
             <Button
-              disabled={true} // Per-question timer means no going back
+              disabled={true}
               variant="outline"
               className="text-lg px-6 py-3 opacity-50 cursor-not-allowed"
             >
