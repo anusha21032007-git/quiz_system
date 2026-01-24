@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuiz, Question as LocalQuestionType } from '@/context/QuizContext';
+import { useAuth } from '@/context/AuthContext'; // Import useAuth
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -31,9 +32,10 @@ const mapSupabaseQuestionToLocal = (sQuestion: any): LocalQuestionType => ({
 const QuizPage = () => {
   const { quizId } = useParams<{ quizId: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
-  const { studentData } = (location.state || {}) as { studentData?: any };
-  const studentNameFromState = studentData?.name || 'Guest';
+  const { studentData, user } = useAuth(); // Use useAuth to get student data
+  
+  // Determine student name: use logged-in student data if available, otherwise fallback to 'Guest'
+  const loggedInStudentName = studentData?.name || user?.email || 'Guest';
 
   const { getQuizById, submitQuizAttempt, getQuestionsForQuiz, quizAttempts } = useQuiz();
   const quiz = quizId ? getQuizById(quizId) : undefined;
@@ -45,16 +47,25 @@ const QuizPage = () => {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [answers, setAnswers] = useState<{ questionId: string; selectedAnswer: string; isCorrect: boolean; marksObtained: number }[]>([]);
   const [showResults, setShowResults] = useState(false);
-  const [quizStudentName, setQuizStudentName] = useState(studentNameFromState);
+  const [quizStudentName, setQuizStudentName] = useState(loggedInStudentName); // Initialize with logged-in name
   const [initialTime, setInitialTime] = useState<number>(0);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   
   const isMobile = useIsMobile();
 
+  // Update quizStudentName if studentData loads later
+  useEffect(() => {
+    if (studentData?.name) {
+      setQuizStudentName(studentData.name);
+    }
+  }, [studentData]);
+
   // Check for existing attempt
   const existingAttempt = useMemo(() => {
     // Find the latest attempt by the current student for this quiz
+    if (!quizStudentName || quizStudentName === 'Guest') return undefined; // Skip check if name is not set
+
     return quizAttempts
       .filter(a => a.quizId === quizId && a.studentName === quizStudentName)
       .sort((a, b) => b.timestamp - a.timestamp)[0];
@@ -63,7 +74,12 @@ const QuizPage = () => {
   // Unified question fetching (handles local and cloud)
   useEffect(() => {
     const fetchQuestions = async () => {
-      if (!quizId || existingAttempt) return; // Skip if already attempted
+      // Only proceed if we have a quiz ID, the student name is set, and no existing attempt is found
+      if (!quizId || !quizStudentName || quizStudentName === 'Guest' || existingAttempt) {
+        setIsQuestionsLoading(false);
+        return;
+      } 
+      
       setIsQuestionsLoading(true);
       try {
         const allQuestions = await getQuestionsForQuiz(quizId);
@@ -84,7 +100,7 @@ const QuizPage = () => {
       }
     };
     fetchQuestions();
-  }, [quizId, getQuestionsForQuiz, quiz?.totalQuestions, existingAttempt]); 
+  }, [quizId, getQuestionsForQuiz, quiz?.totalQuestions, existingAttempt, quizStudentName]); 
 
   // Initialize quiz state and handle missing quiz/questions
   useEffect(() => {
@@ -135,7 +151,8 @@ const QuizPage = () => {
     }
   }, [currentQuestionId, answers]);
 
-  if (!quizId || !quiz || isQuestionsLoading) {
+  if (!quizId || !quiz || isQuestionsLoading || (user && !studentData && user.email && user.email.includes('@student.eduflow.com'))) {
+    // Added check for authenticated student user whose studentData is still loading
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-8">
         <Alert className="max-w-md">
@@ -185,8 +202,8 @@ const QuizPage = () => {
   };
 
   const handleSubmitQuiz = (isAutoSubmit: boolean = false) => {
-    if (!quizStudentName.trim()) {
-      toast.error("Please enter your name to submit your results.");
+    if (!quizStudentName.trim() || quizStudentName === 'Guest') {
+      toast.error("Please ensure you are logged in or enter your name to submit your results.");
       return;
     }
 
@@ -473,7 +490,7 @@ const QuizPage = () => {
             <CardTitle className="text-3xl font-bold text-gray-800 text-center">{quiz.title}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {!studentData && (
+            {quizStudentName === 'Guest' && (
               <div className="mb-4">
                 <Label htmlFor="quizStudentName" className="text-lg font-semibold">Your Name</Label>
                 <Input
