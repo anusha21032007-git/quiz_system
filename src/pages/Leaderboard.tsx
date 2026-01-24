@@ -8,9 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Trophy, Users, Clock } from 'lucide-react';
 import BackButton from '@/components/ui/BackButton';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
+import StudentResultsList from '@/components/student/StudentResultsList';
 
 const GlobalLeaderboard = () => {
   const { quizAttempts, quizzes } = useQuiz();
+  const { user, teacherData } = useAuth();
+  const isStudent = !!user && !teacherData;
+  const studentName = (user?.user_metadata?.full_name || user?.email?.split('@')[0]) || '';
 
   // Filter quizzes to include only AI-generated or manually created (non-competitive)
   const relevantQuizzes = useMemo(() => {
@@ -85,10 +90,10 @@ const GlobalLeaderboard = () => {
 
   return (
     <div className="min-h-screen bg-white p-8">
-      <header className="max-w-4xl mx-auto space-y-4 mb-10">
+      <header className="max-w-4xl mx-auto space-y-4 mb-10 text-center sm:text-left">
         <BackButton />
-        <div className="pb-4 border-b-2 border-gray-100 flex items-center justify-between">
-          <h1 className="text-4xl font-bold text-black tracking-tight">Global Student Leaderboard</h1>
+        <div className="pb-4 border-b-2 border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <h1 className="text-4xl font-black text-black tracking-tight uppercase">Global Leader Board</h1>
           <div className="px-4 py-1 bg-gray-50 border border-gray-200 rounded-full text-xs font-mono text-gray-500">
             AI & Manual Quizzes
           </div>
@@ -159,6 +164,22 @@ const GlobalLeaderboard = () => {
               </Table>
             </CardContent>
           </Card>
+        )}
+
+        {isStudent && (
+          <div className="pt-8 border-t-2 border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                <Clock className="h-6 w-6 text-indigo-500" />
+                Your Personal Achievement History
+              </h2>
+              <p className="text-sm text-gray-500 mt-1 italic">"Track your individual progress and downloadable reports below."</p>
+            </div>
+            <StudentResultsList
+              studentAttempts={quizAttempts.filter(a => a.studentName === studentName)}
+              quizzes={quizzes}
+            />
+          </div>
         )}
       </div>
     </div>
