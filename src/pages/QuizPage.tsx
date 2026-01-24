@@ -61,21 +61,25 @@ const QuizPage = () => {
     }
   }, [studentData]);
 
-  // Check for existing attempt
-  const existingAttempt = useMemo(() => {
-    // Find the latest attempt by the current student for this quiz
-    if (!quizStudentName || quizStudentName === 'Guest') return undefined; // Skip check if name is not set
-
+  // Check for existing attempts and max attempts reached
+  const studentAttempts = useMemo(() => {
+    if (!quizStudentName || quizStudentName === 'Guest') return [];
     return quizAttempts
       .filter(a => a.quizId === quizId && a.studentName === quizStudentName)
-      .sort((a, b) => b.timestamp - a.timestamp)[0];
+      .sort((a, b) => b.timestamp - a.timestamp);
   }, [quizAttempts, quizId, quizStudentName]);
+
+  const existingAttempt = studentAttempts[0];
+  const attemptsCount = studentAttempts.length;
+  const maxAttempts = quiz?.maxAttempts || 1;
+  const isMaxAttemptsReached = attemptsCount >= maxAttempts;
+
 
   // Unified question fetching (handles local and cloud)
   useEffect(() => {
     const fetchQuestions = async () => {
-      // Only proceed if we have a quiz ID, the student name is set, and no existing attempt is found
-      if (!quizId || !quizStudentName || quizStudentName === 'Guest' || existingAttempt) {
+      // Only proceed if we have a quiz ID, the student name is set, and max attempts are NOT reached
+      if (!quizId || !quizStudentName || quizStudentName === 'Guest' || isMaxAttemptsReached) {
         setIsQuestionsLoading(false);
         return;
       } 
@@ -100,7 +104,7 @@ const QuizPage = () => {
       }
     };
     fetchQuestions();
-  }, [quizId, getQuestionsForQuiz, quiz?.totalQuestions, existingAttempt, quizStudentName]); 
+  }, [quizId, getQuestionsForQuiz, quiz?.totalQuestions, isMaxAttemptsReached, quizStudentName]); 
 
   // Initialize quiz state and handle missing quiz/questions
   useEffect(() => {
@@ -108,7 +112,8 @@ const QuizPage = () => {
       return;
     }
 
-    if (existingAttempt) {
+    // If max attempts reached, show the results of the latest attempt
+    if (isMaxAttemptsReached && existingAttempt) {
         setShowResults(true);
         return;
     }
@@ -119,15 +124,15 @@ const QuizPage = () => {
       setInitialTime(totalDuration);
       setTimeLeft(totalDuration);
     }
-  }, [quizId, quiz, questions.length, navigate, existingAttempt]);
+  }, [quizId, quiz, questions.length, navigate, isMaxAttemptsReached, existingAttempt]);
 
   // Timer logic
   useEffect(() => {
-    if (timeLeft > 0 && !showResults && questions.length > 0 && !existingAttempt) {
+    if (timeLeft > 0 && !showResults && questions.length > 0 && !isMaxAttemptsReached) {
       timerRef.current = setInterval(() => {
         setTimeLeft((prevTime) => prevTime - 1);
       }, 1000);
-    } else if (timeLeft === 0 && !showResults && questions.length > 0 && !existingAttempt) {
+    } else if (timeLeft === 0 && !showResults && questions.length > 0 && !isMaxAttemptsReached) {
       // Auto-submit when time runs out
       handleSubmitQuiz(true);
     }
@@ -137,7 +142,7 @@ const QuizPage = () => {
         clearInterval(timerRef.current);
       }
     };
-  }, [timeLeft, showResults, questions.length, existingAttempt]);
+  }, [timeLeft, showResults, questions.length, isMaxAttemptsReached]);
 
   const currentQuestionId = questions[currentQuestionIndex]?.id;
 
@@ -166,7 +171,7 @@ const QuizPage = () => {
     );
   }
 
-  if (questions.length === 0 && !existingAttempt) {
+  if (questions.length === 0 && !isMaxAttemptsReached) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-8">
         <Alert className="max-w-md">
@@ -307,7 +312,7 @@ const QuizPage = () => {
   };
 
   const handleBack = () => {
-    if (!showResults && !existingAttempt) {
+    if (!showResults && !isMaxAttemptsReached) {
       const confirmed = window.confirm("Are you sure you want to leave the quiz? Your progress will be lost.");
       if (confirmed) {
         navigate('/student');
@@ -331,11 +336,6 @@ const QuizPage = () => {
     const sortedScores = [...attemptsForQuiz].sort((a, b) => b.score - a.score);
     const rank = sortedScores.findIndex(s => s.id === attempt.id) + 1;
     const totalParticipants = attemptsForQuiz.length;
-
-    // Top performers for leaderboard
-    const topPerformers = attemptsForQuiz
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3);
 
     const handleTryAgain = () => {
         // Reset state and navigate to start the quiz again
@@ -447,7 +447,7 @@ const QuizPage = () => {
             <Button onClick={() => navigate('/student')} className="bg-blue-600 hover:bg-blue-700">
               Back to Student Dashboard
             </Button>
-            {!isPassed && (quiz.maxAttempts === undefined || quiz.maxAttempts > attemptsForQuiz.length) && (
+            {!isPassed && (quiz.maxAttempts === undefined || quiz.maxAttempts > attemptsCount) && (
                 <Button onClick={handleTryAgain} variant="destructive" className="bg-red-600 hover:bg-red-700">
                     <RefreshCw className="h-4 w-4 mr-2" /> Try Again
                 </Button>
@@ -461,7 +461,7 @@ const QuizPage = () => {
     );
   };
 
-  if (showResults || existingAttempt) {
+  if (showResults || isMaxAttemptsReached) {
     return renderResults(existingAttempt || { 
         score: 0, 
         totalMarksPossible: 0, 
