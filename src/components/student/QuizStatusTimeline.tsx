@@ -45,8 +45,20 @@ const QuizItem = ({ quiz, studentName, handleStartQuiz }: { quiz: QuizTimelineIt
   const latestAttempt = attempts.sort((a, b) => b.timestamp - a.timestamp)[0];
   
   let status = quiz.status;
+  let isSubmitted = false;
+
   if (latestAttempt) {
-    status = latestAttempt.passed ? 'Completed' : 'Not Completed';
+    isSubmitted = latestAttempt.status === 'SUBMITTED';
+    if (isSubmitted) {
+        status = latestAttempt.passed ? 'Completed' : 'Not Completed';
+    } else if (latestAttempt.status === 'CORRUPTED') {
+        // If corrupted, still count as an attempt, but don't mark as 'Completed' unless max attempts reached
+        if (isMaxAttemptsReached) {
+            status = 'Not Completed'; // Treat as failed attempt if max reached
+        } else {
+            status = quiz.status; // Revert to schedule status (Live/Expired/Upcoming)
+        }
+    }
   }
 
   // Correctly format Date objects to strings for rendering
@@ -133,19 +145,24 @@ const QuizStatusTimeline = ({ studentName, quizzes: propQuizzes }: QuizStatusTim
         
         // Determine status based on attempts and schedule
         let status = 'Upcoming';
-        if (attempts.length > 0) {
-            const latestAttempt = attempts.sort((a, b) => b.timestamp - a.timestamp)[0];
-            status = latestAttempt.passed ? 'Completed' : 'Not Completed';
-            if (status === 'Not Completed' && attempts.length < (quiz.maxAttempts || 1) && now >= start && now <= end) {
-                status = 'Live'; // Allow retrying if still within the live window
-            }
+        const maxAttempts = quiz.maxAttempts || 1;
+        const attemptsCount = attempts.length;
+        const isMaxAttemptsReached = attemptsCount >= maxAttempts;
+        
+        const latestSubmittedAttempt = attempts.find(a => a.status === 'SUBMITTED');
+
+        if (latestSubmittedAttempt) {
+            status = latestSubmittedAttempt.passed ? 'Completed' : 'Not Completed';
+        } else if (isMaxAttemptsReached) {
+            // If max attempts reached, but no successful submission, mark as Not Completed/Failed
+            status = 'Not Completed';
         } else if (now >= start && now <= end) {
             status = 'Live';
         } else if (now > end) {
             status = 'Expired';
         }
 
-        return { ...quiz, startTime: start, endTime: end, status, isCompleted: attempts.length > 0 };
+        return { ...quiz, startTime: start, endTime: end, status, isCompleted: !!latestSubmittedAttempt };
       })
       .filter(q => q.status !== 'Upcoming');
   }, [quizzes, quizAttempts, studentName, now]);

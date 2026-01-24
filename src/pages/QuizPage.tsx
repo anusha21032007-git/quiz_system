@@ -69,10 +69,21 @@ const QuizPage = () => {
       .sort((a, b) => b.timestamp - a.timestamp);
   }, [quizAttempts, quizId, quizStudentName]);
 
-  const existingAttempt = studentAttempts[0];
   const attemptsCount = studentAttempts.length;
   const maxAttempts = quiz?.maxAttempts || 1;
   const isMaxAttemptsReached = attemptsCount >= maxAttempts;
+  
+  // Find the latest SUBMITTED attempt, or the latest attempt if max attempts reached
+  const latestAttempt = useMemo(() => {
+    const submittedAttempt = studentAttempts.find(a => a.status === 'SUBMITTED');
+    if (submittedAttempt) return submittedAttempt;
+    
+    // If max attempts reached, use the latest attempt (even if corrupted) to show results/status
+    if (isMaxAttemptsReached && studentAttempts.length > 0) {
+        return studentAttempts[0];
+    }
+    return undefined;
+  }, [studentAttempts, isMaxAttemptsReached]);
 
 
   // Unified question fetching (handles local and cloud)
@@ -112,8 +123,8 @@ const QuizPage = () => {
       return;
     }
 
-    // If max attempts reached, show the results of the latest attempt
-    if (isMaxAttemptsReached && existingAttempt) {
+    // If max attempts reached OR a submitted attempt exists, show the results
+    if (isMaxAttemptsReached || (latestAttempt && latestAttempt.status === 'SUBMITTED')) {
         setShowResults(true);
         return;
     }
@@ -124,7 +135,7 @@ const QuizPage = () => {
       setInitialTime(totalDuration);
       setTimeLeft(totalDuration);
     }
-  }, [quizId, quiz, questions.length, navigate, isMaxAttemptsReached, existingAttempt]);
+  }, [quizId, quiz, questions.length, navigate, isMaxAttemptsReached, latestAttempt]);
 
   // Timer logic
   useEffect(() => {
@@ -462,7 +473,8 @@ const QuizPage = () => {
   };
 
   if (showResults || isMaxAttemptsReached) {
-    return renderResults(existingAttempt || { 
+    // If max attempts reached, we must have an attempt to show (even if corrupted/zero score)
+    const attemptToShow = latestAttempt || { 
         score: 0, 
         totalMarksPossible: 0, 
         timeTakenSeconds: 0, 
@@ -471,7 +483,8 @@ const QuizPage = () => {
         passed: false, 
         answers: [], 
         id: 'temp' 
-    });
+    };
+    return renderResults(attemptToShow);
   }
 
   return (
