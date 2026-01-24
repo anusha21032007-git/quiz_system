@@ -49,6 +49,7 @@ const QuizItem = ({ quiz, studentName, handleStartQuiz }: { quiz: QuizTimelineIt
     status = latestAttempt.passed ? 'Completed' : 'Not Completed';
   }
 
+  // Correctly format Date objects to strings for rendering
   const formattedStartTime = quiz.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const formattedEndTime = quiz.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
