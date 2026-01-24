@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -9,18 +8,28 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { GraduationCap, Loader2, Mail, Lock, ArrowLeft } from 'lucide-react';
+import { GraduationCap, Loader2, Mail, Lock, ArrowLeft, User } from 'lucide-react';
 
 const TeacherSignup = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { error } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+            data: {
+                full_name: fullName,
+                role: 'teacher'
+            }
+        }
+    });
 
     if (error) {
       toast.error(error.message);
@@ -51,6 +60,21 @@ const TeacherSignup = () => {
         </CardHeader>
         <form onSubmit={handleSignup}>
           <CardContent className="space-y-4 px-8 pb-8">
+            <div className="space-y-2">
+              <Label htmlFor="fullName" className="text-slate-700 font-bold">Full Name</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder="Dr. Jane Doe"
+                  className="pl-10 h-11 bg-slate-50 border-slate-100 focus:bg-white focus:ring-indigo-500 rounded-xl"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="email" className="text-slate-700 font-bold">Work Email</Label>
               <div className="relative">

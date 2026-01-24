@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import StudentResultsList from '@/components/student/StudentResultsList';
 
-const Leaderboard = () => {
+const GlobalLeaderboard = () => {
   const { quizAttempts, quizzes } = useQuiz();
   const { user, teacherData } = useAuth();
   const isStudent = !!user && !teacherData;
@@ -20,7 +20,7 @@ const Leaderboard = () => {
   // Filter quizzes to include only AI-generated or manually created (non-competitive)
   const relevantQuizzes = useMemo(() => {
     const aiOrManualQuizzes = quizzes.filter(q =>
-      (q.title.includes('(AI Generated)') || q.id.startsWith('qz-local-')) && !q.isCompetitive
+      (q.title.includes('(AI Generated)') || q.id.startsWith('qz-local-')) && !q.competitionMode
     );
     return new Set(aiOrManualQuizzes.map(q => q.id));
   }, [quizzes]);
@@ -57,12 +57,8 @@ const Leaderboard = () => {
       studentPerf.totalTimeTakenSeconds += attempt.timeTakenSeconds;
       studentPerf.lastAttemptTimestamp = Math.max(studentPerf.lastAttemptTimestamp, attempt.timestamp);
 
-      // Calculate total possible marks for this specific quiz attempt
-      const quiz = quizzes.find(q => q.id === attempt.quizId);
-      if (quiz) {
-        const quizMaxMarks = (quiz.questions || []).reduce((sum, q) => sum + q.marks, 0);
-        studentPerf.totalMaxPossibleMarks += quizMaxMarks;
-      }
+      // Use the calculated total marks possible from the attempt object
+      studentPerf.totalMaxPossibleMarks += attempt.totalMarksPossible || 0;
     });
 
     // Convert map to array and sort
@@ -152,7 +148,7 @@ const Leaderboard = () => {
                       </TableCell>
                       <TableCell className="font-medium text-gray-900">{student.studentName}</TableCell>
                       <TableCell className="text-center font-bold text-indigo-600">
-                        {student.totalScore.toFixed(0)} / {student.totalMaxPossibleMarks.toFixed(0)}
+                        {student.totalScore.toFixed(2)} / {student.totalMaxPossibleMarks.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-center font-bold text-emerald-600">
                         {student.averagePercentage.toFixed(1)}%
@@ -190,4 +186,4 @@ const Leaderboard = () => {
   );
 };
 
-export default Leaderboard;
+export default GlobalLeaderboard;

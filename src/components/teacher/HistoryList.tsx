@@ -140,27 +140,46 @@ const HistoryList = () => {
                 </h3>
                 <div className="flex flex-col gap-3">
                     {polls.length > 0 ? (
-                        polls.map((poll, idx) => (
-                            <div key={poll.pollId} className="group bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex items-center justify-between">
-                                <div className="flex items-center gap-6">
-                                    <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center shrink-0">
-                                        <Clock className="h-6 w-6 text-amber-600" />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-base font-bold text-slate-900">{poll.questionSetName || 'Untitled Draft'}</h4>
-                                        <div className="flex items-center gap-3 text-xs font-semibold text-slate-400 mt-0.5">
-                                            <span>{poll.numberOfQuestions} Questions</span>
-                                            <span className="w-1 h-1 bg-slate-200 rounded-full" />
-                                            <span className="text-amber-600 uppercase text-[10px] tracking-widest">{poll.status}</span>
+                        polls.map((poll, idx) => {
+                            const isScheduled = poll.status === 'scheduled';
+                            const isLiveOrExpired = isScheduled && (poll.scheduledAt || 0) <= Date.now();
+                            const canEdit = !isLiveOrExpired && poll.status !== 'completed';
+
+                            return (
+                                <div key={poll.pollId} className="group bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex items-center justify-between">
+                                    <div className="flex items-center gap-6">
+                                        <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center shrink-0">
+                                            <Clock className="h-6 w-6 text-amber-600" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-base font-bold text-slate-900">{poll.questionSetName || 'Untitled Draft'}</h4>
+                                            <div className="flex items-center gap-3 text-xs font-semibold text-slate-400 mt-0.5">
+                                                <span>{poll.numberOfQuestions} Questions</span>
+                                                <span className="w-1 h-1 bg-slate-200 rounded-full" />
+                                                <span className="text-amber-600 uppercase text-[10px] tracking-widest">{poll.status}</span>
+                                            </div>
                                         </div>
                                     </div>
+                                    <div className="flex items-center gap-3">
+                                        <Button 
+                                            variant="ghost" 
+                                            onClick={() => handleDeletePoll(poll.pollId)} 
+                                            className="h-9 px-3 text-slate-400 hover:text-red-500 font-bold text-[10px] uppercase tracking-widest"
+                                            disabled={isLiveOrExpired}
+                                        >
+                                            Discard
+                                        </Button>
+                                        <Button 
+                                            onClick={() => handleResumePoll(poll)} 
+                                            className={cn("h-9 px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest", canEdit ? "bg-indigo-600 hover:bg-indigo-700 text-white" : "bg-gray-200 text-gray-500 cursor-not-allowed")}
+                                            disabled={!canEdit}
+                                        >
+                                            {isScheduled ? 'View Details' : 'Resume'}
+                                        </Button>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <Button variant="ghost" onClick={() => handleDeletePoll(poll.pollId)} className="h-9 px-3 text-slate-400 hover:text-red-500 font-bold text-[10px] uppercase tracking-widest">Discard</Button>
-                                    <Button onClick={() => handleResumePoll(poll)} className="h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest">Resume</Button>
-                                </div>
-                            </div>
-                        ))
+                            );
+                        })
                     ) : (
                         <div className="text-center py-10 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 text-slate-400 font-medium">
                             No active drafts found.
