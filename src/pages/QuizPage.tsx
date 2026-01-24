@@ -73,12 +73,14 @@ const QuizPage = () => {
   const maxAttempts = quiz?.maxAttempts || 1;
   const isMaxAttemptsReached = attemptsCount >= maxAttempts;
   
-  // Find the latest SUBMITTED attempt, or the latest attempt if max attempts reached
-  const latestAttempt = useMemo(() => {
+  // Determine which attempt to show results for, if any.
+  const attemptToShow = useMemo(() => {
     const submittedAttempt = studentAttempts.find(a => a.status === 'SUBMITTED');
+    
+    // If a submitted attempt exists, show it.
     if (submittedAttempt) return submittedAttempt;
     
-    // If max attempts reached, use the latest attempt (even if corrupted) to show results/status
+    // If max attempts reached, show the latest attempt (even if corrupted/zero score)
     if (isMaxAttemptsReached && studentAttempts.length > 0) {
         return studentAttempts[0];
     }
@@ -123,8 +125,8 @@ const QuizPage = () => {
       return;
     }
 
-    // If max attempts reached OR a submitted attempt exists, show the results
-    if (isMaxAttemptsReached || (latestAttempt && latestAttempt.status === 'SUBMITTED')) {
+    // Show results if max attempts reached OR a submitted attempt exists.
+    if (isMaxAttemptsReached || attemptToShow) {
         setShowResults(true);
         return;
     }
@@ -135,7 +137,7 @@ const QuizPage = () => {
       setInitialTime(totalDuration);
       setTimeLeft(totalDuration);
     }
-  }, [quizId, quiz, questions.length, navigate, isMaxAttemptsReached, latestAttempt]);
+  }, [quizId, quiz, questions.length, navigate, isMaxAttemptsReached, attemptToShow]);
 
   // Timer logic
   useEffect(() => {
@@ -474,7 +476,7 @@ const QuizPage = () => {
 
   if (showResults || isMaxAttemptsReached) {
     // If max attempts reached, we must have an attempt to show (even if corrupted/zero score)
-    const attemptToShow = latestAttempt || { 
+    const attemptToShowFinal = attemptToShow || { 
         score: 0, 
         totalMarksPossible: 0, 
         timeTakenSeconds: 0, 
@@ -484,7 +486,7 @@ const QuizPage = () => {
         answers: [], 
         id: 'temp' 
     };
-    return renderResults(attemptToShow);
+    return renderResults(attemptToShowFinal);
   }
 
   return (
