@@ -4,7 +4,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { PanelLeft, LayoutDashboard, BookOpen, ListChecks, Trophy, LogOut, BarChart, ArrowLeft, Brain } from 'lucide-react';
+import { PanelLeft, LayoutDashboard, BookOpen, ListChecks, Trophy, LogOut, BarChart, ArrowLeft, Brain, GraduationCap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuiz, Quiz } from '@/context/QuizContext';
 import { useAuth } from '@/context/AuthContext';
@@ -47,10 +47,16 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile }: StudentSidebarP
   ];
 
   const renderNav = () => (
-    <nav className="flex flex-col h-full bg-white text-black p-4 gap-2">
-      <div className="pb-4 border-b-2 border-gray-100 mb-2">
+    <nav className="flex flex-col h-full bg-sidebar text-sidebar-foreground p-4 gap-2">
+      <div className="p-4 border-b border-sidebar-border mb-2">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+            <GraduationCap className="h-5 w-5 text-indigo-600" />
+          </div>
+          <span className="text-sm font-bold text-indigo-950 tracking-tight">QUIZ MANAGEMENT SYSTEM</span>
+        </div>
         <Link to="/">
-          <Button variant="ghost" size="sm" className="w-full justify-start text-gray-600 hover:text-black">
+          <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Button>
@@ -63,17 +69,17 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile }: StudentSidebarP
             key={item.id}
             variant="ghost"
             className={cn(
-              "justify-start gap-3 w-full transition-all duration-200 border-2 rounded-lg",
+              "justify-start gap-3 w-full transition-all duration-200 rounded-lg",
               activeView === item.id
-                ? "bg-black text-white border-black"
-                : "bg-white text-gray-700 border-transparent hover:bg-gray-50"
+                ? "bg-sidebar-accent text-sidebar-primary shadow-sm"
+                : "bg-transparent text-sidebar-foreground hover:bg-accent hover:text-accent-foreground"
             )}
             onClick={() => setActiveView(item.id)}
           >
-            <item.icon className={cn("h-5 w-5", activeView === item.id ? "text-white" : "text-gray-500")} />
+            <item.icon className={cn("h-5 w-5", activeView === item.id ? "text-sidebar-primary" : "text-secondary")} />
             <span className="flex-grow text-left">{item.label}</span>
             {item.id === 'quizzes' && hasNewQuizzes && (
-              <span className="flex h-2 w-2 rounded-full bg-red-600 animate-pulse ring-2 ring-white" />
+              <span className="flex h-2 w-2 rounded-full bg-destructive animate-pulse ring-2 ring-white" />
             )}
           </Button>
         ))}
@@ -100,10 +106,10 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile }: StudentSidebarP
         </div>
       </div>
 
-      <div className="mt-auto pt-4 border-t-2 border-gray-100">
+      <div className="mt-auto pt-4 border-t border-sidebar-border">
         <Button
           variant="outline"
-          className="justify-start gap-3 w-full border-2 border-gray-200 hover:border-red-500 hover:text-red-600 hover:bg-red-50"
+          className="justify-start gap-3 w-full border-sidebar-border hover:border-destructive hover:text-destructive hover:bg-destructive/10"
           onClick={signOut}
         >
           <LogOut className="h-5 w-5" />
@@ -129,7 +135,7 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile }: StudentSidebarP
   }
 
   return (
-    <div className="flex flex-col h-full border-r-2 border-gray-200 bg-white">
+    <div className="flex flex-col h-full border-r border-sidebar-border bg-sidebar">
       {renderNav()}
     </div>
   );

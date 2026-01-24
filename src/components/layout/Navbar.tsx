@@ -44,8 +44,8 @@ const Navbar = () => {
                         <GraduationCap className="h-6 w-6" />
                     </div>
                     <div className="flex flex-col">
-                        <span className="font-bold text-xl text-slate-900 leading-tight">EduFlow</span>
-                        <span className="text-[10px] text-slate-500 font-medium tracking-wide">QUIZ MANAGEMENT SYSTEM</span>
+                        <span className="font-extrabold text-lg text-slate-900 leading-tight uppercase tracking-tighter">QUIZ MANAGEMENT SYSTEM</span>
+                        <span className="text-[10px] text-primary font-bold tracking-widest">PREMIUM ACADEMIC PORTAL</span>
                     </div>
                 </Link>
 
@@ -66,7 +66,7 @@ const Navbar = () => {
                         ))}
                     </div>
                     <Link to="/signup">
-                        <Button className="rounded-full px-6 font-semibold bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all">
+                        <Button className="rounded-full px-6 font-semibold bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all">
                             Get Started
                         </Button>
                     </Link>

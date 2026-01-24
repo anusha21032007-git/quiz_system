@@ -4,54 +4,73 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* App background: #FFFBEB -> 48 100% 96% */
+    --background: 48 100% 96%;
+    /* Body text: #374151 -> 215 19% 27% */
+    --foreground: 215 19% 27%;
 
+    /* Card background: #FFFFFF -> 0 0% 100% */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Headings text: #1F2937 -> 215 28% 17% */
+    --card-foreground: 215 28% 17%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 215 28% 17%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary button: #EC4899 -> 330 81% 60% */
+    --primary: 330 81% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary button: #6366F1 -> 239 84% 67% */
+    --secondary: 239 84% 67%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted/label text: #9CA3AF -> 215 14% 65% */
+    --muted: 215 14% 96%;
+    --muted-foreground: 215 14% 65%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Hover background: #FDE68A -> 47 97% 77% */
+    --accent: 47 97% 77%;
+    --accent-foreground: 215 19% 27%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Danger actions: #EF4444 -> 0 84% 60% */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Card border: #E5E7EB -> 220 14% 91% */
+    --border: 220 14% 91%;
+    --input: 220 14% 91%;
+    --ring: 330 81% 60%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* Sidebar background: #FFF7ED -> 33 100% 96% */
+    --sidebar-background: 33 100% 96%;
+    /* Sidebar text: #374151 -> 215 19% 27% */
+    --sidebar-foreground: 215 19% 27%;
+    /* Active menu text: #DB2777 -> 333 71% 51% */
+    --sidebar-primary: 333 71% 51%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    /* Active menu background: #FFE4E6 -> 353 100% 95% */
+    --sidebar-accent: 353 100% 95%;
+    --sidebar-accent-foreground: 333 71% 51%;
+    /* Sidebar border: #FED7AA -> 33 98% 83% */
+    --sidebar-border: 33 98% 83%;
+    --sidebar-ring: 239 84% 67%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    /* Custom Status Colors */
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
+    --info: 199 89% 48%;
 
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Leaderboard Colors */
+    --rank-gold: 48 96% 53%;
+    --rank-silver: 210 24% 84%;
+    --rank-bronze: 27 96% 61%;
   }
 
   .dark {
+    /* Keeping dark mode similar for now, usually Rainbow Pastel implies light theme preference */
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
@@ -61,11 +80,11 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 330 81% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 239 84% 67%;
+    --secondary-foreground: 0 0% 100%;
 
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
@@ -81,7 +100,7 @@
     --ring: 212.7 26.8% 83.9%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary: 330 81% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
@@ -96,6 +115,10 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors duration-300;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-card-foreground font-bold tracking-tight;
   }
 }

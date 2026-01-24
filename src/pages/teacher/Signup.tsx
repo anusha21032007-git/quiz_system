@@ -20,15 +20,15 @@ const TeacherSignup = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signUp({ 
-        email, 
-        password,
-        options: {
-            data: {
-                full_name: fullName,
-                role: 'teacher'
-            }
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+          role: 'teacher'
         }
+      }
     });
 
     if (error) {
@@ -41,7 +41,7 @@ const TeacherSignup = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+    <div className="min-h-screen flex items-center justify-center bg-background p-6">
       <div className="absolute top-8 left-8">
         <Link to="/">
           <Button variant="ghost" className="gap-2 text-slate-500 hover:text-indigo-600 font-bold">
@@ -55,8 +55,8 @@ const TeacherSignup = () => {
           <div className="mx-auto w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-indigo-100">
             <GraduationCap className="h-8 w-8 text-white" />
           </div>
-          <CardTitle className="text-3xl font-black text-slate-900 tracking-tight">Teacher Signup</CardTitle>
-          <CardDescription className="text-slate-500 font-medium tracking-tight">Join the EduFlow academic platform</CardDescription>
+          <CardTitle className="text-3xl font-black text-card-foreground tracking-tight">Teacher Signup</CardTitle>
+          <CardDescription className="text-muted-foreground font-medium tracking-tight">Join the QUIZ MANAGEMENT SYSTEM academic platform</CardDescription>
         </CardHeader>
         <form onSubmit={handleSignup}>
           <CardContent className="space-y-4 px-8 pb-8">

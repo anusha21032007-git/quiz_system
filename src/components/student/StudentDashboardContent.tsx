@@ -40,7 +40,6 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
   }, [contextQuizzes]);
 
   // Filter quizzes to only show ACTIVE ones to students
-  // Note: allQuizzes is already filtered for ACTIVE, so this is just a pass-through or re-memoization
   const quizzes = useMemo(() => allQuizzes, [allQuizzes]);
 
   const [selectedCompetitive, setSelectedCompetitive] = React.useState<Quiz | null>(null);
@@ -54,17 +53,12 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
 
   // Derive courses from available quizzes
   const dynamicCourses: Course[] = useMemo(() => {
-    // ... (existing code)
     const uniqueCourseNames = Array.from(new Set(quizzes.map((q: { courseName: string }) => q.courseName)));
-    // ... (existing code continues below, just ensuring context)
     return uniqueCourseNames.map((name, index) => {
-      // ...
       const attemptsForCourse = quizAttempts.filter(a => {
         const quiz = quizzes.find((q: { id: string }) => q.id === a.quizId);
-        // @ts-ignore
         return quiz?.courseName === name;
       });
-      // @ts-ignore
       const quizzesForCourse = quizzes.filter((q: { courseName: string }) => q.courseName === name);
 
       const progress = quizzesForCourse.length > 0
@@ -91,7 +85,7 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
   const averageScore = useMemo(() => {
     if (totalQuizzesAttempted === 0) return 0;
     // Calculate average score based on percentage
-    const totalPercentage = studentAttempts.reduce((sum, attempt) => sum + attempt.scorePercentage, 0);
+    const totalPercentage = studentAttempts.reduce((sum, attempt) => sum + (attempt.scorePercentage || 0), 0);
     return Math.round(totalPercentage / totalQuizzesAttempted);
   }, [studentAttempts, totalQuizzesAttempted]);
 

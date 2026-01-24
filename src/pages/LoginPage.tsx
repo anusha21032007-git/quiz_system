@@ -36,7 +36,7 @@ const LoginPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+        <div className="min-h-screen flex items-center justify-center bg-background p-6">
             <div className="absolute top-8 left-8">
                 <Link to="/">
                     <Button variant="ghost" className="gap-2 text-slate-500 hover:text-indigo-600 font-bold">
@@ -51,8 +51,8 @@ const LoginPage = () => {
                         <GraduationCap className="h-8 w-8 text-white" />
                     </div>
                     <CardTitle className="text-3xl font-black text-slate-900 tracking-tight">Sign In</CardTitle>
-                    <CardDescription className="text-slate-500 font-medium tracking-tight">
-                        Enter your credentials to access EduFlow
+                    <CardDescription className="text-muted-foreground font-medium tracking-tight">
+                        Enter your credentials to access QUIZ MANAGEMENT SYSTEM
                     </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleLogin}>

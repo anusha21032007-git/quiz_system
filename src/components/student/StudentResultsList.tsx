@@ -25,21 +25,29 @@ const StudentResultsList = ({ studentAttempts, quizzes }: StudentResultsListProp
     const generateCsv = (attempts: QuizAttempt[]) => {
         if (attempts.length === 0) return '';
 
-        const headers = ["Quiz Title", "Date", "Score (Marks)", "Total Marks Possible", "Percentage (%)", "Status", "Time Taken (s)", "Violations"];
+        const headers = ["Course", "Quiz Title", "Date", "Marks Obtained", "Total Marks", "Percentage", "Pass/Fail Status", "Time Taken (s)", "Violations"];
         const rows = attempts.map(attempt => {
+            const quiz = quizzes.find(q => q.id === attempt.quizId);
+            const title = quiz ? quiz.title : 'Unknown Quiz';
+            const course = quiz ? quiz.courseName : 'N/A';
+            const totalMarksPossible = (attempt as any).totalMarksPossible || (quiz ? (quiz.questions || []).reduce((sum, q) => sum + q.marks, 0) : attempt.totalQuestions);
+
             const date = new Date(attempt.timestamp).toLocaleDateString();
-            const status = attempt.passed ? 'Passed' : 'Failed';
-            const title = getQuizTitle(attempt.quizId);
-            
+            const status = attempt.passed ? 'PASSED' : 'FAILED';
+            const percentage = (attempt as any).scorePercentage !== undefined
+                ? (attempt as any).scorePercentage
+                : (totalMarksPossible > 0 ? (attempt.score / totalMarksPossible) * 100 : 0);
+
             return [
-                `"${title}"`, // Quote title to handle commas
+                `"${course}"`,
+                `"${title}"`,
                 date,
                 attempt.score.toFixed(2),
-                attempt.totalMarksPossible.toFixed(2),
-                attempt.scorePercentage.toFixed(1),
-                attempt.status === 'CORRUPTED' ? 'Corrupted' : status,
+                totalMarksPossible.toFixed(2),
+                percentage.toFixed(1) + '%',
+                status,
                 attempt.timeTakenSeconds,
-                attempt.violationCount,
+                attempt.violationCount
             ].join(',');
         });
 
@@ -99,6 +107,9 @@ const StudentResultsList = ({ studentAttempts, quizzes }: StudentResultsListProp
                         <TableBody>
                             {sortedAttempts.map((attempt) => {
                                 const isPassed = attempt.passed;
+                                const percentage = (attempt as any).scorePercentage !== undefined
+                                    ? (attempt as any).scorePercentage
+                                    : (attempt.totalQuestions > 0 ? (attempt.correctAnswersCount / attempt.totalQuestions) * 100 : 0);
 
                                 return (
                                     <TableRow key={attempt.id} className="hover:bg-gray-50/50 transition-colors">
@@ -113,7 +124,7 @@ const StudentResultsList = ({ studentAttempts, quizzes }: StudentResultsListProp
                                                 "px-2 py-1 rounded-md bg-gray-100",
                                                 isPassed ? "text-green-700 bg-green-50" : "text-red-700 bg-red-50"
                                             )}>
-                                                {attempt.scorePercentage.toFixed(1)}%
+                                                {percentage.toFixed(1)}%
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-center">

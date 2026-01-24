@@ -63,6 +63,20 @@ const config: Config = {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+        },
+        info: {
+          DEFAULT: "hsl(var(--info))",
+        },
+        rank: {
+          gold: "hsl(var(--rank-gold))",
+          silver: "hsl(var(--rank-silver))",
+          bronze: "hsl(var(--rank-bronze))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

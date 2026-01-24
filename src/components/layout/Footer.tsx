@@ -15,8 +15,8 @@ const Footer = () => {
                                 <GraduationCap className="h-6 w-6" />
                             </div>
                             <div className="flex flex-col">
-                                <span className="font-bold text-xl text-slate-900 leading-tight">EduFlow</span>
-                                <span className="text-[10px] text-slate-500 font-medium tracking-wide">QUIZ MANAGEMENT SYSTEM</span>
+                                <span className="font-extrabold text-lg text-slate-900 leading-tight uppercase tracking-tighter">QUIZ MANAGEMENT SYSTEM</span>
+                                <span className="text-[10px] text-primary font-bold tracking-widest text-center sm:text-left">PREMIUM ACADEMIC PORTAL</span>
                             </div>
                         </Link>
                         <p className="text-slate-600 mb-6 max-w-sm leading-relaxed">
@@ -69,7 +69,7 @@ const Footer = () => {
                 {/* Bottom Bar */}
                 <div className="pt-8 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
                     <p className="text-sm text-slate-500 font-medium">
-                        © {new Date().getFullYear()} EduFlow. All rights reserved.
+                        © {new Date().getFullYear()} QUIZ MANAGEMENT SYSTEM. All rights reserved.
                     </p>
                     <div className="flex items-center gap-8">
                         <a href="#" className="text-sm text-slate-500 hover:text-slate-700 font-medium">Privacy Policy</a>

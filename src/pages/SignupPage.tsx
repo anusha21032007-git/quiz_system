@@ -27,7 +27,7 @@ const SignupPage = () => {
             options: {
                 data: {
                     full_name: name, // Pass full_name to user metadata
-                    role: 'teacher' 
+                    role: 'teacher'
                 }
             }
         });
@@ -42,7 +42,7 @@ const SignupPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+        <div className="min-h-screen flex items-center justify-center bg-background p-6">
             <div className="absolute top-8 left-8">
                 <Link to="/">
                     <Button variant="ghost" className="gap-2 text-slate-500 hover:text-indigo-600 font-bold">
@@ -57,8 +57,8 @@ const SignupPage = () => {
                         <GraduationCap className="h-8 w-8 text-white" />
                     </div>
                     <CardTitle className="text-3xl font-black text-slate-900 tracking-tight">Create Account</CardTitle>
-                    <CardDescription className="text-slate-500 font-medium tracking-tight">
-                        Join EduFlow and start managing quizzes with ease
+                    <CardDescription className="text-muted-foreground font-medium tracking-tight">
+                        Join QUIZ MANAGEMENT SYSTEM and start managing quizzes with ease
                     </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSignup}>

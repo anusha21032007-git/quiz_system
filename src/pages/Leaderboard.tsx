@@ -138,9 +138,9 @@ const GlobalLeaderboard = () => {
                       <TableCell className="font-bold text-lg text-center">
                         <span className={cn(
                           "inline-flex items-center justify-center w-8 h-8 rounded-full",
-                          index === 0 ? "bg-yellow-400 text-white" :
-                            index === 1 ? "bg-slate-300 text-white" :
-                              index === 2 ? "bg-orange-300 text-white" :
+                          index === 0 ? "bg-rank-gold text-white" :
+                            index === 1 ? "bg-rank-silver text-white" :
+                              index === 2 ? "bg-rank-bronze text-white" :
                                 "bg-gray-100 text-gray-600"
                         )}>
                           {index + 1}

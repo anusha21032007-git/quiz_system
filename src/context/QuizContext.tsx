@@ -10,6 +10,7 @@ import {
   SupabaseQuiz,
   SupabaseQuestion
 } from '@/integrations/supabase/quizzes';
+import { useSubmitAttempt, useAllAttempts, SupabaseQuizAttempt } from '@/integrations/supabase/attempts';
 import { supabase } from '@/integrations/supabase/client';
 import { aiService, AIQuestionResponse } from '@/services/aiService';
 
@@ -41,7 +42,8 @@ export interface Quiz extends Omit<SupabaseQuiz, 'teacher_id' | 'created_at' | '
   competitionMode: boolean;
   scheduledDate: string;
   negativeMarksValue: number;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  difficulty?: 'Easy' | 'Medium' | 'Hard';
+  isCompetitive?: boolean;
   isInterview?: boolean;
   maxAttempts?: number;
 }
@@ -104,7 +106,7 @@ const mapSupabaseQuizToLocal = (sQuiz: SupabaseQuiz): Quiz => ({
   quizId: sQuiz.id,
   title: sQuiz.title,
   courseName: sQuiz.course_name,
-  questions: [], 
+  questions: [],
   timeLimitMinutes: sQuiz.time_limit_minutes,
   negativeMarking: sQuiz.negative_marking,
   competitionMode: sQuiz.competition_mode,
@@ -112,12 +114,13 @@ const mapSupabaseQuizToLocal = (sQuiz: SupabaseQuiz): Quiz => ({
   startTime: sQuiz.start_time,
   endTime: sQuiz.end_time,
   negativeMarksValue: sQuiz.negative_marks_value,
-  status: sQuiz.status === 'published' ? 'ACTIVE' : sQuiz.status as any,
+  status: sQuiz.status === 'published' ? 'ACTIVE' : sQuiz.status as Quiz['status'],
   difficulty: sQuiz.difficulty,
   passPercentage: sQuiz.pass_mark_percentage || 0,
   totalQuestions: sQuiz.total_questions || 0,
   requiredCorrectAnswers: sQuiz.required_correct_answers || 0,
   createdAt: sQuiz.created_at,
+  isCompetitive: sQuiz.competition_mode || sQuiz.title.startsWith('CMP:') || sQuiz.course_name.includes('Competitive'),
   isInterview: sQuiz.title.startsWith('INT:') || sQuiz.course_name.includes('Interview'),
 });
 
@@ -125,6 +128,10 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient();
   const { data: supabaseQuizzes = [], isLoading: isQuizzesLoading } = useQuizzes();
   const createQuizMutation = useCreateQuiz();
+
+  // Cloud Sync: Fetch all attempts
+  const { data: supabaseAttempts = [] } = useAllAttempts();
+  const submitAttemptMutation = useSubmitAttempt();
 
   const [localData, setLocalData] = useState<{
     quizzes: Quiz[];
@@ -137,10 +144,14 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
       const stored = localStorage.getItem('ALL_QUIZZES');
       if (stored) {
         const parsed = JSON.parse(stored);
+        const sanitizedQuizzes = (parsed.quizzes || []).map((q: any) => ({
+          ...q,
+          questions: q.questions || []
+        }));
         return {
-          quizzes: parsed.quizzes || [],
+          quizzes: sanitizedQuizzes,
           questions: parsed.questions || [],
-          attempts: parsed.attempts || [],
+          attempts: parsed.attempts || [], // Keep loading local attempts for now as fallback
           courses: parsed.courses || [],
           users: parsed.users || [],
         };
@@ -152,7 +163,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     }
   });
 
-  const { quizzes: localQuizzes, questions: localQuestionPool, attempts: quizAttempts, courses: manualCourses, users: managedUsers } = localData;
+  const { quizzes: localQuizzes, questions: localQuestionPool, attempts: localQuizAttempts, courses: manualCourses, users: managedUsers } = localData;
 
   const setLocalQuizzes = (updater: Quiz[] | ((prev: Quiz[]) => Quiz[])) => {
     setLocalData(prev => ({
@@ -189,6 +200,43 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     }));
   };
 
+  // Merge local and cloud attempts
+  const cloudAttemptsMapped: QuizAttempt[] = supabaseAttempts.map(sa => {
+    return {
+      id: sa.id,
+      quizId: sa.quiz_id,
+      studentName: sa.student_name,
+      score: sa.score,
+      totalQuestions: sa.total_questions,
+      timeTakenSeconds: sa.time_taken_seconds,
+      passed: sa.passed,
+      status: sa.status as 'SUBMITTED' | 'CORRUPTED',
+      violationCount: sa.violation_count,
+      answers: sa.answers,
+      timestamp: new Date(sa.created_at).getTime(),
+      correctAnswersCount: sa.score, // Fallback
+      scorePercentage: (sa as any).score_percentage || 0, // Assume potential future fields
+      totalMarksPossible: (sa as any).total_marks_possible || sa.total_questions, // Fallback
+    };
+  });
+
+  const quizAttempts = useMemo(() => {
+    const combined = [...cloudAttemptsMapped];
+    localData.attempts.forEach(local => {
+      if (local.id.startsWith('att-cloud-')) return;
+      const isAlreadyInCloud = cloudAttemptsMapped.some(cloud =>
+        cloud.quizId === local.quizId &&
+        cloud.studentName === local.studentName &&
+        Math.abs(cloud.score - local.score) < 0.01 &&
+        Math.abs(cloud.timestamp - local.timestamp) < 300000
+      );
+      if (!isAlreadyInCloud) {
+        combined.push(local);
+      }
+    });
+    return combined.sort((a, b) => b.timestamp - a.timestamp);
+  }, [cloudAttemptsMapped, localData.attempts]);
+
   const quizzes = useMemo(() => [...supabaseQuizzes.map(mapSupabaseQuizToLocal), ...localQuizzes], [supabaseQuizzes, localQuizzes]);
 
   const [hasNewQuizzes, setHasNewQuizzes] = useState<boolean>(() => {
@@ -206,12 +254,12 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     const dataToSave = {
       quizzes: localQuizzes,
       questions: localQuestionPool,
-      attempts: quizAttempts,
+      attempts: localQuizAttempts,
       courses: manualCourses,
       users: managedUsers,
     };
     localStorage.setItem('ALL_QUIZZES', JSON.stringify(dataToSave));
-  }, [localQuizzes, localQuestionPool, quizAttempts, manualCourses, managedUsers]);
+  }, [localQuizzes, localQuestionPool, localQuizAttempts, manualCourses, managedUsers]);
 
   const logToHistory = (quiz: Quiz, action: 'Published' | 'Deleted') => {
     const historyJson = localStorage.getItem('questionActionHistory');
@@ -279,10 +327,10 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
       id: localId,
       quizId: localId,
       questions: newLocalQuestions,
-      passPercentage: (quiz as any).passPercentage || (quiz as any).passMarkPercentage || 0,
+      passPercentage: quiz.passPercentage || 0,
       status: 'ACTIVE',
       createdAt: new Date().toISOString(),
-      maxAttempts: (quiz as any).maxAttempts || 1,
+      maxAttempts: quiz.maxAttempts || 1,
     };
 
     setLocalQuizzes(prev => [...prev, newLocalQuiz]);
@@ -356,23 +404,36 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     const quiz = quizzes.find(q => q.id === attempt.quizId);
     if (!quiz) return;
 
-    // 1. Calculate marks and pass status based on marks
-    const totalMarksPossible = quiz.questions.reduce((sum, q) => sum + q.marks, 0);
+    // 1. Calculate metrics
+    const quizQuestions = quiz.questions.length > 0 ? quiz.questions : localQuestionPool.filter(q => q.quizId === quiz.id);
+    const totalMarksPossible = quizQuestions.reduce((sum, q) => sum + q.marks, 0) || attempt.totalQuestions;
     const scorePercentage = totalMarksPossible > 0 ? (attempt.score / totalMarksPossible) * 100 : 0;
     const passed = scorePercentage >= quiz.passPercentage;
 
-    // 2. Create final attempt object
-    const newAttempt: QuizAttempt = { 
-      ...attempt, 
-      id: `att-${Date.now()}`, 
+    // 2. Save locally immediately for optimistic UI
+    const newAttempt: QuizAttempt = {
+      ...attempt,
+      id: `att-local-${Date.now()}`,
       timestamp: Date.now(),
-      scorePercentage: scorePercentage,
-      totalMarksPossible: totalMarksPossible,
-      passed: passed,
+      scorePercentage,
+      totalMarksPossible,
+      passed
     };
-    
-    // 3. Save locally
     setQuizAttempts((prev) => [...prev, newAttempt]);
+
+    // 3. Sync to Cloud
+    submitAttemptMutation.mutate({
+      quiz_id: attempt.quizId,
+      student_name: attempt.studentName,
+      score: attempt.score,
+      total_questions: attempt.totalQuestions,
+      time_taken_seconds: attempt.timeTakenSeconds,
+      passed: passed,
+      answers: attempt.answers,
+      violation_count: attempt.violationCount,
+      status: attempt.status as any,
+    });
+
     toast.success("Quiz submitted!");
   };
 
@@ -388,7 +449,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
         const found = questions.filter((q: Question) => q.quizId === quizId);
         if (found.length > 0) return found;
       }
-    } catch (e) {}
+    } catch (e) { }
 
     if (quizId.startsWith('qz-local-')) return [];
 
@@ -409,7 +470,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
         correctAnswer: sQ.correct_answer,
         marks: sQ.marks,
         timeLimitMinutes: sQ.time_limit_minutes,
-        explanation: (sQ as any).explanation || '',
+        explanation: sQ.explanation || '',
       }));
     } catch (error) {
       console.error("Error fetching questions:", quizId, error);
@@ -430,10 +491,6 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     timePerQuestionSeconds: number
   ): Promise<Question[]> => {
     try {
-      // NOTE: Since the AI service is implemented in a Supabase Edge Function, 
-      // we cannot directly call the local server/index.ts logic here.
-      // We rely on the existing `aiService` which uses `supabase.functions.invoke`.
-      
       const response = await aiService.generateQuestions({
         topic: coursePaperName,
         count: numQuestions,

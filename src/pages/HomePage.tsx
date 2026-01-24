@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 
 const HomePage = () => {
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-background text-foreground">
             <Navbar />
 
             {/* Hero Section */}
@@ -79,7 +79,7 @@ const HomePage = () => {
             </section>
 
             {/* Features Section */}
-            <section className="py-24 bg-slate-50">
+            <section className="py-24 bg-muted/30">
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="text-center mb-16">
                         <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-4 tracking-tight">Powerful Features</h2>
@@ -107,12 +107,12 @@ const HomePage = () => {
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="grid lg:grid-cols-2 gap-16 items-center">
                         <div>
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-xs font-bold uppercase mb-6 tracking-wider">
-                                About EduFlow
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase mb-6 tracking-wider text-center">
+                                About QUIZ MANAGEMENT SYSTEM
                             </div>
-                            <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-6 tracking-tight">Professional Assessment Framework</h2>
-                            <p className="text-lg text-slate-600 mb-8 leading-relaxed font-medium">
-                                EduFlow is a sophisticated academic platform designed specifically for higher education institutions. We focus on bridging the gap between traditional manual workflows and digital efficiency through seamless quiz management.
+                            <h2 className="text-3xl lg:text-4xl font-bold text-card-foreground mb-6 tracking-tight">Professional Assessment Framework</h2>
+                            <p className="text-lg text-muted-foreground mb-8 leading-relaxed font-medium">
+                                QUIZ MANAGEMENT SYSTEM is a sophisticated academic platform designed specifically for higher education institutions. We focus on bridging the gap between traditional manual workflows and digital efficiency through seamless quiz management.
                             </p>
 
                             <ul className="space-y-4">
@@ -160,7 +160,7 @@ const HomePage = () => {
             </section>
 
             {/* How It Works Section */}
-            <section className="py-24 bg-slate-50">
+            <section className="py-24 bg-muted/30">
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="text-center mb-16">
                         <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-4 tracking-tight">How It Works</h2>
@@ -196,8 +196,8 @@ const HomePage = () => {
                         <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
 
                         <h2 className="text-3xl lg:text-5xl font-bold text-white mb-8 relative z-10 tracking-tight">Ready to transform your assessment process?</h2>
-                        <p className="text-xl text-indigo-50 mb-12 relative z-10 max-w-2xl mx-auto font-medium opacity-90">
-                            Join EduFlow today and experience a smarter way to manage academic quizzes and student growth.
+                        <p className="text-xl text-primary-foreground/90 mb-12 relative z-10 max-w-2xl mx-auto font-medium opacity-90">
+                            Join QUIZ MANAGEMENT SYSTEM today and experience a smarter way to manage academic quizzes and student growth.
                         </p>
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10">
                             <Link to="/signup">

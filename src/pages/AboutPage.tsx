@@ -15,7 +15,7 @@ import Footer from "@/components/layout/Footer";
 
 const AboutPage = () => {
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-background text-foreground">
             <Navbar />
 
             <section className="pt-32 pb-20">
@@ -29,17 +29,17 @@ const AboutPage = () => {
                     </div>
 
                     <div className="max-w-3xl">
-                        <h1 className="text-4xl lg:text-5xl font-black text-slate-900 mb-8 tracking-tight">
-                            About <span className="text-indigo-600">EduFlow</span>
+                        <h1 className="text-4xl lg:text-5xl font-black text-card-foreground mb-8 tracking-tight">
+                            About <span className="text-primary uppercase">Quiz Management System</span>
                         </h1>
-                        <p className="text-xl text-slate-600 leading-relaxed font-medium mb-12">
-                            EduFlow is an advanced academic quiz management system designed to streamline the assessment process for educational institutions. We bridge the gap between traditional testing and modern technology, providing a seamless experience for both teachers and students.
+                        <p className="text-xl text-muted-foreground leading-relaxed font-medium mb-12">
+                            QUIZ MANAGEMENT SYSTEM is an advanced academic assessment platform designed to streamline the evaluation process for educational institutions. We bridge the gap between traditional testing and modern technology, providing a seamless experience for both teachers and students.
                         </p>
                     </div>
 
                     <div className="grid lg:grid-cols-3 gap-8 mb-20">
                         {visions.map((item, index) => (
-                            <div key={index} className="p-8 rounded-3xl bg-slate-50 border border-slate-100">
+                            <div key={index} className="p-8 rounded-3xl bg-card border border-border shadow-sm">
                                 <div className="h-12 w-12 rounded-2xl bg-white flex items-center justify-center shadow-sm mb-6">
                                     <item.icon className="h-6 w-6 text-indigo-600" />
                                 </div>
@@ -57,8 +57,8 @@ const AboutPage = () => {
                         <div className="grid lg:grid-cols-2 gap-12 relative z-10">
                             <div>
                                 <h2 className="text-3xl font-bold mb-6">Our Core Capabilities</h2>
-                                <p className="text-indigo-100 mb-8 text-lg font-medium opacity-90 leading-relaxed">
-                                    Built for the demanding needs of modern universities, EduFlow provides a robust infrastructure for academic excellence.
+                                <p className="text-primary-foreground/90 mb-8 text-lg font-medium opacity-90 leading-relaxed">
+                                    Built for the demanding needs of modern universities, QUIZ MANAGEMENT SYSTEM provides a robust infrastructure for academic excellence.
                                 </p>
                                 <ul className="space-y-4">
                                     {[

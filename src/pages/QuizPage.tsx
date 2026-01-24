@@ -24,10 +24,10 @@ const QuizPage = () => {
 
   const quiz = quizId ? getQuizById(quizId) : undefined;
   const isMobile = useIsMobile();
-  const { studentName: locationStudentName } = (location.state || {}) as { studentName?: string };
 
-  // Determine student name: use logged-in student data if available, then location state, otherwise fallback to 'Guest'
-  const loggedInStudentName = studentData?.name || locationStudentName || user?.email || 'Guest';
+  // Determine student name: prioritize state passed via navigation, then auth data
+  const { studentName: navigationStudentName } = (location.state || {}) as { studentName?: string };
+  const initialStudentName = navigationStudentName || studentData?.name || user?.email || 'Guest';
 
   const [questions, setQuestions] = useState<LocalQuestionType[]>([]);
   const [isQuestionsLoading, setIsQuestionsLoading] = useState(true);
@@ -35,18 +35,16 @@ const QuizPage = () => {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [answers, setAnswers] = useState<{ questionId: string; selectedAnswer: string; isCorrect: boolean; marksObtained: number }[]>([]);
   const [showResults, setShowResults] = useState(false);
-  const [quizStudentName, setQuizStudentName] = useState(loggedInStudentName);
+  const [quizStudentName, setQuizStudentName] = useState(initialStudentName);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Update quizStudentName if studentData loads later
   useEffect(() => {
-    if (studentData?.name) {
+    if (studentData?.name && (!quizStudentName || quizStudentName === 'Guest' || quizStudentName === user?.email)) {
       setQuizStudentName(studentData.name);
-    } else if (locationStudentName) {
-      setQuizStudentName(locationStudentName);
     }
-  }, [studentData, locationStudentName]);
+  }, [studentData, user?.email, quizStudentName]);
 
   // Check for existing attempts and max attempts reached
   const studentAttempts = useMemo(() => {
@@ -73,9 +71,12 @@ const QuizPage = () => {
   // Unified question fetching (handles local and cloud)
   useEffect(() => {
     const fetchQuestions = async () => {
-      if (!quizId || !quizStudentName || quizStudentName === 'Guest' || isMaxAttemptsReached || attemptToShow) {
-        if (!isQuestionsLoading) return;
+      if (!quizId) return;
+
+      // If results should be shown (submitted or max reached), stop loading questions
+      if (attemptToShow || isMaxAttemptsReached) {
         setIsQuestionsLoading(false);
+        setShowResults(true);
         return;
       }
 
@@ -99,12 +100,12 @@ const QuizPage = () => {
       }
     };
     fetchQuestions();
-  }, [quizId, getQuestionsForQuiz, quiz?.totalQuestions, isMaxAttemptsReached, quizStudentName, attemptToShow]);
+  }, [quizId, getQuestionsForQuiz, quiz?.totalQuestions, isMaxAttemptsReached, attemptToShow]);
 
   // Per-Question Timer Logic
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
-    if (showResults || isMaxAttemptsReached || questions.length === 0) return;
+    if (showResults || questions.length === 0 || isMaxAttemptsReached || attemptToShow) return;
 
     const currentQ = questions[currentQuestionIndex];
     if (currentQ) {
@@ -130,7 +131,7 @@ const QuizPage = () => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [currentQuestionIndex, questions.length, showResults, isMaxAttemptsReached]);
+  }, [currentQuestionIndex, questions.length, showResults, isMaxAttemptsReached, attemptToShow]);
 
   const currentQuestionId = questions[currentQuestionIndex]?.id;
 
@@ -190,7 +191,7 @@ const QuizPage = () => {
 
     const totalScore = (finalAnswers || []).reduce((sum, ans) => sum + ans.marksObtained, 0);
     const correctAnswersCount = (finalAnswers || []).filter(ans => ans.isCorrect).length;
-    
+
     submitQuizAttempt({
       quizId: quiz!.id,
       studentName: quizStudentName,
@@ -198,7 +199,7 @@ const QuizPage = () => {
       totalQuestions: questions.length,
       correctAnswersCount,
       answers: finalAnswers,
-      timeTakenSeconds: 0, // Per-question timing makes total time calculation distinct
+      timeTakenSeconds: 0,
       status: 'SUBMITTED',
       violationCount: 0,
     });
@@ -221,10 +222,10 @@ const QuizPage = () => {
       return;
     }
 
-    if (currentQuestion) {
-      const isCorrect = selectedAnswer === currentQuestion.correctAnswer;
-      const marksObtained = calculateMarksForQuestion(currentQuestion, isCorrect);
+    const isCorrect = currentQuestion && selectedAnswer === currentQuestion.correctAnswer;
+    const marksObtained = currentQuestion ? calculateMarksForQuestion(currentQuestion, isCorrect) : 0;
 
+    if (currentQuestion) {
       setAnswers((prev) => {
         const existingAnswerIndex = prev.findIndex(
           (ans) => ans.questionId === currentQuestion.id
@@ -254,10 +255,6 @@ const QuizPage = () => {
     }
   };
 
-  const handlePreviousQuestion = () => {
-    // Disabled in strict per-question timer mode
-  };
-
   const handleBack = () => {
     if (!showResults && !isMaxAttemptsReached) {
       const confirmed = window.confirm("Are you sure you want to leave the quiz? Your progress will be lost.");
@@ -279,7 +276,8 @@ const QuizPage = () => {
     const finalScore = attempt.score;
     const totalPossibleMarks = (questions.length > 0 ? questions : (attempt.answers || []))
       .reduce((sum: number, q: any) => sum + (q.marks || 0), 0) || attempt.totalMarksPossible || 0;
-    const isPassed = attempt.passed ?? ((finalScore / totalPossibleMarks) * 100 >= (quiz?.passPercentage || 0));
+    const scorePercentage = totalPossibleMarks > 0 ? (finalScore / totalPossibleMarks) * 100 : 0;
+    const isPassed = attempt.passed ?? (scorePercentage >= (quiz?.passPercentage || 0));
 
     const attemptsForQuiz = quizAttempts.filter(a => a.quizId === quiz?.id);
     const sortedScores = [...attemptsForQuiz].sort((a, b) => b.score - a.score);
@@ -301,12 +299,15 @@ const QuizPage = () => {
             <CardTitle className={cn("text-4xl font-bold", isPassed ? "text-green-700" : "text-red-700")}>
               Quiz {isPassed ? "Completed" : "Attempted"}!
             </CardTitle>
+            {isMaxAttemptsReached && !attemptToShow && (
+              <p className="text-orange-600 font-semibold">You have reached the maximum number of attempts.</p>
+            )}
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            <p className="text-2xl text-gray-800">Congratulations, <span className="font-semibold">{quizStudentName}</span>!</p>
+            <p className="text-2xl text-gray-800">Hi, <span className="font-semibold">{quizStudentName}</span>!</p>
 
             <div className="py-6 px-4 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200">
-              <p className="text-lg text-gray-600 font-medium">YOUR FINAL RESULT</p>
+              <p className="text-lg text-gray-600 font-medium">YOUR RESULT</p>
               <div className={cn(
                 "text-6xl font-black mb-2",
                 isPassed ? "text-green-600" : "text-red-600"
@@ -318,7 +319,7 @@ const QuizPage = () => {
                 Criteria: Minimum {quiz?.passPercentage}% marks required to pass.
               </p>
             </div>
-            
+
             <div className="flex justify-center items-center gap-6 py-4">
               <div className="text-center">
                 <p className="text-sm text-gray-500 uppercase tracking-wider">Current Rank</p>
@@ -342,8 +343,8 @@ const QuizPage = () => {
                       <span className={cn(
                         "w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold",
                         idx === 0 ? "bg-yellow-400 text-yellow-950" :
-                        idx === 1 ? "bg-gray-300 text-gray-900" :
-                        "bg-orange-300 text-orange-950"
+                          idx === 1 ? "bg-gray-300 text-gray-900" :
+                            "bg-orange-300 text-orange-950"
                       )}>
                         {idx + 1}
                       </span>
@@ -417,7 +418,7 @@ const QuizPage = () => {
           </CardContent>
           <CardFooter className="flex justify-center gap-4 mt-6">
             <Button onClick={() => navigate('/student')} className="bg-blue-600 hover:bg-blue-700">
-              Back to Student Dashboard
+              Back to Dashboard
             </Button>
             {!isPassed && (quiz?.maxAttempts === undefined || quiz.maxAttempts > attemptsCount) && (
               <Button onClick={handleTryAgain} variant="destructive" className="bg-red-600 hover:bg-red-700">
@@ -449,7 +450,7 @@ const QuizPage = () => {
 
   if (showResults || isMaxAttemptsReached || attemptToShow) {
     const finalAttempt = attemptToShow || {
-      score: answers.reduce((sum, a) => sum + a.marksObtained, 0),
+      score: (answers || []).reduce((sum, a) => sum + (a.marksObtained || 0), 0),
       answers: answers,
       studentName: quizStudentName,
       status: 'SUBMITTED',
@@ -490,7 +491,7 @@ const QuizPage = () => {
             <CardTitle className="text-3xl font-bold text-gray-800 text-center">{quiz.title}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {quizStudentName === 'Guest' && (
+            {!initialStudentName && (
               <div className="mb-4">
                 <Label htmlFor="quizStudentName" className="text-lg font-semibold">Your Name</Label>
                 <Input
@@ -500,7 +501,6 @@ const QuizPage = () => {
                   onChange={(e) => setQuizStudentName(e.target.value)}
                   className="mt-2 p-3 text-lg"
                 />
-                <p className="text-sm text-gray-500 mt-1">This name will be used for the leaderboard.</p>
               </div>
             )}
             <h2 className="text-2xl font-semibold text-gray-900">
@@ -522,12 +522,11 @@ const QuizPage = () => {
                     )}
                   >
                     <div className={cn(
-                      "h-6 w-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0",
+                      "h-6 w-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
                       isSelected ? "border-indigo-600 bg-indigo-600" : "border-gray-300 bg-white group-hover:border-gray-400"
                     )}>
                       {isSelected && <div className="h-2.5 w-2.5 rounded-full bg-white shadow-sm" />}
                     </div>
-
                     <span className={cn(
                       "text-lg flex-grow",
                       isSelected ? "font-medium text-indigo-900" : "font-normal text-gray-700"
@@ -541,7 +540,6 @@ const QuizPage = () => {
           </CardContent>
           <CardFooter className="flex justify-between mt-6">
             <Button
-              onClick={handlePreviousQuestion}
               disabled={true}
               variant="outline"
               className="text-lg px-6 py-3 opacity-50 cursor-not-allowed"
