@@ -63,10 +63,23 @@ const QuizPage = () => {
       .sort((a, b) => b.timestamp - a.timestamp);
   }, [quizAttempts, quizId, quizStudentName]);
 
-  const existingAttempt = studentAttempts[0];
   const attemptsCount = studentAttempts.length;
   const maxAttempts = quiz?.maxAttempts || 1;
   const isMaxAttemptsReached = attemptsCount >= maxAttempts;
+  
+  // Determine which attempt to show results for, if any.
+  const attemptToShow = useMemo(() => {
+    const submittedAttempt = studentAttempts.find(a => a.status === 'SUBMITTED');
+    
+    // If a submitted attempt exists, show it.
+    if (submittedAttempt) return submittedAttempt;
+    
+    // If max attempts reached, show the latest attempt (even if corrupted/zero score)
+    if (isMaxAttemptsReached && studentAttempts.length > 0) {
+        return studentAttempts[0];
+    }
+    return undefined;
+  }, [studentAttempts, isMaxAttemptsReached]);
 
   // Unified question fetching (handles local and cloud)
   useEffect(() => {
@@ -119,6 +132,7 @@ const QuizPage = () => {
       setTimeLeft(Math.floor(currentQ.timeLimitMinutes * 60));
     }
 
+<<<<<<< HEAD
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -136,6 +150,32 @@ const QuizPage = () => {
         return prev - 1;
       });
     }, 1000);
+=======
+    // Show results if max attempts reached OR a submitted attempt exists.
+    if (isMaxAttemptsReached || attemptToShow) {
+        setShowResults(true);
+        return;
+    }
+
+    if (questions && questions.length > 0) {
+      // Calculate total time limit based on individual question times
+      const totalDuration = (questions || []).reduce((sum, q) => sum + q.timeLimitMinutes, 0) * 60; // Convert minutes to seconds
+      setInitialTime(totalDuration);
+      setTimeLeft(totalDuration);
+    }
+  }, [quizId, quiz, questions.length, navigate, isMaxAttemptsReached, attemptToShow]);
+
+  // Timer logic
+  useEffect(() => {
+    if (timeLeft > 0 && !showResults && questions.length > 0 && !isMaxAttemptsReached) {
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prevTime) => prevTime - 1);
+      }, 1000);
+    } else if (timeLeft === 0 && !showResults && questions.length > 0 && !isMaxAttemptsReached) {
+      // Auto-submit when time runs out
+      handleSubmitQuiz(true);
+    }
+>>>>>>> 6d2981f29ce79208baa4348fb9d60f04fbed3927
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -412,6 +452,24 @@ const QuizPage = () => {
         </Card>
       </div>
     );
+<<<<<<< HEAD
+=======
+  };
+
+  if (showResults || isMaxAttemptsReached) {
+    // If max attempts reached, we must have an attempt to show (even if corrupted/zero score)
+    const attemptToShowFinal = attemptToShow || { 
+        score: 0, 
+        totalMarksPossible: 0, 
+        timeTakenSeconds: 0, 
+        correctAnswersCount: 0, 
+        scorePercentage: 0, 
+        passed: false, 
+        answers: [], 
+        id: 'temp' 
+    };
+    return renderResults(attemptToShowFinal);
+>>>>>>> 6d2981f29ce79208baa4348fb9d60f04fbed3927
   }
 
   if (questions.length === 0) {
