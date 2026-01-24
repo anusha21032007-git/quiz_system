@@ -49,6 +49,9 @@ const QuizItem = ({ quiz, studentName, handleStartQuiz }: { quiz: QuizTimelineIt
     status = latestAttempt.passed ? 'Completed' : 'Not Completed';
   }
 
+  const formattedStartTime = quiz.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formattedEndTime = quiz.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
   const getButton = () => {
     if (status === 'Completed') {
         return <Link to="/leaderboard"><Button variant="secondary" className="w-full sm:w-auto"><CheckCircle className="h-4 w-4 mr-2" /> Result Available</Button></Link>;
@@ -98,7 +101,7 @@ const QuizItem = ({ quiz, studentName, handleStartQuiz }: { quiz: QuizTimelineIt
         <p className="text-xs text-gray-500 font-medium">Course: {quiz.courseName}</p>
         <div className="flex items-center gap-4 text-[11px] text-slate-400 pt-1">
           <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {new Date(quiz.scheduledDate).toLocaleDateString()}</span>
-          <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {quiz.startTime} - {quiz.endTime}</span>
+          <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {formattedStartTime} - {formattedEndTime}</span>
           {attemptsCount > 0 && <span className="text-xs font-bold text-indigo-500">Attempts: {attemptsCount}/{maxAttempts}</span>}
         </div>
       </div>
