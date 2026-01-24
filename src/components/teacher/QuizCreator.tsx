@@ -74,7 +74,7 @@ const QuizCreator = () => {
     quizTitle: '',
     courseName: '',
     totalQuestions: 0,
-    optionsPerQuestion: 4,
+    optionsPerQuestion: 4, // Default to 4 as standard MCQ
     questions: [],
     scheduledDate: '',
     startTime: '',
@@ -226,6 +226,9 @@ const QuizCreator = () => {
   // Auto-trigger AI Generation when entering Step 2
   useEffect(() => {
     if (step === 2) {
+      // Force optionsPerQuestion to 4 for AI mode (standard MCQ)
+      setQuizData(prev => ({ ...prev, optionsPerQuestion: 4 }));
+
       // If we don't have any questions, OR if all existing questions are completely empty
       const isEmptyPool = quizData.questions.length === 0 || quizData.questions.every(q => !q.questionText.trim() && q.options.every(opt => !opt.trim()));
 
@@ -325,44 +328,45 @@ const QuizCreator = () => {
       return;
     }
 
-    // Update local topic state for consistency
     if (!aiCoursePaperName) setAiCoursePaperName(topicToUse);
-
     setIsGeneratingAI(true);
+
+    // Clear current pool or treat as fresh start if generating new set
+    setQuizData(prev => ({ ...prev, questions: [], totalQuestions: Number(prev.totalQuestions) || 5 }));
+
     try {
-      // Generate questions for the pool (requested: always relevant to topic)
       const countToGenerate = Number(quizData.totalQuestions) || 5;
 
-      const generated = await generateAIQuestions(
-        topicToUse,
-        aiDifficulty,
-        countToGenerate,
-        quizData.optionsPerQuestion,
-        aiMarksPerQuestion,
-        aiTimePerQuestionSeconds
-      );
-
-      // Check if generation failed
-      if (generated.length === 0) {
-        toast.error("AI Generation failed. Please try a different topic or try again.");
-        return;
-      }
+      await generateAIQuestions({
+        coursePaperName: topicToUse,
+        difficulty: aiDifficulty,
+        numQuestions: countToGenerate,
+        numOptions: quizData.optionsPerQuestion,
+        marksPerQuestion: aiMarksPerQuestion,
+        timePerQuestionSeconds: aiTimePerQuestionSeconds,
+        onBatchComplete: (newQuestions) => {
+          setQuizData(prev => ({
+            ...prev,
+            questions: [...prev.questions, ...newQuestions.map(q => ({
+              questionText: q.questionText,
+              options: q.options,
+              correctAnswerIndex: q.options.indexOf(q.correctAnswer),
+              marks: q.marks,
+              timeLimitMinutes: q.timeLimitMinutes,
+              explanation: q.explanation || ''
+            }))]
+          }));
+          toast.success(`Received ${newQuestions.length} more questions...`);
+        }
+      });
 
       setQuizData(prev => ({
         ...prev,
         quizTitle: prev.quizTitle.includes('(AI Generated)') ? prev.quizTitle : `${prev.quizTitle} (AI Generated)`,
-        questions: generated.map(q => ({
-          questionText: q.questionText,
-          options: q.options,
-          correctAnswerIndex: q.options.indexOf(q.correctAnswer),
-          marks: q.marks,
-          timeLimitMinutes: q.timeLimitMinutes,
-          explanation: q.explanation || ''
-        })),
-        totalQuestions: generated.length // Adjust total questions to what was actually generated
+        totalQuestions: prev.questions.length
       }));
 
-      toast.success(`Generated ${generated.length} high-quality questions for "${topicToUse}"!`);
+      toast.success(`Success! Final question pool ready.`);
     } catch (error) {
       console.error("AI Generation failed:", error);
       toast.error("Something went wrong during AI generation.");
@@ -687,24 +691,7 @@ const QuizCreator = () => {
               className="mt-1"
             />
           </div>
-          <div>
-            <Label htmlFor="optionsPerQuestion">Options per Question (MCQ)</Label>
-            <Input
-              id="optionsPerQuestion"
-              type="number"
-              min="0"
-              max="6"
-              value={quizData.optionsPerQuestion}
-              disabled={step === 2} // Lock
-              onChange={(e) => {
-                const val = parseInt(e.target.value) || 0;
-                if (val >= 0 && val <= 6) {
-                  handleUpdateQuizDetails('optionsPerQuestion', val);
-                }
-              }}
-              className="mt-1"
-            />
-          </div>
+          {/* optionsPerQuestion hidden as AI handles this automatically now */}
         </div>
 
         <div className="border-t pt-4 mt-4">
@@ -868,21 +855,13 @@ const QuizCreator = () => {
                   </Button>
                 </div>
                 <p className="text-sm text-gray-500 mt-2">
-                  AI will generate {quizData.totalQuestions} questions with {quizData.optionsPerQuestion} options each,
+                  AI will generate {quizData.totalQuestions} questions with <strong className="text-indigo-600">4 options</strong> each (standard MCQ format),
                   setting each to {aiMarksPerQuestion} marks and {aiTimePerQuestionSeconds} seconds.
                 </p>
               </div>
 
               <div className="space-y-6 max-h-96 overflow-y-auto p-3 border rounded-md bg-gray-50 mt-4 relative">
-                {isGeneratingAI && (
-                  <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
-                    <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4" />
-                    <h4 className="text-lg font-semibold text-indigo-900">Expert AI is Working...</h4>
-                    <p className="text-sm text-indigo-600 max-w-[250px]">
-                      Crafting clear, conceptually focused MCQs with realistic distractors for your subject.
-                    </p>
-                  </div>
-                )}
+                {/* Overlay removed for real-time visibility */}
                 {quizData.questions.length === 0 ? (
                   <p className="text-gray-500 text-center py-10">
                     {isGeneratingAI ? "" : "No questions added yet. Click \"Generate Questions with AI\" to begin."}
@@ -923,25 +902,26 @@ const QuizCreator = () => {
                             </div>
                           ))}
                         </div>
-                        <div>
-                          <Label>Select the correct option</Label>
-                          <RadioGroup
-                            onValueChange={(value) => handleUpdateCorrectAnswerIndex(index, value)}
-                            value={q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : ''}
-                            className="flex flex-col space-y-2 mt-2"
-                          >
-                            {q.options.map((option, optIndex) => (
-                              option && (
-                                <div key={optIndex} className="flex items-center space-x-2">
-                                  <RadioGroupItem value={option} id={`q-correct-${index}-${optIndex}`} />
-                                  <Label htmlFor={`q-correct-${index}-${optIndex}`} className="font-normal cursor-pointer">
-                                    {String.fromCharCode(65 + optIndex)}. {option}
-                                  </Label>
-                                </div>
-                              )
-                            ))}
-                          </RadioGroup>
-                        </div>
+                        <Label className="text-xs text-indigo-600 font-bold flex items-center gap-1 mb-1">
+                          <Save className="h-3 w-3" /> Correct Answer (AI Selected)
+                        </Label>
+                        <RadioGroup
+                          onValueChange={(value) => handleUpdateCorrectAnswerIndex(index, value)}
+                          value={q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : ''}
+                          className="flex flex-col space-y-2 mt-2"
+                          disabled={true} // AI questions have locked correct answers
+                        >
+                          {q.options.map((option, optIndex) => (
+                            option && (
+                              <div key={optIndex} className="flex items-center space-x-2 bg-indigo-50/30 p-2 rounded-md border border-transparent hover:border-indigo-100">
+                                <RadioGroupItem value={option} id={`q-correct-${index}-${optIndex}`} />
+                                <Label htmlFor={`q-correct-${index}-${optIndex}`} className="font-medium cursor-pointer text-gray-700">
+                                  {String.fromCharCode(65 + optIndex)}. {option}
+                                </Label>
+                              </div>
+                            )
+                          ))}
+                        </RadioGroup>
                         <div>
                           <Label htmlFor={`q-marks-${index}`}>Marks (1-10)</Label>
                           <Input

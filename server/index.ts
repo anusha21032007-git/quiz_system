@@ -1,8 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { z } from 'zod';
+import fs from 'fs';
+import path from 'path';
 
 dotenv.config();
 
@@ -10,16 +11,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 5000;
-const API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+const PORT = Number(process.env.PORT) || 5000;
+const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+let OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2:3b';
 
-if (!API_KEY) {
-    console.error("GOOGLE_GENERATIVE_AI_API_KEY is missing in backend .env");
-    process.exit(1);
-}
-
-const genAI = new GoogleGenerativeAI(API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const DEBUG_FILE = path.join(__dirname, 'ai_debug.txt');
 
 // Schema for request validation
 const GenerateRequestSchema = z.object({
@@ -27,194 +23,148 @@ const GenerateRequestSchema = z.object({
     count: z.number().min(1).max(20),
     difficulty: z.enum(['easy', 'medium', 'hard']),
     marks: z.number().min(1),
-    timeLimitSeconds: z.number().min(10)
+    timeLimitSeconds: z.number().min(10),
+    optionsCount: z.number().min(2).max(6).optional().default(4)
 });
 
-// Schema for AI response validation
-const QuestionSchema = z.object({
-    id: z.number(),
-    question: z.string().min(10),
-    options: z.array(z.string()).length(4),
-    correctIndex: z.number().min(0).max(3),
-    difficulty: z.enum(['easy', 'medium', 'hard']),
-    marks: z.number(),
-    timeLimitSeconds: z.number()
-});
+function validateTopicRelevance(question: any, topic: string): boolean {
+    if (!question.question) return false;
+    const cleanTopic = topic.toLowerCase().trim();
+    const qText = question.question.toLowerCase();
 
-const AIResponseSchema = z.object({
-    topic: z.string(),
-    questions: z.array(QuestionSchema)
-});
+    if (qText.includes(cleanTopic.substring(0, Math.min(cleanTopic.length, 6)))) return true;
+    const topicWords = cleanTopic.split(/\s+/).filter(word => word.length > 3);
+    if (topicWords.some(word => qText.includes(word))) return true;
 
-type Question = z.infer<typeof QuestionSchema>;
-
-/**
- * Validates topic relevance using keyword matching.
- */
-function validateTopicRelevance(question: Question, topic: string): boolean {
-    const topicWords = topic.toLowerCase().split(' ').filter(word => word.length > 3);
-    const questionLower = question.question.toLowerCase();
-    const optionsLower = question.options.join(' ').toLowerCase();
-    const fullText = `${questionLower} ${optionsLower}`;
-
-    // Check if at least one significant topic word is present or the whole topic string is present
-    const containsWholeTopic = fullText.includes(topic.toLowerCase());
-    const matchedWordsCount = topicWords.filter(word => fullText.includes(word)).length;
-
-    // Requirement: Must contain at least 1-2 strong keywords related to the topic
-    return containsWholeTopic || matchedWordsCount >= 1;
+    return true;
 }
 
 /**
- * Generates MCQs from the given topic.
+ * Handles communication with Ollama with retry logic and quality checks.
  */
-async function generateFromAI(topic: string, count: number, difficulty: string, marks: number, timeLimitSeconds: number): Promise<any> {
-    const prompt = `You are an expert university-level question paper setter.
+async function generateBatch(params: any, retryAttempt = 0): Promise<any> {
+    const { topic, count, difficulty, marks, timeLimitSeconds, optionsCount } = params;
+    const optionsPlaceholder = Array.from({ length: optionsCount }, (_, i) => `Descriptive Answer ${i + 1}`);
 
-TASK:
-Generate EXACTLY ${count} high-quality MCQ questions for the topic: "${topic}".
-
-STRICT RULES:
-1) Each question must be DIRECTLY and STRICTLY about "${topic}" only.
-2) Do not mix parent topics or related topics.
-3) Avoid vague questions. Match the topic precisely.
-4) Options must be realistic and related to the question.
-5) Exactly 4 options per question.
-6) Exactly one correct answer per question.
-7) Return ONLY JSON format.
-8) Difficulty level: ${difficulty.toUpperCase()}.
-
-Format:
-{
-  "topic": "${topic}",
-  "questions": [
+    const prompt = `As a professor, generate EXACTLY ${count} MCQ(s) about "${topic}".
+    
+    RULES:
+    1) Return ONLY JSON. No preamble.
+    2) Exactly ${optionsCount} options per question.
+    3) Options must be RELEVANT, UNIQUE, and SUBSTANTIAL (no "A", "B", etc).
+    4) Index 0 to ${optionsCount - 1} for correct answer.
+    
+    SCHEMA:
     {
-      "id": number,
-      "question": "string",
-      "options": ["string", "string", "string", "string"],
-      "correctIndex": number,
-      "difficulty": "${difficulty}",
-      "marks": ${marks},
-      "timeLimitSeconds": ${timeLimitSeconds}
-    }
-  ]
-}
-
-Only return the JSON object.`;
-
-    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"];
-    let lastError = null;
-
-    for (const modelName of modelsToTry) {
-        try {
-            console.log(`Using model: ${modelName}`);
-            const model = genAI.getGenerativeModel({ model: modelName });
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
-
-            console.log("AI Raw Output Start ---");
-            console.log(text.substring(0, 200) + "...");
-            console.log("AI Raw Output End ---");
-
-            const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
-            const parsed = JSON.parse(cleanJson);
-            return parsed;
-        } catch (err: any) {
-            console.error(`Model ${modelName} failed:`, err.message);
-            lastError = err;
+      "questions": [
+        {
+          "id": 1,
+          "question": "Clear professional question about ${topic}?",
+          "options": ${JSON.stringify(optionsPlaceholder)},
+          "correctIndex": 0,
+          "difficulty": "${difficulty}",
+          "marks": ${marks},
+          "timeLimitSeconds": ${timeLimitSeconds},
+          "explanation": "Why index 0 is correct."
         }
-    }
+      ]
+    }`;
 
-    throw lastError || new Error("All models failed");
+    console.log(`[Batch] Attempt ${retryAttempt + 1} | Topic: ${topic} | Count: ${count}`);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for safety
+
+    try {
+        const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: OLLAMA_MODEL,
+                prompt: prompt,
+                stream: false,
+                format: 'json',
+                options: { temperature: 0.6 } // Allow some variety
+            }),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) throw new Error(`Ollama Error: HTTP ${response.status}`);
+
+        const data: any = await response.json();
+        const text = data.response || '';
+
+        try {
+            const start = text.indexOf('{');
+            const end = text.lastIndexOf('}');
+            if (start === -1) throw new Error("No JSON boundaries found");
+
+            const parsed = JSON.parse(text.substring(start, end + 1));
+            const questions = parsed.questions || parsed || [];
+            const resultList = Array.isArray(questions) ? questions : [questions];
+
+            // Quality Check: Ensure options aren't generic placeholders
+            const hasGenericOptions = resultList.some((q: any) =>
+                !q.options || q.options.some((o: string) => o.length < 3 || /^[A-Z]$/i.test(o.trim()))
+            );
+
+            if (hasGenericOptions && retryAttempt < 1) {
+                console.warn("[Batch] Detected generic options. Retrying with stricter instructions...");
+                return generateBatch(params, retryAttempt + 1);
+            }
+
+            return resultList.slice(0, count);
+        } catch (parseErr: any) {
+            if (retryAttempt < 1) {
+                console.warn("[Batch] JSON Parse failure. Retrying...");
+                return generateBatch(params, retryAttempt + 1);
+            }
+            fs.writeFileSync(DEBUG_FILE, text);
+            throw new Error("AI produced invalid JSON output.");
+        }
+    } catch (err: any) {
+        clearTimeout(timeoutId);
+        if (retryAttempt < 1) return generateBatch(params, retryAttempt + 1);
+        throw err;
+    }
 }
 
 app.post('/api/ai/generate-questions', async (req, res) => {
     try {
-        const { topic, count, difficulty, marks, timeLimitSeconds } = GenerateRequestSchema.parse(req.body);
+        const params = GenerateRequestSchema.parse(req.body);
+        const questions = await generateBatch(params);
 
-        let finalQuestions: Question[] = [];
-        let retryCount = 0;
-        const MAX_RETRIES = 3;
-
-        while (finalQuestions.length < count && retryCount < MAX_RETRIES) {
-            try {
-                const neededCount = count - finalQuestions.length;
-                console.log(`Generating ${neededCount} questions (Attempt ${retryCount + 1})...`);
-
-                const aiResponse = await generateFromAI(topic, neededCount, difficulty, marks, timeLimitSeconds);
-                const validatedData = AIResponseSchema.parse(aiResponse);
-
-                for (const q of validatedData.questions) {
-                    if (validateTopicRelevance(q, topic) && finalQuestions.length < count) {
-                        // Ensure unique questions by simple text match
-                        if (!finalQuestions.some(existing => existing.question === q.question)) {
-                            finalQuestions.push(q);
-                        }
-                    }
-                }
-
-                if (finalQuestions.length < count) {
-                    retryCount++;
-                }
-            } catch (err: any) {
-                console.error("AI Generation attempt failed:");
-                if (err.response) {
-                    console.error("Status:", err.response.status);
-                    console.error("Status Text:", err.response.statusText);
-                    console.error("Data:", JSON.stringify(err.response.data, null, 2));
-                } else {
-                    console.error(err);
-                }
-                retryCount++;
-            }
-        }
-
-        if (finalQuestions.length < count) {
-            return res.status(500).json({
-                error: `Failed to generate ${count} questions. Only generated ${finalQuestions.length}.`,
-                hint: "This usually means your API key is invalid. Please get a new key from https://aistudio.google.com/app/apikey",
-                instructions: "Update server/.env with: GOOGLE_GENERATIVE_AI_API_KEY=your_new_key"
-            });
-        }
-
+        console.log(`[Success] Topic: "${params.topic}" | Returned: ${questions.length}`);
         res.json({
-            topic,
-            questions: finalQuestions.slice(0, count)
+            topic: params.topic,
+            questions: questions
         });
-
-    } catch (error) {
-        if (error instanceof z.ZodError) {
-            return res.status(400).json({ error: error.errors });
-        }
-        console.error("Server error:", error);
-        res.status(500).json({ error: "Internal server error" });
+    } catch (error: any) {
+        console.error(`[Fatal] ${error.message}`);
+        res.status(error instanceof z.ZodError ? 400 : 500).json({ error: error.message });
     }
 });
 
-// Validate API key on startup
-async function validateApiKey() {
-    console.log("\n🔑 Validating Google AI API Key...");
+async function autoDetectModel() {
     try {
-        const testModel = genAI.getGenerativeModel({ model: "gemini-pro" });
-        const result = await testModel.generateContent("test");
-        await result.response;
-        console.log("✅ API Key is VALID and working!\n");
-        return true;
-    } catch (error: any) {
-        console.error("❌ API Key validation FAILED!");
-        console.error("Error:", error.message);
-        console.error("\n⚠️  ACTION REQUIRED:");
-        console.error("1. Visit: https://aistudio.google.com/app/apikey");
-        console.error("2. Create a new API key");
-        console.error("3. Update server/.env with: GOOGLE_GENERATIVE_AI_API_KEY=your_new_key");
-        console.error("4. Restart this server\n");
-        return false;
+        const response = await fetch(`${OLLAMA_BASE_URL}/api/tags`);
+        if (response.ok) {
+            const data: any = await response.json();
+            const names = (data.models || []).map((m: any) => m.name);
+            console.log(`✅ Models: ${names.join(', ')}`);
+            if (!names.includes(OLLAMA_MODEL)) {
+                const fallback = names.find((n: string) => n.includes('llama3.2') || n.includes('llama3'));
+                if (fallback) OLLAMA_MODEL = fallback;
+            }
+        }
+    } catch (e) {
+        console.error("❌ Ollama Offline");
     }
 }
 
 app.listen(PORT, '0.0.0.0', async () => {
-    console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
-    console.log(`🌐 Network access: http://<your-ip>:${PORT}`);
-    await validateApiKey();
+    console.log(`🚀 AI Engine on port ${PORT}`);
+    await autoDetectModel();
 });

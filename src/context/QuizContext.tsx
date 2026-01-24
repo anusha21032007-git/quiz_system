@@ -95,7 +95,15 @@ interface QuizContextType {
   submitQuizAttempt: (attempt: Omit<QuizAttempt, 'id' | 'timestamp' | 'scorePercentage' | 'totalMarksPossible' | 'passed'>) => void;
   getQuestionsForQuiz: (quizId: string) => Promise<Question[]>;
   getQuizById: (quizId: string) => Quiz | undefined;
-  generateAIQuestions: (coursePaperName: string, difficulty: 'Easy' | 'Medium' | 'Hard', numQuestions: number, numOptions: number, marksPerQuestion: number, timePerQuestionSeconds: number) => Promise<Question[]>;
+  generateAIQuestions: (params: {
+    coursePaperName: string;
+    difficulty: 'Easy' | 'Medium' | 'Hard';
+    numQuestions: number;
+    numOptions: number;
+    marksPerQuestion: number;
+    timePerQuestionSeconds: number;
+    onBatchComplete?: (questions: Question[]) => void;
+  }) => Promise<Question[]>;
   deleteQuiz: (quizId: string) => void;
 }
 
@@ -202,6 +210,9 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
 
   // Merge local and cloud attempts
   const cloudAttemptsMapped: QuizAttempt[] = supabaseAttempts.map(sa => {
+    // Cloud attempts might not have scorePercentage and totalMarksPossible yet
+    // We can't easily calculate them here without the full quiz data for each attempt
+    // For now we'll set them to default or calculated values if possible later
     return {
       id: sa.id,
       quizId: sa.quiz_id,
@@ -370,7 +381,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
         options: q.options,
         correct_answer: q.correctAnswer,
         marks: q.marks,
-        time_limit_minutes: q.timeLimitMinutes,
+        time_limit_minutes: q.time_limit_minutes,
         explanation: q.explanation || '',
       }))
     });
@@ -405,6 +416,8 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     if (!quiz) return;
 
     // 1. Calculate metrics
+    // We need questions to calculate totalMarksPossible if not provided
+    // Since we are in the context, we can try to find them
     const quizQuestions = quiz.questions.length > 0 ? quiz.questions : localQuestionPool.filter(q => q.quizId === quiz.id);
     const totalMarksPossible = quizQuestions.reduce((sum, q) => sum + q.marks, 0) || attempt.totalQuestions;
     const scorePercentage = totalMarksPossible > 0 ? (attempt.score / totalMarksPossible) * 100 : 0;
@@ -431,7 +444,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
       passed: passed,
       answers: attempt.answers,
       violation_count: attempt.violationCount,
-      status: attempt.status as any,
+      status: attempt.status,
     });
 
     toast.success("Quiz submitted!");
@@ -482,32 +495,70 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     return quizzes.find(q => q.id === quizId);
   };
 
-  const generateAIQuestions = async (
-    coursePaperName: string,
-    difficulty: 'Easy' | 'Medium' | 'Hard',
-    numQuestions: number,
-    numOptions: number,
-    marksPerQuestion: number,
-    timePerQuestionSeconds: number
-  ): Promise<Question[]> => {
+  const generateAIQuestions = async ({
+    coursePaperName,
+    difficulty,
+    numQuestions,
+    numOptions,
+    marksPerQuestion,
+    timePerQuestionSeconds,
+    onBatchComplete
+  }: {
+    coursePaperName: string;
+    difficulty: 'Easy' | 'Medium' | 'Hard';
+    numQuestions: number;
+    numOptions: number;
+    marksPerQuestion: number;
+    timePerQuestionSeconds: number;
+    onBatchComplete?: (questions: Question[]) => void;
+  }): Promise<Question[]> => {
     try {
-      const response = await aiService.generateQuestions({
-        topic: coursePaperName,
-        count: numQuestions,
-        difficulty: difficulty.toLowerCase() as 'easy' | 'medium' | 'hard',
-        marks: marksPerQuestion,
-        timeLimitSeconds: timePerQuestionSeconds,
-        optionsCount: numOptions
-      });
+      const allGeneratedQuestions: Question[] = [];
+      const BATCH_SIZE = 2;
+      const totalBatches = Math.ceil(numQuestions / BATCH_SIZE);
 
-      if (response && response.questions && response.questions.length > 0) {
-        return aiService.mapResponseToQuestions(
-          response.questions,
-          'ai-generated'
-        );
+      console.log(`\uD83D\uDE80 Starting batch generation: ${numQuestions} questions in ${totalBatches} batches.`);
+
+      for (let i = 0; i < totalBatches; i++) {
+        const remaining = numQuestions - allGeneratedQuestions.length;
+        const currentBatchCount = Math.min(BATCH_SIZE, remaining);
+
+        console.log(`\uD83D\uDCE6 Generating batch ${i + 1}/${totalBatches} (${currentBatchCount} questions)...`);
+
+        const response = await aiService.generateQuestions({
+          topic: coursePaperName,
+          count: currentBatchCount,
+          difficulty: difficulty.toLowerCase() as 'easy' | 'medium' | 'hard',
+          marks: marksPerQuestion,
+          timeLimitSeconds: timePerQuestionSeconds,
+          optionsCount: numOptions
+        });
+
+        if (response && response.questions && response.questions.length > 0) {
+          const mapped = aiService.mapResponseToQuestions(
+            response.questions,
+            'ai-generated'
+          );
+
+          allGeneratedQuestions.push(...mapped);
+
+          if (onBatchComplete) {
+            onBatchComplete(mapped);
+          }
+
+          console.log(`\u2705 Batch ${i + 1} complete. Total so far: ${allGeneratedQuestions.length}`);
+        } else {
+          console.warn(`\u26A0\uFE0F Batch ${i + 1} produced no questions.`);
+          // Optional: add a small retry delay or just continue. 
+          // We'll continue to avoid infinite loops.
+        }
+      }
+
+      if (allGeneratedQuestions.length > 0) {
+        return allGeneratedQuestions;
       }
     } catch (error) {
-      console.error("AI Generation failed:", error);
+      console.error("AI Batch Generation failed:", error);
       toast.error("AI Generation failed. Please try again.");
     }
     return [];
