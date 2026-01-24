@@ -148,7 +148,6 @@ const TeacherDashboard = () => {
 
 
   const recentActivity = useMemo(() => {
-<<<<<<< HEAD
     if (isQuizzesLoading) return [];
 
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
@@ -156,19 +155,10 @@ const TeacherDashboard = () => {
     // 1. Map Student Attempts
     const studentActs = quizAttempts
       .filter(attempt => attempt.status === 'SUBMITTED' && attempt.timestamp > oneDayAgo)
-=======
-    if (isQuizzesLoading) return []; 
-    const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000); // Filter: within last 24 hours
-
-    return quizAttempts
-      .filter(attempt => attempt.status === 'SUBMITTED' && attempt.timestamp >= twentyFourHoursAgo) 
-      .sort((a, b) => b.timestamp - a.timestamp) 
-      .slice(0, 5) 
->>>>>>> 56ff893a09e828435250684b886584756d1a4025
       .map((attempt: QuizAttempt) => {
         const quiz = quizzes.find(q => q.id === attempt.quizId);
         const quizTitle = quiz?.title || 'Unknown Quiz';
-        
+
         // Use scorePercentage from attempt object
         const scorePercentage = attempt.scorePercentage || 0;
 
@@ -180,11 +170,7 @@ const TeacherDashboard = () => {
           timestamp: attempt.timestamp,
           score: scorePercentage.toFixed(0),
           initials: getInitials(attempt.studentName),
-<<<<<<< HEAD
           color: "bg-indigo-100 text-indigo-600"
-=======
-          color: "bg-indigo-100 text-indigo-600" 
->>>>>>> 56ff893a09e828435250684b886584756d1a4025
         };
       });
 
@@ -406,15 +392,15 @@ const TeacherDashboard = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64" sideOffset={8}>
                 <DropdownMenuLabel className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
-                        <User className="h-5 w-5 text-indigo-600" />
-                    </div>
-                    <div className="flex flex-col space-y-0.5">
-                        <p className="text-sm font-bold leading-none text-slate-900">{teacherData?.full_name || "Teacher Account"}</p>
-                        <p className="text-xs leading-none text-muted-foreground flex items-center gap-1">
-                            <Mail className="h-3 w-3" /> {user?.email}
-                        </p>
-                    </div>
+                  <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                    <User className="h-5 w-5 text-indigo-600" />
+                  </div>
+                  <div className="flex flex-col space-y-0.5">
+                    <p className="text-sm font-bold leading-none text-slate-900">{teacherData?.full_name || "Teacher Account"}</p>
+                    <p className="text-xs leading-none text-muted-foreground flex items-center gap-1">
+                      <Mail className="h-3 w-3" /> {user?.email}
+                    </p>
+                  </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setIsProfileEditOpen(true)} className="cursor-pointer">
