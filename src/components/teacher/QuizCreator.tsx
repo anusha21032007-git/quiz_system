@@ -335,7 +335,10 @@ const QuizCreator = () => {
     setQuizData(prev => ({ ...prev, questions: [], totalQuestions: Number(prev.totalQuestions) || 5 }));
 
     try {
-      const countToGenerate = Number(quizData.totalQuestions) || 5;
+      const targetCount = Number(quizData.totalQuestions) || 5;
+      const countToGenerate = targetCount * 5; // 5x pool multiplier
+
+      toast.info(`Generating a pool of ${countToGenerate} questions to provide variety for each student attempt...`);
 
       await generateAIQuestions({
         coursePaperName: topicToUse,
@@ -363,7 +366,8 @@ const QuizCreator = () => {
       setQuizData(prev => ({
         ...prev,
         quizTitle: prev.quizTitle.includes('(AI Generated)') ? prev.quizTitle : `${prev.quizTitle} (AI Generated)`,
-        totalQuestions: prev.questions.length
+        // DO NOT overwrite totalQuestions with the pool size.
+        // The student view will handle pool randomization based on the original totalQuestions.
       }));
 
       toast.success(`Success! Final question pool ready.`);
@@ -952,16 +956,7 @@ const QuizCreator = () => {
                             />
                           </div>
                         )}
-                        <div>
-                          <Label htmlFor={`q-explanation-${index}`}>Explanation / Rationale</Label>
-                          <Textarea
-                            id={`q-explanation-${index}`}
-                            value={q.explanation}
-                            onChange={(e) => handleUpdateDraftQuestion(index, 'explanation', e.target.value)}
-                            placeholder="Explain why the correct answer is right..."
-                            className="mt-1 min-h-[60px]"
-                          />
-                        </div>
+                        {/* Explanation/Rationale field removed as per user request */}
                       </div>
                     </Card>
                   ))

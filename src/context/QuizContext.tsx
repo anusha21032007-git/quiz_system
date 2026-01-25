@@ -514,10 +514,14 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
   }): Promise<Question[]> => {
     try {
       const allGeneratedQuestions: Question[] = [];
-      const BATCH_SIZE = 2;
+      const BATCH_SIZE = 1; // Faster feedback
       const totalBatches = Math.ceil(numQuestions / BATCH_SIZE);
 
-      console.log(`\uD83D\uDE80 Starting batch generation: ${numQuestions} questions in ${totalBatches} batches.`);
+      if (numQuestions > 5) {
+        toast.info(`Generating ${numQuestions} questions using AI. This may take a few minutes as each question is carefully crafted.`);
+      }
+
+      console.log(`🚀 Starting batch generation: ${numQuestions} questions in ${totalBatches} batches.`);
 
       for (let i = 0; i < totalBatches; i++) {
         const remaining = numQuestions - allGeneratedQuestions.length;
