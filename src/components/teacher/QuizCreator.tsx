@@ -107,6 +107,9 @@ const QuizCreator = () => {
   const [aiTimePerQuestionSeconds, setAiTimePerQuestionSeconds] = useState<number>(60);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
+  // Track if AI generation has been triggered for this session
+  const hasTriggeredAIRef = React.useRef(false);
+
   // Persistence logic for QuizCreator
   useEffect(() => {
     const saved = localStorage.getItem('quizCreatorState');
@@ -176,19 +179,22 @@ const QuizCreator = () => {
   }, []); // Run once on mount
 
   useEffect(() => {
+    // SKIP auto-fill if AI is generating to prevent overwriting/race conditions
+    if (isGeneratingAI) return;
+
     setQuizData((prev) => {
       // If we have questions loaded from draft (length > 0) and totalMatches, don't wipe them out.
       // Only regenerate if the lengths mismatch significantly or if it's a fresh init.
       // Logic: If user manually changes 'totalQuestions', we adjust. 
 
       const currentCount = prev.questions.length;
-      const targetCount = prev.totalQuestions === '' ? 0 : prev.totalQuestions;
+      const targetCount = prev.totalQuestions === '' ? 0 : Number(prev.totalQuestions);
 
       if (currentCount === targetCount && currentCount > 0) return prev; // Stability check
 
       // IMPORTANT: If we have MORE questions than target (e.g. AI pool), do NOT slice them off automatically.
       // Only add questions if we have FEWER than target.
-      if (currentCount >= targetCount) return prev;
+      if (currentCount >= targetCount && targetCount > 0) return prev;
 
       const newQuestions = [...prev.questions];
 
@@ -205,9 +211,7 @@ const QuizCreator = () => {
 
       // If reducing count
       // const slicedQuestions = newQuestions.slice(0, targetCount); // DISABLED for AI Pool support
-      const slicedQuestions = newQuestions;
-
-      const updatedQuestions = slicedQuestions.map(q => {
+      const updatedQuestions = newQuestions.map(q => {
         // Ensure options count matches config
         const newOptions = [...q.options];
         while (newOptions.length < prev.optionsPerQuestion) {
@@ -221,11 +225,11 @@ const QuizCreator = () => {
 
       return { ...prev, questions: updatedQuestions };
     });
-  }, [quizData.totalQuestions, quizData.optionsPerQuestion, defaultTimePerQuestion]);
+  }, [quizData.totalQuestions, quizData.optionsPerQuestion, defaultTimePerQuestion, isGeneratingAI]);
 
   // Auto-trigger AI Generation when entering Step 2
   useEffect(() => {
-    if (step === 2) {
+    if (step === 2 && !hasTriggeredAIRef.current && !isGeneratingAI) {
       // Force optionsPerQuestion to 4 for AI mode (standard MCQ)
       setQuizData(prev => ({ ...prev, optionsPerQuestion: 4 }));
 
@@ -234,10 +238,16 @@ const QuizCreator = () => {
 
       if (isEmptyPool) {
         console.log("Auto-triggering AI generation for Step 2");
+        hasTriggeredAIRef.current = true; // Mark as triggered
         handleGenerateAIQuestions();
       }
     }
-  }, [step]);
+
+    // Reset trigger when going back to step 1
+    if (step === 1) {
+      hasTriggeredAIRef.current = false;
+    }
+  }, [step]); // Only depend on step, not on quizData to avoid infinite loops
 
   // Sync aiCoursePaperName whenever quizTitle changes (in step 1)
   useEffect(() => {
@@ -329,16 +339,37 @@ const QuizCreator = () => {
     }
 
     if (!aiCoursePaperName) setAiCoursePaperName(topicToUse);
-    setIsGeneratingAI(true);
 
-    // Clear current pool or treat as fresh start if generating new set
-    setQuizData(prev => ({ ...prev, questions: [], totalQuestions: Number(prev.totalQuestions) || 5 }));
+    // Check if backend server is running
+    setIsGeneratingAI(true);
+    toast.info("Checking backend server...");
+
+    try {
+      const { aiService } = await import('@/services/aiService');
+      const healthCheck = await aiService.checkServerHealth();
+
+      if (!healthCheck.isHealthy) {
+        toast.error(healthCheck.message, { duration: 8000 });
+        setIsGeneratingAI(false);
+        return;
+      }
+
+      toast.success("Backend server connected!");
+    } catch (error) {
+      toast.error("Failed to connect to backend server. Please ensure it's running on port 5000.");
+      setIsGeneratingAI(false);
+      return;
+    }
+
+    // Don't clear questions immediately to prevent UI jump
+    // setQuizData(prev => ({ ...prev, questions: [], totalQuestions: Number(prev.totalQuestions) || 5 }));
 
     try {
       const targetCount = Number(quizData.totalQuestions) || 5;
       const countToGenerate = targetCount * 5; // 5x pool multiplier
+      let isFirstBatch = true;
 
-      toast.info(`Generating a pool of ${countToGenerate} questions to provide variety for each student attempt...`);
+      toast.info(`Generating a pool of ${countToGenerate} questions...`);
 
       await generateAIQuestions({
         coursePaperName: topicToUse,
@@ -348,18 +379,24 @@ const QuizCreator = () => {
         marksPerQuestion: aiMarksPerQuestion,
         timePerQuestionSeconds: aiTimePerQuestionSeconds,
         onBatchComplete: (newQuestions) => {
-          setQuizData(prev => ({
-            ...prev,
-            questions: [...prev.questions, ...newQuestions.map(q => ({
-              questionText: q.questionText,
-              options: q.options,
-              correctAnswerIndex: q.options.indexOf(q.correctAnswer),
-              marks: q.marks,
-              timeLimitMinutes: q.timeLimitMinutes,
-              explanation: q.explanation || ''
-            }))]
-          }));
-          toast.success(`Received ${newQuestions.length} more questions...`);
+          setQuizData(prev => {
+            // Upon first batch, clear the old empty placeholders if they exist
+            const currentQuestions = isFirstBatch ? [] : prev.questions;
+            isFirstBatch = false;
+
+            return {
+              ...prev,
+              questions: [...currentQuestions, ...newQuestions.map(q => ({
+                questionText: q.questionText,
+                options: q.options,
+                correctAnswerIndex: q.options.indexOf(q.correctAnswer),
+                marks: q.marks,
+                timeLimitMinutes: q.timeLimitMinutes,
+                explanation: q.explanation || ''
+              }))]
+            };
+          });
+          toast.success(`Received ${newQuestions.length} questions...`);
         }
       });
 
@@ -373,7 +410,7 @@ const QuizCreator = () => {
       toast.success(`Success! Final question pool ready.`);
     } catch (error) {
       console.error("AI Generation failed:", error);
-      toast.error("Something went wrong during AI generation.");
+      toast.error("Something went wrong during AI generation. Check console for details.");
     } finally {
       setIsGeneratingAI(false);
     }

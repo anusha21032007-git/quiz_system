@@ -198,13 +198,15 @@ const StudentCompetitiveSession = ({ quiz, studentName, onExit }: StudentCompeti
     };
 
     const handleVisibilityChange = () => {
-        if (document.hidden && !isFinished && !isCorrupted && isFullscreen) {
+        // Strict check: if document becomes hidden, it is ALWAYS a violation in competitive mode
+        if (document.hidden && !isFinished && !isCorrupted) {
             recordViolation();
         }
     };
 
     const handleWindowBlur = () => {
-        if (!isFinished && !isCorrupted && isFullscreen) {
+        // Strict check: losing focus is a violation
+        if (!isFinished && !isCorrupted && !showTabWarning) {
             setExamStatus('PAUSED');
             recordViolation();
         }
@@ -231,18 +233,45 @@ const StudentCompetitiveSession = ({ quiz, studentName, onExit }: StudentCompeti
                 setShowTabWarning(true);
                 setExamStatus('PAUSED');
             } else if (nextCount >= 2) {
-                handleCorruption("Auto-submitted due to window/tab switching.");
+                handleCorruption("Auto-submitted due to window/tab switching violation.");
             }
             return nextCount;
         });
     };
+
+    // Advanced Integrity: Block Keyboard Shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (isFinished || isCorrupted) return;
+
+            // Block common cheating keys
+            if (
+                e.key === 'Alt' ||
+                e.key === 'Tab' ||
+                e.key === 'Meta' ||
+                e.key === 'PrintScreen' ||
+                e.key === 'F12' ||
+                (e.ctrlKey && e.key === 'c') || // Copy
+                (e.ctrlKey && e.key === 'v') || // Paste
+                (e.ctrlKey && e.key === 'shift' && e.key === 'i') // DevTools
+            ) {
+                e.preventDefault();
+                toast.warning("Keyboard shortcut blocked for exam integrity.");
+                // Record violation if they persist? Maybe too strict for accidental press.
+                // But preventing default is key.
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isFinished, isCorrupted]);
 
     const handleCorruption = (reason: string) => {
         setIsCorrupted(true);
         setIsFinished(true);
         setExamStatus('CORRUPTED');
         if (document.fullscreenElement) {
-            document.exitFullscreen();
+            document.exitFullscreen().catch(() => { });
         }
 
         // Final save for corrupted state
@@ -257,7 +286,7 @@ const StudentCompetitiveSession = ({ quiz, studentName, onExit }: StudentCompeti
             timeTakenSeconds: timeTaken,
             answers: [],
             correctAnswersCount: 0,
-            passed: false,
+            // 'passed' is calculated by backend/context
             violationCount: violationCount + 1,
             status: 'CORRUPTED'
         });
@@ -269,10 +298,14 @@ const StudentCompetitiveSession = ({ quiz, studentName, onExit }: StudentCompeti
             toast.error("Time over. Exam submitted.");
         }
 
-        // Calculate final score
+        // Calculate final score with robust string comparison
         let finalScore = 0;
         questions.forEach((q, idx) => {
-            if (selectedAnswers[idx] === q.correctAnswer) {
+            const studentAns = selectedAnswers[idx] || "";
+            const correctAns = q.correctAnswer || "";
+
+            // Trim and normalize for comparison
+            if (studentAns.trim() === correctAns.trim()) {
                 finalScore += 1;
             }
         });
@@ -281,7 +314,7 @@ const StudentCompetitiveSession = ({ quiz, studentName, onExit }: StudentCompeti
         setIsFinished(true);
         setExamStatus('SUBMITTED');
         if (document.fullscreenElement) {
-            document.exitFullscreen();
+            document.exitFullscreen().catch(() => { });
         }
 
         localStorage.removeItem(SESSION_KEY); // Clean up on successful finish
@@ -295,11 +328,11 @@ const StudentCompetitiveSession = ({ quiz, studentName, onExit }: StudentCompeti
             answers: questions.map((q, idx) => ({
                 questionId: q.id,
                 selectedAnswer: selectedAnswers[idx] || '',
-                isCorrect: selectedAnswers[idx] === q.correctAnswer,
-                marksObtained: (selectedAnswers[idx] === q.correctAnswer) ? q.marks : 0
+                isCorrect: (selectedAnswers[idx] || "").trim() === (q.correctAnswer || "").trim(),
+                marksObtained: ((selectedAnswers[idx] || "").trim() === (q.correctAnswer || "").trim()) ? q.marks : 0
             })),
             correctAnswersCount: finalScore,
-            passed: finalScore >= (quiz.requiredCorrectAnswers || 0),
+            // 'passed' is calculated by backend/context
             violationCount: violationCount,
             status: 'SUBMITTED'
         });
@@ -318,331 +351,324 @@ const StudentCompetitiveSession = ({ quiz, studentName, onExit }: StudentCompeti
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center p-12 h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-            </div>
-        );
-    }
-
-    if (isCorrupted) {
-        return (
-            <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-                <Card className="shadow-2xl border-0 overflow-hidden max-w-2xl w-full bg-white animate-in zoom-in-95">
-                    <div className="bg-red-600 p-12 text-white text-center">
-                        <ShieldAlert className="h-24 w-24 mx-auto mb-6 animate-bounce" />
-                        <h2 className="text-4xl font-extrabold tracking-tight">EXAM CORRUPTED</h2>
-                        <div className="mt-4 inline-block px-4 py-1 bg-red-800/50 rounded-full text-xs font-black uppercase tracking-[0.2em]">Rule Violation Detected</div>
-                    </div>
-                    <CardContent className="p-12 text-center space-y-8">
-                        <div className="space-y-4">
-                            <h3 className="text-xl font-bold text-gray-900">Exam invalid due to rule violation.</h3>
-                            <p className="text-gray-500 leading-relaxed">This session has been automatically flagged and terminated. Any progress has been discarded as per the integrity policy.</p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center">
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status</span>
-                                <span className="font-bold text-red-600">DISQUALIFIED</span>
-                            </div>
-                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center">
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Violations</span>
-                                <span className="font-bold text-gray-900">{violationCount} Recorded</span>
-                            </div>
-                        </div>
-                        <Button onClick={onExit} className="w-full py-8 text-xl font-black bg-gray-900 hover:bg-gray-800 rounded-3xl transition-all">
-                            Exit to Dashboard
-                        </Button>
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    }
-
-    if (isFinished) {
-        const correctAnswers = score;
-        const wrongAnswers = Object.keys(selectedAnswers).length - score;
-        const skipped = questions.length - Object.keys(selectedAnswers).length;
-
-        return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-                <Card className="shadow-2xl border-0 overflow-hidden max-w-3xl w-full bg-white animate-in zoom-in-95 duration-700">
-                    <div className="bg-gradient-to-br from-purple-600 to-indigo-700 p-12 text-white text-center relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-full opacity-10">
-                            <div className="absolute translate-x-[-50%] translate-y-[-50%] top-0 left-0 w-64 h-64 bg-white rounded-full blur-3xl"></div>
-                            <div className="absolute translate-x-[50%] translate-y-[50%] bottom-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl"></div>
-                        </div>
-                        <Trophy className="h-20 w-20 mx-auto mb-6 text-yellow-300 relative z-10" />
-                        <h2 className="text-4xl font-black tracking-tight relative z-10 uppercase">Session Complete</h2>
-                        <div className="mt-4 inline-block px-4 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-[0.2em] relative z-10">Status: SUBMITTED</div>
-                    </div>
-                    <CardContent className="p-12 space-y-12">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                            <div className="bg-purple-50 p-6 rounded-[32px] border border-purple-100/50 text-center space-y-1">
-                                <p className="text-[10px] text-purple-600 font-black uppercase tracking-widest">Score</p>
-                                <p className="text-4xl font-black text-purple-900">{score}/{questions.length}</p>
-                            </div>
-                            <div className="bg-green-50 p-6 rounded-[32px] border border-green-100/50 text-center space-y-1">
-                                <p className="text-[10px] text-green-600 font-black uppercase tracking-widest">Correct</p>
-                                <p className="text-4xl font-black text-green-900">{correctAnswers}</p>
-                            </div>
-                            <div className="bg-red-50 p-6 rounded-[32px] border border-red-100/50 text-center space-y-1">
-                                <p className="text-[10px] text-red-600 font-black uppercase tracking-widest">Wrong</p>
-                                <p className="text-4xl font-black text-red-900">{Math.max(0, wrongAnswers)}</p>
-                            </div>
-                            <div className="bg-blue-50 p-6 rounded-[32px] border border-blue-100/50 text-center space-y-1">
-                                <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest">Time</p>
-                                <p className="text-3xl font-black text-blue-900">{formatTime(timeTaken)}</p>
-                            </div>
-                        </div>
-
-                        <div className="space-y-4">
-                            <Button onClick={onExit} className="w-full py-8 text-xl font-black bg-gray-900 hover:bg-gray-800 rounded-3xl shadow-xl transition-all active:scale-95">
-                                Return to Dashboard
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    }
-
-    if (!isFullscreen && fullscreenGracePeriod === 0) {
-        return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-                <Card className="max-w-2xl w-full p-16 text-center space-y-10 rounded-[48px] border-2 border-black/5 bg-white shadow-xl animate-in zoom-in-95">
-                    <div className="bg-black w-24 h-24 rounded-[32px] flex items-center justify-center mx-auto shadow-2xl rotate-12">
-                        <Brain className="h-12 w-12 text-white" />
-                    </div>
-                    <div className="space-y-4">
-                        <h2 className="text-5xl font-black text-gray-900 tracking-tighter">Competitive Mode</h2>
-                        <div className="flex flex-col items-center gap-2">
-                            <p className="text-red-600 font-black uppercase text-xs tracking-widest bg-red-50 px-4 py-2 rounded-full border border-red-100">Strict Environment Enabled</p>
-                            <p className="text-gray-500 font-bold max-w-sm mt-2">This exam requires Full Screen. Leaving the screen or switching tabs will corrupt your exam.</p>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                        <div className="p-6 bg-slate-50 rounded-3xl border border-black/5 space-y-2">
-                            <h4 className="font-black text-[10px] uppercase tracking-widest text-slate-400">Time Limit</h4>
-                            <p className="font-bold text-gray-900">{quiz.timeLimitMinutes} Minutes</p>
-                        </div>
-                        <div className="p-6 bg-slate-50 rounded-3xl border border-black/5 space-y-2">
-                            <h4 className="font-black text-[10px] uppercase tracking-widest text-slate-400">Total Questions</h4>
-                            <p className="font-bold text-gray-900">{questions.length} Items</p>
-                        </div>
-                    </div>
-
-                    <Button onClick={enterFullscreen} className="w-full py-10 text-2xl font-black bg-black hover:bg-gray-800 text-white rounded-[32px] shadow-2xl hover:shadow-black/20 transition-all active:scale-95">
-                        Enter Full Screen & Start
-                    </Button>
-                </Card>
-            </div>
-        );
-    }
-
     const currentQuestion = questions[currentIndex];
     const currentAnswer = selectedAnswers[currentIndex] || null;
 
-    if (questions.length === 0 && !isLoading) {
-        return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-                <Card className="max-w-md w-full p-12 text-center space-y-6 rounded-[48px] bg-white shadow-xl">
-                    <MessageSquare className="h-16 w-16 text-slate-300 mx-auto" />
-                    <h3 className="text-2xl font-black text-gray-900">No Questions Found</h3>
-                    <p className="text-gray-500 font-bold">This competitive session doesn't have any questions yet.</p>
-                    <Button onClick={onExit} className="w-full py-6 bg-black text-white font-black rounded-2xl">Return to Dashboard</Button>
-                </Card>
-            </div>
-        );
-    }
+    // --- RENDER LOGIC ---
 
+    // We wrap EVERYTHING in the containerRef to ensure requestFullscreen works
+    // regardless of which "view" state we are in.
     return (
         <div ref={containerRef} className="bg-white min-h-screen flex flex-col overflow-hidden selection:bg-black selection:text-white">
-            {/* Fullscreen Grace Period Modal */}
-            {fullscreenGracePeriod > 0 && !isFullscreen && (
-                <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4">
-                    <Card className="max-w-md w-full p-12 text-center space-y-8 rounded-[48px] bg-white animate-in zoom-in-95">
-                        <XCircle className="h-24 w-24 text-red-600 mx-auto animate-pulse" />
-                        <div className="space-y-4">
-                            <h3 className="text-4xl font-black text-gray-900 tracking-tight">ESC NOT ALLOWED</h3>
-                            <p className="text-gray-500 font-bold leading-relaxed">Competitive sessions must remain in full-screen. Disqualification in <span className="text-red-600 text-2xl font-black">{fullscreenGracePeriod}s</span>.</p>
+
+            {/* 1. LOADING STATE */}
+            {isLoading && (
+                <div className="flex items-center justify-center flex-1 h-full">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                </div>
+            )}
+
+            {/* 2. CORRUPTED STATE */}
+            {!isLoading && isCorrupted && (
+                <div className="flex-1 bg-slate-900 flex items-center justify-center p-4">
+                    <Card className="shadow-2xl border-0 overflow-hidden max-w-2xl w-full bg-white animate-in zoom-in-95">
+                        <div className="bg-red-600 p-12 text-white text-center">
+                            <ShieldAlert className="h-24 w-24 mx-auto mb-6 animate-bounce" />
+                            <h2 className="text-4xl font-extrabold tracking-tight">EXAM CORRUPTED</h2>
+                            <div className="mt-4 inline-block px-4 py-1 bg-red-800/50 rounded-full text-xs font-black uppercase tracking-[0.2em]">Rule Violation Detected</div>
                         </div>
-                        <Button onClick={enterFullscreen} className="w-full py-8 bg-red-600 hover:bg-red-700 text-white font-black text-xl rounded-3xl">
-                            Resume Session
+                        <CardContent className="p-12 text-center space-y-8">
+                            <div className="space-y-4">
+                                <h3 className="text-xl font-bold text-gray-900">Exam invalid due to rule violation.</h3>
+                                <p className="text-gray-500 leading-relaxed">This session has been automatically flagged and terminated. Any progress has been discarded as per the integrity policy.</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center">
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status</span>
+                                    <span className="font-bold text-red-600">DISQUALIFIED</span>
+                                </div>
+                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center">
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Violations</span>
+                                    <span className="font-bold text-gray-900">{violationCount} Recorded</span>
+                                </div>
+                            </div>
+                            <Button onClick={onExit} className="w-full py-8 text-xl font-black bg-gray-900 hover:bg-gray-800 rounded-3xl transition-all">
+                                Exit to Dashboard
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* 3. FINISHED STATE */}
+            {!isLoading && !isCorrupted && isFinished && (
+                <div className="flex-1 bg-slate-50 flex items-center justify-center p-4">
+                    <Card className="shadow-2xl border-0 overflow-hidden max-w-3xl w-full bg-white animate-in zoom-in-95 duration-700">
+                        <div className="bg-gradient-to-br from-purple-600 to-indigo-700 p-12 text-white text-center relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-full opacity-10">
+                                <div className="absolute translate-x-[-50%] translate-y-[-50%] top-0 left-0 w-64 h-64 bg-white rounded-full blur-3xl"></div>
+                                <div className="absolute translate-x-[50%] translate-y-[50%] bottom-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl"></div>
+                            </div>
+                            <Trophy className="h-20 w-20 mx-auto mb-6 text-yellow-300 relative z-10" />
+                            <h2 className="text-4xl font-black tracking-tight relative z-10 uppercase">Session Complete</h2>
+                            <div className="mt-4 inline-block px-4 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-[0.2em] relative z-10">Status: SUBMITTED</div>
+                        </div>
+                        <CardContent className="p-12 space-y-12">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                <div className="bg-purple-50 p-6 rounded-[32px] border border-purple-100/50 text-center space-y-1">
+                                    <p className="text-[10px] text-purple-600 font-black uppercase tracking-widest">Score</p>
+                                    <p className="text-4xl font-black text-purple-900">{score}/{questions.length}</p>
+                                </div>
+                                <div className="bg-green-50 p-6 rounded-[32px] border border-green-100/50 text-center space-y-1">
+                                    <p className="text-[10px] text-green-600 font-black uppercase tracking-widest">Correct</p>
+                                    <p className="text-4xl font-black text-green-900">{(questions.filter((q, i) => (selectedAnswers[i] || "").trim() === (q.correctAnswer || "").trim()).length)}</p>
+                                </div>
+                                <div className="bg-red-50 p-6 rounded-[32px] border border-red-100/50 text-center space-y-1">
+                                    <p className="text-[10px] text-red-600 font-black uppercase tracking-widest">Wrong</p>
+                                    <p className="text-4xl font-black text-red-900">{Math.max(0, questions.length - (questions.filter((q, i) => (selectedAnswers[i] || "").trim() === (q.correctAnswer || "").trim()).length))}</p>
+                                </div>
+                                <div className="bg-blue-50 p-6 rounded-[32px] border border-blue-100/50 text-center space-y-1">
+                                    <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest">Time</p>
+                                    <p className="text-3xl font-black text-blue-900">{formatTime(timeTaken)}</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <Button onClick={onExit} className="w-full py-8 text-xl font-black bg-gray-900 hover:bg-gray-800 rounded-3xl shadow-xl transition-all active:scale-95">
+                                    Return to Dashboard
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* 4. LANDING / START SCREEN */}
+            {!isLoading && !isCorrupted && !isFinished && !isFullscreen && fullscreenGracePeriod === 0 && (
+                <div className="flex-1 bg-slate-50 flex items-center justify-center p-4">
+                    <Card className="max-w-2xl w-full p-16 text-center space-y-10 rounded-[48px] border-2 border-black/5 bg-white shadow-xl animate-in zoom-in-95">
+                        <div className="bg-black w-24 h-24 rounded-[32px] flex items-center justify-center mx-auto shadow-2xl rotate-12">
+                            <Brain className="h-12 w-12 text-white" />
+                        </div>
+                        <div className="space-y-4">
+                            <h2 className="text-5xl font-black text-gray-900 tracking-tighter">Competitive Mode</h2>
+                            <div className="flex flex-col items-center gap-2">
+                                <p className="text-red-600 font-black uppercase text-xs tracking-widest bg-red-50 px-4 py-2 rounded-full border border-red-100">Strict Environment Enabled</p>
+                                <p className="text-gray-500 font-bold max-w-sm mt-2">This exam requires Full Screen. Leaving the screen or switching tabs will corrupt your exam.</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                            <div className="p-6 bg-slate-50 rounded-3xl border border-black/5 space-y-2">
+                                <h4 className="font-black text-[10px] uppercase tracking-widest text-slate-400">Time Limit</h4>
+                                <p className="font-bold text-gray-900">{quiz.timeLimitMinutes} Minutes</p>
+                            </div>
+                            <div className="p-6 bg-slate-50 rounded-3xl border border-black/5 space-y-2">
+                                <h4 className="font-black text-[10px] uppercase tracking-widest text-slate-400">Total Questions</h4>
+                                <p className="font-bold text-gray-900">{questions.length} Items</p>
+                            </div>
+                        </div>
+
+                        <Button onClick={enterFullscreen} className="w-full py-10 text-2xl font-black bg-black hover:bg-gray-800 text-white rounded-[32px] shadow-2xl hover:shadow-black/20 transition-all active:scale-95">
+                            Enter Full Screen & Start
                         </Button>
                     </Card>
                 </div>
             )}
 
-            {/* Tab Switching Warning */}
-            {showTabWarning && (
-                <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-                    <Card className="max-w-md w-full p-12 text-center space-y-10 rounded-[48px] bg-white animate-in slide-in-from-top-12 duration-500">
-                        <div className="bg-orange-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto">
-                            <AlertCircle className="h-12 w-12 text-orange-600" />
-                        </div>
-                        <div className="space-y-4">
-                            <h3 className="text-3xl font-black tracking-tight text-gray-900">WINDOW SWITCHED!</h3>
-                            <p className="text-gray-500 font-bold">First warning: Do not leave the exam screen. One more violation will result in immediate disqualification.</p>
-                        </div>
-                        <div className="space-y-4">
-                            <Button onClick={() => { setShowTabWarning(false); setExamStatus('RUNNING'); }} className="w-full py-8 bg-black text-white font-black text-xl rounded-3xl transition-all active:scale-95 shadow-xl">
-                                Re-enter Exam
-                            </Button>
-                            <Button onClick={() => handleFinish()} variant="ghost" className="w-full text-slate-400 font-black uppercase tracking-tighter text-sm hover:text-red-600">
-                                Submit and Exit Now
-                            </Button>
-                        </div>
-                    </Card>
-                </div>
-            )}
-
-            {/* Header / Nav Area (Internal only) */}
-            <div className="p-8 md:px-16 flex items-center justify-between border-b-2 border-slate-50 sticky top-0 bg-white/80 backdrop-blur-md z-50">
-                <div className="flex items-center gap-6">
-                    <div className="bg-black p-3 rounded-2xl shadow-lg">
-                        <Brain className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="hidden md:block">
-                        <h2 className="font-black text-2xl tracking-tighter text-black uppercase">{quiz.title}</h2>
-                        <p className="text-[10px] font-black text-slate-400 tracking-[0.3em] uppercase">{studentName} • Competitive Mode</p>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                    <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-slate-50 border-2 border-black/5 rounded-2xl">
-                        <div className={cn("w-2 h-2 rounded-full", isFullscreen ? "bg-green-500 animate-pulse" : "bg-red-500")} />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                            Full Screen: {isFullscreen ? "ON" : "OFF"}
-                        </span>
-                    </div>
-                    <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-slate-50 border-2 border-black/5 rounded-2xl">
-                        <div className={cn("w-2 h-2 rounded-full", isCorrupted ? "bg-red-500" : "bg-green-500")} />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                            Integrity: {isCorrupted ? "CORRUPTED" : "OK"}
-                        </span>
-                    </div>
-                    <div className={cn(
-                        "flex items-center gap-3 px-6 py-3 rounded-2xl border-2 font-black text-xl tracking-tight transition-all",
-                        timeLeft < 60 ? "bg-red-50 border-red-600 text-red-600 animate-pulse" : "bg-slate-50 border-black/5 text-slate-900"
-                    )}>
-                        <Timer className="h-5 w-5" />
-                        {formatTime(timeLeft)}
-                    </div>
-                    {violationCount > 0 && (
-                        <div className="bg-orange-50 text-orange-600 border-2 border-orange-100 px-4 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hidden sm:block">
-                            Strikes: {violationCount}/2
+            {/* 5. ACTIVE QUIZ UI */}
+            {!isLoading && !isCorrupted && !isFinished && (isFullscreen || fullscreenGracePeriod > 0) && (
+                <>
+                    {/* Fullscreen Grace Warning */}
+                    {fullscreenGracePeriod > 0 && !isFullscreen && (
+                        <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4">
+                            <Card className="max-w-md w-full p-12 text-center space-y-8 rounded-[48px] bg-white animate-in zoom-in-95">
+                                <XCircle className="h-24 w-24 text-red-600 mx-auto animate-pulse" />
+                                <div className="space-y-4">
+                                    <h3 className="text-4xl font-black text-gray-900 tracking-tight">ESC NOT ALLOWED</h3>
+                                    <p className="text-gray-500 font-bold leading-relaxed">Competitive sessions must remain in full-screen. Disqualification in <span className="text-red-600 text-2xl font-black">{fullscreenGracePeriod}s</span>.</p>
+                                </div>
+                                <Button onClick={enterFullscreen} className="w-full py-8 bg-red-600 hover:bg-red-700 text-white font-black text-xl rounded-3xl">
+                                    Resume Session
+                                </Button>
+                            </Card>
                         </div>
                     )}
-                </div>
-            </div>
 
-            {/* Progress Bar */}
-            <div className="w-full h-1.5 bg-slate-50 relative">
-                <div
-                    className="absolute top-0 left-0 h-full bg-black transition-all duration-500 ease-out shadow-[0_0_15px_rgba(0,0,0,0.1)]"
-                    style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
-                />
-            </div>
-
-            <main className="flex-1 overflow-y-auto px-6 py-12 md:px-16 scroll-smooth">
-                <div className="max-w-4xl mx-auto space-y-12">
-                    <div className="space-y-6">
-                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-100 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                            Question {currentIndex + 1} of {questions.length}
+                    {/* Tab Switch Warning */}
+                    {showTabWarning && (
+                        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+                            <Card className="max-w-md w-full p-12 text-center space-y-10 rounded-[48px] bg-white animate-in slide-in-from-top-12 duration-500">
+                                <div className="bg-orange-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto">
+                                    <AlertCircle className="h-12 w-12 text-orange-600" />
+                                </div>
+                                <div className="space-y-4">
+                                    <h3 className="text-3xl font-black tracking-tight text-gray-900">WINDOW SWITCHED!</h3>
+                                    <p className="text-gray-500 font-bold">First warning: Do not leave the exam screen. One more violation will result in immediate disqualification.</p>
+                                </div>
+                                <div className="space-y-4">
+                                    <Button onClick={() => { setShowTabWarning(false); setExamStatus('RUNNING'); }} className="w-full py-8 bg-black text-white font-black text-xl rounded-3xl transition-all active:scale-95 shadow-xl">
+                                        Re-enter Exam
+                                    </Button>
+                                    <Button onClick={() => handleFinish()} variant="ghost" className="w-full text-slate-400 font-black uppercase tracking-tighter text-sm hover:text-red-600">
+                                        Submit and Exit Now
+                                    </Button>
+                                </div>
+                            </Card>
                         </div>
-                        <h3 className="text-3xl md:text-5xl font-black text-black leading-[1.1] tracking-tight">
-                            {currentQuestion?.questionText}
-                        </h3>
+                    )}
+
+                    {/* QUIZ HEADER */}
+                    <div className="p-8 md:px-16 flex items-center justify-between border-b-2 border-slate-50 sticky top-0 bg-white/80 backdrop-blur-md z-50">
+                        <div className="flex items-center gap-6">
+                            <div className="bg-black p-3 rounded-2xl shadow-lg">
+                                <Brain className="h-6 w-6 text-white" />
+                            </div>
+                            <div className="hidden md:block">
+                                <h2 className="font-black text-2xl tracking-tighter text-black uppercase">{quiz.title}</h2>
+                                <p className="text-[10px] font-black text-slate-400 tracking-[0.3em] uppercase">{studentName} • Competitive Mode</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                            <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-slate-50 border-2 border-black/5 rounded-2xl">
+                                <div className={cn("w-2 h-2 rounded-full", isFullscreen ? "bg-green-500 animate-pulse" : "bg-red-500")} />
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                    Full Screen: {isFullscreen ? "ON" : "OFF"}
+                                </span>
+                            </div>
+                            <div className={cn(
+                                "flex items-center gap-3 px-6 py-3 rounded-2xl border-2 font-black text-xl tracking-tight transition-all",
+                                timeLeft < 60 ? "bg-red-50 border-red-600 text-red-600 animate-pulse" : "bg-slate-50 border-black/5 text-slate-900"
+                            )}>
+                                <Timer className="h-5 w-5" />
+                                {formatTime(timeLeft)}
+                            </div>
+                            {violationCount > 0 && (
+                                <div className="bg-orange-50 text-orange-600 border-2 border-orange-100 px-4 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hidden sm:block">
+                                    Strikes: {violationCount}/2
+                                </div>
+                            )}
+                        </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4">
-                        {currentQuestion?.options && currentQuestion.options.filter(o => o.trim() !== "").length > 0 ? (
-                            currentQuestion.options.map((option, idx) => {
-                                const isSelected = currentAnswer === option;
-                                return (
-                                    <button
-                                        key={idx}
-                                        onClick={() => handleOptionSelect(option)}
-                                        className={cn(
-                                            "w-full flex items-center gap-6 p-8 border-4 transition-all duration-300 rounded-[32px] text-left group relative overflow-hidden",
-                                            isSelected
-                                                ? "bg-black border-black text-white shadow-2xl scale-[1.02]"
-                                                : "bg-white border-black/5 hover:border-black/20 text-slate-600 hover:scale-[1.01]"
-                                        )}
-                                    >
-                                        {isSelected && (
-                                            <div className="absolute top-0 right-0 p-6 opacity-20">
-                                                <CheckCircle2 className="h-12 w-12" />
+                    {/* PROGRESS BAR */}
+                    <div className="w-full h-1.5 bg-slate-50 relative">
+                        <div
+                            className="absolute top-0 left-0 h-full bg-black transition-all duration-500 ease-out shadow-[0_0_15px_rgba(0,0,0,0.1)]"
+                            style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+                        />
+                    </div>
+
+                    {/* MAIN CONTENT */}
+                    <main className="flex-1 overflow-y-auto px-6 py-12 md:px-16 scroll-smooth">
+                        <div className="max-w-4xl mx-auto space-y-12">
+                            {questions.length === 0 ? (
+                                <div className="text-center py-20">
+                                    <h3 className="text-2xl font-black text-gray-900">No Questions Loaded</h3>
+                                    <p className="text-gray-500">Please contact your instructor.</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="space-y-6">
+                                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-100 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                                            Question {currentIndex + 1} of {questions.length}
+                                        </div>
+                                        <h3 className="text-3xl md:text-5xl font-black text-black leading-[1.1] tracking-tight">
+                                            {currentQuestion?.questionText}
+                                        </h3>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {currentQuestion?.options && currentQuestion.options.filter(o => o.trim() !== "").length > 0 ? (
+                                            currentQuestion.options.map((option, idx) => {
+                                                const isSelected = currentAnswer === option;
+                                                return (
+                                                    <button
+                                                        key={idx}
+                                                        onClick={() => handleOptionSelect(option)}
+                                                        className={cn(
+                                                            "w-full flex items-center gap-6 p-8 border-4 transition-all duration-300 rounded-[32px] text-left group relative overflow-hidden",
+                                                            isSelected
+                                                                ? "bg-black border-black text-white shadow-2xl scale-[1.02]"
+                                                                : "bg-white border-black/5 hover:border-black/20 text-slate-600 hover:scale-[1.01]"
+                                                        )}
+                                                    >
+                                                        {isSelected && (
+                                                            <div className="absolute top-0 right-0 p-6 opacity-20">
+                                                                <CheckCircle2 className="h-12 w-12" />
+                                                            </div>
+                                                        )}
+                                                        <span className={cn(
+                                                            "flex-shrink-0 w-12 h-12 rounded-2xl border-4 flex items-center justify-center text-xl font-black transition-colors",
+                                                            isSelected ? "bg-white text-black border-white" : "border-black/5 group-hover:border-black/10 group-hover:bg-black/5"
+                                                        )}>
+                                                            {String.fromCharCode(65 + idx)}
+                                                        </span>
+                                                        <span className="text-xl md:text-2xl font-bold tracking-tight">{option}</span>
+                                                    </button>
+                                                );
+                                            })
+                                        ) : (
+                                            <div className="space-y-6">
+                                                <div className="p-8 bg-purple-50 rounded-[32px] border-2 border-purple-100 flex gap-4">
+                                                    <MessageSquare className="h-6 w-6 text-purple-600 flex-shrink-0 mt-1" />
+                                                    <div className="space-y-2">
+                                                        <h4 className="font-black text-purple-900 uppercase text-xs tracking-widest">Self-Evaluation / Note</h4>
+                                                        <p className="text-purple-700 font-medium">This is an open-ended question. Reflect on your answer then proceed.</p>
+                                                    </div>
+                                                </div>
+                                                <Textarea
+                                                    placeholder="Type your response here for self-reflection..."
+                                                    className="min-h-[200px] rounded-[32px] border-4 border-slate-50 p-8 text-xl font-medium focus:border-black transition-all"
+                                                    value={currentAnswer || ""}
+                                                    onChange={(e) => handleOptionSelect(e.target.value)}
+                                                />
                                             </div>
                                         )}
-                                        <span className={cn(
-                                            "flex-shrink-0 w-12 h-12 rounded-2xl border-4 flex items-center justify-center text-xl font-black transition-colors",
-                                            isSelected ? "bg-white text-black border-white" : "border-black/5 group-hover:border-black/10 group-hover:bg-black/5"
-                                        )}>
-                                            {String.fromCharCode(65 + idx)}
-                                        </span>
-                                        <span className="text-xl md:text-2xl font-bold tracking-tight">{option}</span>
-                                    </button>
-                                );
-                            })
-                        ) : (
-                            <div className="space-y-6">
-                                <div className="p-8 bg-purple-50 rounded-[32px] border-2 border-purple-100 flex gap-4">
-                                    <MessageSquare className="h-6 w-6 text-purple-600 flex-shrink-0 mt-1" />
-                                    <div className="space-y-2">
-                                        <h4 className="font-black text-purple-900 uppercase text-xs tracking-widest">Self-Evaluation / Note</h4>
-                                        <p className="text-purple-700 font-medium">This is an open-ended question. Reflect on your answer then proceed.</p>
                                     </div>
-                                </div>
-                                <Textarea
-                                    placeholder="Type your response here for self-reflection..."
-                                    className="min-h-[200px] rounded-[32px] border-4 border-slate-50 p-8 text-xl font-medium focus:border-black transition-all"
-                                    value={currentAnswer || ""}
-                                    onChange={(e) => handleOptionSelect(e.target.value)}
-                                />
+                                </>
+                            )}
+                        </div>
+                    </main>
+
+                    {/* FOOTER */}
+                    <footer className="p-8 md:px-16 border-t-2 border-slate-50 bg-white">
+                        <div className="max-w-4xl mx-auto flex items-center justify-between gap-6">
+                            <Button
+                                variant="outline"
+                                onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
+                                disabled={currentIndex === 0}
+                                className="h-16 px-8 bg-white border-4 border-black/5 rounded-3xl font-black uppercase tracking-widest text-[11px] hover:bg-slate-50 hover:border-black active:translate-y-1 transition-all flex items-center gap-3 disabled:opacity-0"
+                            >
+                                <ChevronLeft className="h-5 w-5" /> Previous
+                            </Button>
+
+                            <div className="flex-1 flex justify-center">
+                                {currentIndex === questions.length - 1 ? (
+                                    <Button
+                                        onClick={() => handleFinish()}
+                                        className="h-20 px-16 bg-green-600 hover:bg-green-700 text-white font-black rounded-[32px] text-xl shadow-xl shadow-green-100 transition-all active:scale-95 flex items-center gap-3 active:translate-y-1"
+                                    >
+                                        <Send className="h-6 w-6" /> Submit Exam
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        onClick={() => setCurrentIndex(prev => prev + 1)}
+                                        className="h-20 px-16 bg-black hover:bg-slate-800 text-white font-black rounded-[32px] text-xl shadow-2xl transition-all active:scale-95 flex items-center gap-3 active:translate-y-1"
+                                    >
+                                        Next Question <ChevronRight className="h-6 w-6" />
+                                    </Button>
+                                )}
                             </div>
-                        )}
-                    </div>
-                </div>
-            </main>
 
-            {/* Footer Navigation */}
-            <footer className="p-8 md:px-16 border-t-2 border-slate-50 bg-white">
-                <div className="max-w-4xl mx-auto flex items-center justify-between gap-6">
-                    <Button
-                        variant="outline"
-                        onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
-                        disabled={currentIndex === 0}
-                        className="h-16 px-8 bg-white border-4 border-black/5 rounded-3xl font-black uppercase tracking-widest text-[11px] hover:bg-slate-50 hover:border-black active:translate-y-1 transition-all flex items-center gap-3 disabled:opacity-0"
-                    >
-                        <ChevronLeft className="h-5 w-5" /> Previous
-                    </Button>
-
-                    <div className="flex-1 flex justify-center">
-                        {currentIndex === questions.length - 1 ? (
-                            <Button
-                                onClick={() => handleFinish()}
-                                className="h-20 px-16 bg-green-600 hover:bg-green-700 text-white font-black rounded-[32px] text-xl shadow-xl shadow-green-100 transition-all active:scale-95 flex items-center gap-3 active:translate-y-1"
-                            >
-                                <Send className="h-6 w-6" /> Submit Exam
-                            </Button>
-                        ) : (
-                            <Button
-                                onClick={() => setCurrentIndex(prev => prev + 1)}
-                                className="h-20 px-16 bg-black hover:bg-slate-800 text-white font-black rounded-[32px] text-xl shadow-2xl transition-all active:scale-95 flex items-center gap-3 active:translate-y-1"
-                            >
-                                Next Question <ChevronRight className="h-6 w-6" />
-                            </Button>
-                        )}
-                    </div>
-
-                    <div className="w-[120px] text-right hidden md:block">
-                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Saving...</span>
-                    </div>
-                </div>
-            </footer>
+                            <div className="w-[120px] text-right hidden md:block">
+                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Saving...</span>
+                            </div>
+                        </div>
+                    </footer>
+                </>
+            )}
         </div>
     );
 };

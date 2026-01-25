@@ -289,25 +289,18 @@ const CompetitiveMode = () => {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
+                    {/* Creation Mode Selection - Removed PDF Option as requested */}
                     {creationMode === 'selection' ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                        <div className="grid grid-cols-1 gap-6 pt-4">
                             <Card className="group cursor-pointer p-8 flex flex-col items-center gap-6 text-center border-2 border-dashed border-gray-300 hover:border-black hover:bg-gray-50 transition-all duration-300 rounded-xl" onClick={() => setCreationMode('manual')}>
                                 <div className="p-5 bg-white border-2 border-gray-200 rounded-full group-hover:border-black transition-colors shadow-sm">
                                     <PlusCircle className="h-10 w-10 text-gray-700 group-hover:text-black" />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-bold text-black mb-2">Manual Entry</h3>
-                                    <p className="text-sm text-gray-500 font-medium">Create custom questions one by one.</p>
+                                    <h3 className="text-lg font-bold text-black mb-2">Create Competitive Session</h3>
+                                    <p className="text-sm text-gray-500 font-medium">Manually configure rules and questions.</p>
                                 </div>
-                            </Card>
-                            <Card className="group cursor-pointer p-8 flex flex-col items-center gap-6 text-center border-2 border-dashed border-gray-300 hover:border-black hover:bg-gray-50 transition-all duration-300 rounded-xl" onClick={() => setCreationMode('pdf')}>
-                                <div className="p-5 bg-white border-2 border-gray-200 rounded-full group-hover:border-black transition-colors shadow-sm">
-                                    <FileText className="h-10 w-10 text-gray-700 group-hover:text-black" />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-bold text-black mb-2">PDF Generation</h3>
-                                    <p className="text-sm text-gray-500 font-medium">Auto-generate questions from documents.</p>
-                                </div>
+                                <Button variant="outline" className="mt-4">Start Setup</Button>
                             </Card>
                         </div>
                     ) : creationMode === 'manual' ? (

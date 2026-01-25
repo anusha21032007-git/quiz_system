@@ -40,18 +40,36 @@ const GenerateRequestSchema = z.object({
     optionsCount: z.number().min(2).max(6).optional().default(4)
 });
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', model: OLLAMA_MODEL });
+});
+
 function cleanAIJson(text: string): string {
+    // Remove markdown code blocks if present
     let cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
+    // Sometimes models add explanatory text before or after the JSON
+    // validation to ensure we only capture the JSON array or object
     const startBrace = cleaned.indexOf('{');
     const startBracket = cleaned.indexOf('[');
-    const start = startBrace !== -1 && (startBracket === -1 || startBrace < startBracket) ? startBrace : startBracket;
+
+    // Determine which comes first to identify if it's an object or array
+    let start = -1;
+    if (startBrace !== -1 && startBracket !== -1) {
+        start = Math.min(startBrace, startBracket);
+    } else if (startBrace !== -1) {
+        start = startBrace;
+    } else {
+        start = startBracket;
+    }
 
     const endBrace = cleaned.lastIndexOf('}');
     const endBracket = cleaned.lastIndexOf(']');
-    const end = endBrace !== -1 && endBrace > endBracket ? endBrace : endBracket;
+    const end = Math.max(endBrace, endBracket);
 
     if (start === -1 || end === -1) {
+        console.error("Failed to find JSON in response:", text); // Log original for debug
         throw new Error("No JSON object found in response");
     }
 
@@ -209,6 +227,133 @@ app.post('/api/ai/generate-questions', async (req, res) => {
     }
 });
 
+// Schema for PDF Context request
+const GenerateFromPdfSchema = z.object({
+    textContent: z.string().min(50), // Minimum context length
+    topic: z.string().optional(),
+    count: z.number().min(1).max(20).default(5),
+    difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
+    marks: z.number().min(1).default(1),
+    timeLimitSeconds: z.number().min(10).default(60),
+    optionsCount: z.number().min(2).max(6).default(4)
+});
+
+async function generateFromContextWithOllama(params: any): Promise<any> {
+    const { textContent, difficulty, marks, timeLimitSeconds, optionsCount } = params;
+
+    // Truncate text if it's too long for the context window (approx 4000 chars safety margin)
+    // Llama 3.2 supports larger context, but we keep it safe for speed.
+    const truncatedContext = textContent.slice(0, 12000);
+
+    const numOptions = optionsCount || 4;
+
+    const prompt = `You are a strict exam setter.
+    
+    CONTEXT_TEXT:
+    """
+    ${truncatedContext}
+    """
+
+    TASK:
+    Generate ${params.count} multiple-choice questions (MCQs) based ONLY on the CONTEXT_TEXT above.
+    
+    RULES:
+    1. IGNORE any outside knowledge. If the answer is not in the text, do not ask it.
+    2. Difficulty: ${difficulty}
+    3. EXACTLY ONE correct answer per question.
+    4. Provide ${numOptions} options per question.
+    5. The "correctAnswer" field must be an EXACT COPY of the text in one of the "options".
+
+    JSON OUTPUT FORMAT (Array of Objects):
+    [
+      {
+        "question": "Question text here...",
+        "options": ["Option A", "Option B", "Option C", "Option D"],
+        "correctAnswer": "Option A", 
+        "explanation": "Brief explanation citing the text."
+      }
+    ]
+
+    Generate JSON now:`;
+
+    console.log(`[Ollama] Generating strict PDF questions (Context length: ${truncatedContext.length})...`);
+
+    const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: OLLAMA_MODEL,
+            prompt: prompt,
+            stream: false,
+            format: 'json',
+            options: {
+                temperature: 0.2, // Low temperature for strict adherence
+                num_predict: 2000,
+                top_p: 0.9
+            }
+        })
+    });
+
+    if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Ollama HTTP ${response.status}: ${errText}`);
+    }
+
+    const data: any = await response.json();
+    const text = data.response || '';
+
+    if (!text) throw new Error("Empty response from Ollama");
+
+    const cleanedText = cleanAIJson(text);
+    const parsed = JSON.parse(cleanedText);
+    const questionsArray = Array.isArray(parsed) ? parsed : (parsed.questions || [parsed]);
+
+    // Map and Validate
+    return questionsArray.map((q: any, idx: number) => {
+        let correctIndex = q.options.findIndex((opt: string) =>
+            opt.trim().toLowerCase() === (q.correctAnswer || "").trim().toLowerCase()
+        );
+
+        if (correctIndex === -1) {
+            // Fuzzy match fallback
+            correctIndex = q.options.findIndex((opt: string) =>
+                opt.includes(q.correctAnswer) || q.correctAnswer.includes(opt)
+            );
+            if (correctIndex === -1) correctIndex = 0; // Fail safe
+        }
+
+        return {
+            id: idx + 1,
+            question: q.question,
+            options: q.options,
+            correctIndex: correctIndex,
+            difficulty: difficulty,
+            marks: marks,
+            timeLimitSeconds: timeLimitSeconds,
+            explanation: q.explanation || "Derived from document context."
+        };
+    });
+}
+
+app.post('/api/ai/generate-from-pdf', async (req, res) => {
+    try {
+        const params = GenerateFromPdfSchema.parse(req.body);
+        const questions = await generateFromContextWithOllama(params); // Use dedicated strict function
+
+        console.log(`[Success] PDF Context Gen | Returned: ${questions.length} questions`);
+        res.json({
+            topic: params.topic || "Document Analysis",
+            questions: questions
+        });
+    } catch (error: any) {
+        console.error(`[API Error] ${error.message}`);
+        res.status(error instanceof z.ZodError ? 400 : 500).json({
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+    }
+});
+
 async function autoDetectModel() {
     try {
         const response = await fetch(`${OLLAMA_BASE_URL}/api/tags`);
@@ -232,5 +377,6 @@ async function autoDetectModel() {
 app.listen(PORT, '0.0.0.0', async () => {
     console.log(`\n🚀 AI Generation Server running on port ${PORT}`);
     console.log(`📍 Endpoint: http://localhost:${PORT}/api/ai/generate-questions`);
+    console.log(`📍 Endpoint: http://localhost:${PORT}/api/ai/generate-from-pdf`);
     await autoDetectModel();
 });

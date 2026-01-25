@@ -189,25 +189,51 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
             {competitiveSessions.map((session) => {
               const isCompleted = quizAttempts.some(a => a.quizId === session.id && a.studentName === studentName);
 
+              // Schedule validation
+              const now = new Date();
+              const scheduledDate = new Date(session.scheduledDate);
+
+              // Parse start/end times
+              const [startHour, startMinute] = session.startTime.split(':').map(Number);
+              const [endHour, endMinute] = session.endTime.split(':').map(Number);
+
+              const startDateTime = new Date(scheduledDate);
+              startDateTime.setHours(startHour, startMinute, 0);
+
+              const endDateTime = new Date(scheduledDate);
+              endDateTime.setHours(endHour, endMinute, 0);
+
+              const isLive = now >= startDateTime && now <= endDateTime;
+              const isUpcoming = now < startDateTime;
+              const isExpired = now > endDateTime;
+
               return (
                 <Card key={session.id} className="group hover:shadow-xl transition-all duration-300 border-purple-100 overflow-hidden flex flex-col">
-                  <div className="h-2 bg-purple-600 w-full" />
+                  <div className={cn("h-2 w-full", isLive ? "bg-green-500" : isUpcoming ? "bg-amber-500" : "bg-gray-300")} />
                   <CardHeader className="pb-4">
                     <div className="flex justify-between items-start mb-2">
                       <div className="p-2 bg-purple-50 rounded-lg">
                         <Briefcase className="h-5 w-5 text-purple-600" />
                       </div>
-                      {isCompleted && (
+                      {isCompleted ? (
                         <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                           <CheckCircle className="h-3 w-3 mr-1" /> Completed
                         </Badge>
+                      ) : isLive ? (
+                        <Badge className="bg-green-600 hover:bg-green-700 animate-pulse">LIVE NOW</Badge>
+                      ) : isUpcoming ? (
+                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Upcoming</Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-gray-100 text-gray-500 border-gray-200">Expired</Badge>
                       )}
                     </div>
                     <CardTitle className="text-xl line-clamp-1 group-hover:text-purple-700 transition-colors">
                       {session.title.replace('CMP: ', '').replace('INT: ', '')}
                     </CardTitle>
                     <CardDescription className="line-clamp-2">
-                      Practical competitive preparation for {session.courseName}.
+                      {isUpcoming
+                        ? `Starts: ${startDateTime.toLocaleDateString()} at ${session.startTime}`
+                        : `Practical competitive preparation for ${session.courseName}.`}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="flex-grow">
@@ -221,13 +247,22 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
                   <CardFooter className="pt-4 border-t bg-gray-50/50">
                     <Button
                       onClick={() => setSelectedCompetitive(session)}
+                      disabled={!isLive && !isCompleted} // Allow re-entering if completed (logic may vary), but definitely block if not live
                       className={cn(
-                        "w-full shadow-md group-hover:scale-[1.02] transition-transform gap-2",
-                        isCompleted ? "bg-gray-800 hover:bg-gray-900" : "bg-purple-600 hover:bg-purple-700"
+                        "w-full shadow-md transition-transform gap-2",
+                        !isLive && !isCompleted ? "opacity-70 cursor-not-allowed bg-gray-400 hover:bg-gray-400 text-white" : "",
+                        (isLive || isCompleted) ? "group-hover:scale-[1.02]" : "",
+                        isCompleted ? "bg-gray-800 hover:bg-gray-900" : isLive ? "bg-purple-600 hover:bg-purple-700" : ""
                       )}
                     >
-                      {isCompleted ? <PlayCircle className="h-4 w-4" /> : <PlayCircle className="h-4 w-4" />}
-                      {isCompleted ? "Re-Practice Session" : "Start Practice Session"}
+                      {isCompleted
+                        ? <> <PlayCircle className="h-4 w-4" /> Review Session </>
+                        : isUpcoming
+                          ? `Starts at ${session.startTime}`
+                          : isExpired
+                            ? "Session Expired"
+                            : <> <PlayCircle className="h-4 w-4" /> Start Practice Session </>
+                      }
                     </Button>
                   </CardFooter>
                 </Card>
