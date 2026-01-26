@@ -119,8 +119,14 @@ export const useCreateQuiz = () => {
   const queryClient = useQueryClient();
   return useMutation<SupabaseQuiz, Error, { quizData: QuizInsertData, questionsData: QuestionInsertData[] }>({
     mutationFn: async ({ quizData, questionsData }) => {
-      const user = (await supabase.auth.getUser()).data.user;
-      if (!user) throw new Error("User not authenticated.");
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        console.error("Auth error during quiz creation:", authError);
+        const { resetSupabaseSession } = await import('@/utils/auth-utils');
+        resetSupabaseSession();
+        throw new Error("Session expired. Redirecting to login...");
+      }
 
       // 1. Insert Quiz (Always set status to 'published' when created via QuizCreator)
       const { data: quiz, error: quizError } = await supabase

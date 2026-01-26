@@ -361,7 +361,10 @@ const QuizCreator = () => {
 
       toast.success("Backend server connected!");
     } catch (error) {
-      toast.error("Failed to connect to backend server. Please ensure it's running on port 5000.");
+      toast.error("Could not connect to AI Backend.", {
+        description: "Please stop your current server and run 'npm run dev:all' to start both frontend and AI server.",
+        duration: 10000
+      });
       setIsGeneratingAI(false);
       return;
     }

@@ -45,15 +45,9 @@ export const aiService = {
                 return { isHealthy: false, message: 'Server returned an error' };
             }
         } catch (error: any) {
-            if (error.name === 'AbortError') {
-                return {
-                    isHealthy: false,
-                    message: 'Backend server is not responding. Please start the server:\n\n1. Open a new terminal\n2. Navigate to the server folder\n3. Run: npm run dev'
-                };
-            }
             return {
                 isHealthy: false,
-                message: `Backend server is not running on port 5000. Please start it first.\n\nError: ${error.message}`
+                message: `AI Backend server is NOT running on port 5000.\n\nTo fix this permanently, ALWAYS start the project using:\n\nnpm run dev:all\n\n(This starts both frontend and AI server together)`
             };
         }
     },
