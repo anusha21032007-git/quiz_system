@@ -128,6 +128,41 @@ const GenerateQuizLanding = () => {
     }
 
     // ... existing manual, automated, competitive returns ...
+    if (view === 'manual') {
+        return (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                <div className="flex items-center justify-between">
+                    <BackButton onClick={handleBack} className="bg-white shadow-xl shadow-gray-100/50 border border-gray-100 px-8 py-7 rounded-[24px] hover:bg-black hover:text-white transition-all duration-300" />
+                    <div className="px-6 py-2 bg-gray-900 text-white rounded-full text-[10px] font-black uppercase tracking-[0.2em]">Manual Creation</div>
+                </div>
+                <QuestionCreator />
+            </div>
+        );
+    }
+
+    if (view === 'automated') {
+        return (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                <div className="flex items-center justify-between">
+                    <BackButton onClick={handleBack} className="bg-white shadow-xl shadow-gray-100/50 border border-gray-100 px-8 py-7 rounded-[24px] hover:bg-black hover:text-white transition-all duration-300" />
+                    <div className="px-6 py-2 bg-indigo-600 text-white rounded-full text-[10px] font-black uppercase tracking-[0.2em]">AI Generator</div>
+                </div>
+                <QuizCreator />
+            </div>
+        );
+    }
+
+    if (view === 'competitive') {
+        return (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                <div className="flex items-center justify-between">
+                    <BackButton onClick={handleBack} className="bg-white shadow-xl shadow-gray-100/50 border border-gray-100 px-8 py-7 rounded-[24px] hover:bg-black hover:text-white transition-all duration-300" />
+                    <div className="px-6 py-2 bg-rose-600 text-white rounded-full text-[10px] font-black uppercase tracking-[0.2em]">Competitive Mode</div>
+                </div>
+                <CompetitiveMode />
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-16 animate-in fade-in duration-700 pb-32">

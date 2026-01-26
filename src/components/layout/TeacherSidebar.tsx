@@ -13,7 +13,8 @@ import {
   Trophy,
   History,
   LogOut,
-  GraduationCap
+  GraduationCap,
+  BookOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -28,6 +29,7 @@ const TeacherSidebar = ({ activeView, isMobile }: TeacherSidebarProps) => {
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard, path: '/teacher?view=overview' },
     { id: 'create-quiz', label: 'Create Quiz', icon: PlusCircle, path: '/teacher?view=create-quiz' },
+    { id: 'quizzes', label: 'Quizzes', icon: BookOpen, path: '/teacher?view=quizzes' },
     { id: 'courses', label: 'Courses', icon: GraduationCap, path: '/teacher?view=courses' },
     { id: 'users', label: 'Users', icon: Users, path: '/teacher?view=users' },
     { id: 'leaderboard', label: 'Global Leaderboard', icon: Trophy, path: '/leaderboard' },

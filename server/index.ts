@@ -33,7 +33,7 @@ if (GEMINI_API_KEY && !GEMINI_API_KEY.includes('YOUR_API_KEY')) {
 // Schema for request validation
 const GenerateRequestSchema = z.object({
     topic: z.string().min(2),
-    count: z.number().min(1).max(20),
+    count: z.number().min(1).max(50),
     difficulty: z.enum(['easy', 'medium', 'hard']),
     marks: z.number().min(1),
     timeLimitSeconds: z.number().min(10),
@@ -229,9 +229,9 @@ app.post('/api/ai/generate-questions', async (req, res) => {
 
 // Schema for PDF Context request
 const GenerateFromPdfSchema = z.object({
-    textContent: z.string().min(50), // Minimum context length
+    textContent: z.string().min(1), // Loosened for testing/small documents
     topic: z.string().optional(),
-    count: z.number().min(1).max(20).default(5),
+    count: z.number().min(1).max(50).default(5),
     difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
     marks: z.number().min(1).default(1),
     timeLimitSeconds: z.number().min(10).default(60),
@@ -247,36 +247,44 @@ async function generateFromContextWithOllama(params: any): Promise<any> {
 
     const numOptions = optionsCount || 4;
 
-    const prompt = `You are a strict exam setter.
-    
-    CONTEXT_TEXT:
-    """
-    ${truncatedContext}
-    """
+    const prompt = `Step 1: Clean the EXTRACTED PDF TEXT by removing noise lines like:
+- "Scanned with CamScanner"
+- Repeated headers/footers
+- Page numbers
+- Random symbols/garbage characters
 
-    TASK:
-    Generate ${params.count} multiple-choice questions (MCQs) based ONLY on the CONTEXT_TEXT above.
-    
-    RULES:
-    1. IGNORE any outside knowledge. If the answer is not in the text, do not ask it.
-    2. Difficulty: ${difficulty}
-    3. EXACTLY ONE correct answer per question.
-    4. Provide ${numOptions} options per question.
-    5. The "correctAnswer" field must be an EXACT COPY of the text in one of the "options".
+Step 2: Using ONLY the cleaned content, identify main topics and generate MCQs.
 
-    JSON OUTPUT FORMAT (Array of Objects):
-    [
-      {
-        "question": "Question text here...",
-        "options": ["Option A", "Option B", "Option C", "Option D"],
-        "correctAnswer": "Option A", 
-        "explanation": "Brief explanation citing the text."
-      }
-    ]
+STRICT RULES:
+1. If the cleaned content has fewer than 150 words of actual subject matter, return EXACTLY this JSON:
+   {"error":"NOT_ENOUGH_CONTEXT_FROM_PDF"}
+2. Questions must be strictly from the PDF text only.
+3. No outside knowledge or guessing.
+4. Each question must include a 1-line explanation from the text.
 
-    Generate JSON now:`;
+TASK:
+Generate 10 high-quality MCQs based on the content.
 
-    console.log(`[Ollama] Generating strict PDF questions (Context length: ${truncatedContext.length})...`);
+OUTPUT FORMAT (JSON ONLY):
+{
+  "questions": [
+    {
+      "question": "...",
+      "options": ["A","B","C","D"],
+      "correctAnswer": "Exact text of the correct option here",
+      "explanation": "..."
+    }
+  ]
+}
+
+PDF TEXT:
+<<<
+${truncatedContext}
+>>>
+
+Generate JSON now:`;
+
+    console.log(`[Ollama] Generating cleaned PDF questions (Context length: ${truncatedContext.length})...`);
 
     const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
         method: 'POST',
@@ -287,8 +295,8 @@ async function generateFromContextWithOllama(params: any): Promise<any> {
             stream: false,
             format: 'json',
             options: {
-                temperature: 0.2, // Low temperature for strict adherence
-                num_predict: 2000,
+                temperature: 0.1, // Even stricter for cleaning/validation
+                num_predict: 2500,
                 top_p: 0.9
             }
         })
@@ -306,7 +314,23 @@ async function generateFromContextWithOllama(params: any): Promise<any> {
 
     const cleanedText = cleanAIJson(text);
     const parsed = JSON.parse(cleanedText);
-    const questionsArray = Array.isArray(parsed) ? parsed : (parsed.questions || [parsed]);
+
+    // Handle AI-reported context error
+    if (parsed.error === "NOT_ENOUGH_CONTEXT_FROM_PDF") {
+        throw new Error("PDF content is too short (less than 150 words of subject matter) or contains only noise.");
+    }
+
+    // Handle nested topics if generated (for robustness) or raw questions array
+    let questionsArray: any[] = [];
+    if (parsed.topics && Array.isArray(parsed.topics)) {
+        parsed.topics.forEach((topic: any) => {
+            if (topic.questions && Array.isArray(topic.questions)) {
+                questionsArray.push(...topic.questions);
+            }
+        });
+    } else {
+        questionsArray = Array.isArray(parsed) ? parsed : (parsed.questions || [parsed]);
+    }
 
     // Map and Validate
     return questionsArray.map((q: any, idx: number) => {
@@ -330,7 +354,7 @@ async function generateFromContextWithOllama(params: any): Promise<any> {
             difficulty: difficulty,
             marks: marks,
             timeLimitSeconds: timeLimitSeconds,
-            explanation: q.explanation || "Derived from document context."
+            explanation: q.explanation || (q.topic ? `Topic: ${q.topic}` : "Derived from document context.")
         };
     });
 }

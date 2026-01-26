@@ -109,6 +109,10 @@ const QuizCreator = () => {
 
   // Track if AI generation has been triggered for this session
   const hasTriggeredAIRef = React.useRef(false);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
+  // New: Explicit Pool Size for AI
+  const [aiPoolSize, setAiPoolSize] = useState<number | ''>('');
 
   // Persistence logic for QuizCreator
   useEffect(() => {
@@ -123,6 +127,7 @@ const QuizCreator = () => {
         if (parsed.quizDifficulty) setQuizDifficulty(parsed.quizDifficulty);
         if (parsed.aiMarksPerQuestion) setAiMarksPerQuestion(parsed.aiMarksPerQuestion);
         if (parsed.aiTimePerQuestionSeconds) setAiTimePerQuestionSeconds(parsed.aiTimePerQuestionSeconds);
+        if (parsed.aiPoolSize) setAiPoolSize(parsed.aiPoolSize);
         if (parsed.step) setStep(parsed.step);
       } catch (e) {
         console.error("Failed to restore QuizCreator session", e);
@@ -139,10 +144,11 @@ const QuizCreator = () => {
       quizDifficulty,
       aiMarksPerQuestion,
       aiTimePerQuestionSeconds,
+      aiPoolSize,
       step
     };
     localStorage.setItem('quizCreatorState', JSON.stringify(stateToSave));
-  }, [quizData, negativeMarking, negativeMarksValue, competitionMode, quizDifficulty, step]);
+  }, [quizData, negativeMarking, negativeMarksValue, competitionMode, quizDifficulty, aiPoolSize, step]);
 
   useEffect(() => {
     const draftData = sessionStorage.getItem('draft_quiz_params');
@@ -192,10 +198,6 @@ const QuizCreator = () => {
 
       if (currentCount === targetCount && currentCount > 0) return prev; // Stability check
 
-      // IMPORTANT: If we have MORE questions than target (e.g. AI pool), do NOT slice them off automatically.
-      // Only add questions if we have FEWER than target.
-      if (currentCount >= targetCount && targetCount > 0) return prev;
-
       const newQuestions = [...prev.questions];
 
       while (newQuestions.length < targetCount) {
@@ -210,8 +212,11 @@ const QuizCreator = () => {
       }
 
       // If reducing count
-      // const slicedQuestions = newQuestions.slice(0, targetCount); // DISABLED for AI Pool support
-      const updatedQuestions = newQuestions.map(q => {
+      // In Pool mode (AI), we keep questions up to the pool size or total questions, whichever is relevant.
+      // For simplicity, we sync to the maximum of the two to ensure we don't lose pool data.
+      const syncCount = Math.max(targetCount, Number(aiPoolSize) || 0);
+
+      const updatedQuestions = newQuestions.slice(0, syncCount).map(q => {
         // Ensure options count matches config
         const newOptions = [...q.options];
         while (newOptions.length < prev.optionsPerQuestion) {
@@ -366,9 +371,18 @@ const QuizCreator = () => {
 
     try {
       const targetCount = Number(quizData.totalQuestions) || 5;
-      const countToGenerate = targetCount * 5; // 5x pool multiplier
-      let isFirstBatch = true;
 
+      // Use explicit pool size if set, otherwise default to targetCount (no multiplier if not specified, or user must specify)
+      // User request: remove multiplier logic.
+      const countToGenerate = aiPoolSize ? Number(aiPoolSize) : targetCount;
+
+      if (countToGenerate < targetCount) {
+        toast.error(`Pool size (${countToGenerate}) cannot be less than Questions to Attend (${targetCount}).`);
+        setIsGeneratingAI(false);
+        return;
+      }
+
+      let isFirstBatch = true;
       toast.info(`Generating a pool of ${countToGenerate} questions...`);
 
       await generateAIQuestions({
@@ -539,7 +553,10 @@ const QuizCreator = () => {
     setAiCoursePaperName('');
     setAiDifficulty('Easy');
     setQuizDifficulty('Medium'); // Reset difficulty
+    setQuizDifficulty('Medium'); // Reset difficulty
+    setAiPoolSize(''); // Reset pool size
     setStep(1); // Reset step to 1
+    setCurrentQuestionIndex(0);
 
     // Clear quizStep from URL
     const newParams = new URLSearchParams(searchParams);
@@ -716,23 +733,42 @@ const QuizCreator = () => {
         </div>
 
         {/* Question Count and Options */}
+        {/* Question Count and Options */}
         <div className="grid gap-4 md:grid-cols-2 border-t pt-4 mt-4">
           <div>
-            <Label htmlFor="totalQuestions">Total Questions in Quiz</Label>
+            <Label htmlFor="totalQuestions">Questions to Attend (Student View)</Label>
             <Input
               id="totalQuestions"
               type="number"
-              min="0"
+              min="1"
               value={quizData.totalQuestions}
               disabled={step === 2} // Lock
               onChange={(e) => {
                 const val = e.target.value;
                 handleUpdateQuizDetails('totalQuestions', val === '' ? '' : parseInt(val));
               }}
-              className="mt-1"
+              className="mt-1 font-bold"
+              placeholder="e.g. 10"
             />
+            <p className="text-xs text-gray-500 mt-1">Number of questions each student will answer.</p>
           </div>
-          {/* optionsPerQuestion hidden as AI handles this automatically now */}
+          <div>
+            <Label htmlFor="aiPoolSize">Total Questions to Generate (AI Pool)</Label>
+            <Input
+              id="aiPoolSize"
+              type="number"
+              min="1"
+              value={aiPoolSize}
+              disabled={step === 2} // Lock
+              onChange={(e) => {
+                const val = e.target.value;
+                setAiPoolSize(val === '' ? '' : parseInt(val));
+              }}
+              className="mt-1 border-indigo-200 focus:border-indigo-500 font-bold"
+              placeholder="e.g. 50"
+            />
+            <p className="text-xs text-gray-500 mt-1">Total questions AI will generate. Students will get a random subset.</p>
+          </div>
         </div>
 
         <div className="border-t pt-4 mt-4">
@@ -901,102 +937,138 @@ const QuizCreator = () => {
                 </p>
               </div>
 
-              <div className="space-y-6 max-h-96 overflow-y-auto p-3 border rounded-md bg-gray-50 mt-4 relative">
-                {/* Overlay removed for real-time visibility */}
+              <div className="space-y-6 max-h-[500px] overflow-y-auto p-3 border rounded-md bg-gray-50 mt-4 relative">
                 {quizData.questions.length === 0 ? (
                   <p className="text-gray-500 text-center py-10">
                     {isGeneratingAI ? "" : "No questions added yet. Click \"Generate Questions with AI\" to begin."}
                   </p>
                 ) : (
-                  quizData.questions.map((q, index) => (
-                    <Card key={index} className="p-4 border rounded-md bg-white shadow-sm relative">
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2 h-7 w-7"
-                        onClick={() => handleDeleteQuestionFromDraft(index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                      <div className="space-y-3">
-                        <div>
-                          <Label>Question {index + 1}</Label>
-                          <div className="mt-1">
-                            <Textarea
-                              value={q.questionText}
-                              onChange={(e) => handleUpdateDraftQuestion(index, 'questionText', e.target.value)}
-                              placeholder="Enter question text..."
-                              className="min-h-[80px]"
-                            />
-                          </div>
+                  <>
+                    {/* Wizard Navigation Header */}
+                    <div className="flex items-center justify-between mb-4 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-md">
+                          {currentQuestionIndex + 1}
                         </div>
-                        <div className="grid grid-cols-1 gap-2 mt-2">
-                          {q.options.map((option, optIndex) => (
-                            <div key={optIndex} className="flex items-center gap-2 p-2 border rounded-md bg-white text-sm">
-                              <span className="font-semibold text-gray-500 w-6">{String.fromCharCode(65 + optIndex)}.</span>
-                              <Input
-                                value={option}
-                                onChange={(e) => handleUpdateOption(index, optIndex, e.target.value)}
-                                placeholder={`Option ${optIndex + 1}`}
-                                className="flex-1"
+                        <div>
+                          <h4 className="font-bold text-gray-700">Question {currentQuestionIndex + 1} of {quizData.questions.length}</h4>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                          disabled={currentQuestionIndex === 0}
+                          className="h-9 px-4 font-bold border-gray-200"
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          onClick={() => setCurrentQuestionIndex(prev => Math.min(quizData.questions.length - 1, prev + 1))}
+                          disabled={currentQuestionIndex === quizData.questions.length - 1}
+                          className="h-9 px-6 bg-slate-900 text-white hover:bg-black font-bold"
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+
+                    {quizData.questions[currentQuestionIndex] && (
+                      <Card className="p-4 border rounded-md bg-white shadow-sm relative animate-in fade-in slide-in-from-right-4 duration-300" key={currentQuestionIndex}>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 h-7 w-7"
+                          onClick={() => {
+                            handleDeleteQuestionFromDraft(currentQuestionIndex);
+                            if (currentQuestionIndex >= quizData.questions.length - 1) {
+                              setCurrentQuestionIndex(Math.max(0, quizData.questions.length - 2));
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <div className="space-y-3">
+                          <div>
+                            <Label>Question {currentQuestionIndex + 1}</Label>
+                            <div className="mt-1">
+                              <Textarea
+                                value={quizData.questions[currentQuestionIndex].questionText}
+                                onChange={(e) => handleUpdateDraftQuestion(currentQuestionIndex, 'questionText', e.target.value)}
+                                placeholder="Enter question text..."
+                                className="min-h-[80px]"
                               />
                             </div>
-                          ))}
-                        </div>
-                        <Label className="text-xs text-indigo-600 font-bold flex items-center gap-1 mb-1">
-                          <Save className="h-3 w-3" /> Correct Answer (AI Selected)
-                        </Label>
-                        <RadioGroup
-                          onValueChange={(value) => handleUpdateCorrectAnswerIndex(index, value)}
-                          value={q.correctAnswerIndex !== null ? q.options[q.correctAnswerIndex] : ''}
-                          className="flex flex-col space-y-2 mt-2"
-                          disabled={true} // AI questions have locked correct answers
-                        >
-                          {q.options.map((option, optIndex) => (
-                            option && (
-                              <div key={optIndex} className="flex items-center space-x-2 bg-indigo-50/30 p-2 rounded-md border border-transparent hover:border-indigo-100">
-                                <RadioGroupItem value={option} id={`q-correct-${index}-${optIndex}`} />
-                                <Label htmlFor={`q-correct-${index}-${optIndex}`} className="font-medium cursor-pointer text-gray-700">
-                                  {String.fromCharCode(65 + optIndex)}. {option}
-                                </Label>
-                              </div>
-                            )
-                          ))}
-                        </RadioGroup>
-                        <div>
-                          <Label htmlFor={`q-marks-${index}`}>Marks (1-10)</Label>
-                          <Input
-                            id={`q-marks-${index}`}
-                            type="number"
-                            min="0"
-                            max="10"
-                            value={q.marks}
-                            onChange={(e) => {
-                              const val = e.target.value === '' ? '' : parseInt(e.target.value);
-                              if (val === '' || (val >= 0 && val <= 10)) {
-                                handleUpdateDraftQuestion(index, 'marks', val === '' ? '' : val);
-                              }
-                            }}
-                            className="mt-1"
-                          />
-                        </div>
-                        {enableTimePerQuestion && (
-                          <div>
-                            <Label htmlFor={`q-time-${index}`}>Time for this Question (minutes)</Label>
-                            <Input
-                              id={`q-time-${index}`}
-                              type="number"
-                              min="1"
-                              value={q.timeLimitMinutes}
-                              onChange={(e) => handleUpdateDraftQuestion(index, 'timeLimitMinutes', e.target.value)}
-                              className="mt-1"
-                            />
                           </div>
-                        )}
-                        {/* Explanation/Rationale field removed as per user request */}
-                      </div>
-                    </Card>
-                  ))
+                          <div className="grid grid-cols-1 gap-2 mt-2">
+                            {quizData.questions[currentQuestionIndex].options.map((option, optIndex) => (
+                              <div key={optIndex} className="flex items-center gap-2 p-2 border rounded-md bg-white text-sm">
+                                <span className="font-semibold text-gray-500 w-6">{String.fromCharCode(65 + optIndex)}.</span>
+                                <Input
+                                  value={option}
+                                  onChange={(e) => handleUpdateOption(currentQuestionIndex, optIndex, e.target.value)}
+                                  placeholder={`Option ${optIndex + 1}`}
+                                  className="flex-1"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                          <Label className="text-xs text-indigo-600 font-bold flex items-center gap-1 mb-1">
+                            <Save className="h-3 w-3" /> Correct Answer
+                          </Label>
+                          <RadioGroup
+                            onValueChange={(value) => handleUpdateCorrectAnswerIndex(currentQuestionIndex, value)}
+                            value={quizData.questions[currentQuestionIndex].correctAnswerIndex !== null ?
+                              quizData.questions[currentQuestionIndex].options[quizData.questions[currentQuestionIndex].correctAnswerIndex!] : ''}
+                            className="flex flex-col space-y-2 mt-2"
+                          >
+                            {quizData.questions[currentQuestionIndex].options.map((option, optIndex) => (
+                              option && (
+                                <div key={optIndex} className="flex items-center space-x-2 bg-indigo-50/30 p-2 rounded-md border border-transparent hover:border-indigo-100">
+                                  <RadioGroupItem value={option} id={`q-correct-${currentQuestionIndex}-${optIndex}`} />
+                                  <Label htmlFor={`q-correct-${currentQuestionIndex}-${optIndex}`} className="font-medium cursor-pointer text-gray-700 w-full">
+                                    {String.fromCharCode(65 + optIndex)}. {option}
+                                  </Label>
+                                </div>
+                              )
+                            ))}
+                          </RadioGroup>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor={`q-marks-${currentQuestionIndex}`}>Marks (1-10)</Label>
+                              <Input
+                                id={`q-marks-${currentQuestionIndex}`}
+                                type="number"
+                                min="0"
+                                max="10"
+                                value={quizData.questions[currentQuestionIndex].marks}
+                                onChange={(e) => {
+                                  const val = e.target.value === '' ? '' : parseInt(e.target.value);
+                                  if (val === '' || (val >= 0 && val <= 10)) {
+                                    handleUpdateDraftQuestion(currentQuestionIndex, 'marks', val === '' ? '' : val);
+                                  }
+                                }}
+                                className="mt-1"
+                              />
+                            </div>
+                            {enableTimePerQuestion && (
+                              <div>
+                                <Label htmlFor={`q-time-${currentQuestionIndex}`}>Time (minutes)</Label>
+                                <Input
+                                  id={`q-time-${currentQuestionIndex}`}
+                                  type="number"
+                                  min="1"
+                                  value={quizData.questions[currentQuestionIndex].timeLimitMinutes}
+                                  onChange={(e) => handleUpdateDraftQuestion(currentQuestionIndex, 'timeLimitMinutes', e.target.value)}
+                                  className="mt-1"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    )}
+                  </>
                 )}
               </div>
             </>

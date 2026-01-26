@@ -9,8 +9,9 @@ import { useQuiz, Quiz, Question } from '@/context/QuizContext';
 import { useNavigate } from 'react-router-dom';
 import * as pdfjsLib from 'pdfjs-dist';
 
-// IMPORTANT: Set worker source
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// IMPORTANT: Set worker source using Vite's URL import for reliability
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 interface DraftQuestion {
     questionText: string;
@@ -27,7 +28,8 @@ const PdfQuizCreator = () => {
 
     // Config
     const [courseName, setCourseName] = useState<string>('');
-    const [numQuestions, setNumQuestions] = useState<number>(5);
+    const [numQuestions, setNumQuestions] = useState<number>(5); // Total to Generate (Pool)
+    const [numAttend, setNumAttend] = useState<number>(5); // To Attend
     const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
 
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -63,6 +65,10 @@ const PdfQuizCreator = () => {
         setExtractionProgress(0);
 
         try {
+            // Force worker source before any parsing activity
+            pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+            console.log("Using PDF Worker:", pdfjsWorker);
+
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
@@ -84,11 +90,30 @@ const PdfQuizCreator = () => {
             // Remove excessive whitespace/headers
             const cleaned = fullText.replace(/\s+/g, ' ').trim();
             setExtractedText(cleaned);
-            toast.success(`Extracted ${cleaned.length} characters from ${totalPages} pages.`);
+
+            // Check for common watermark-only extractions (scanned images)
+            const watermarkRegex = /scanned with camscanner/gi;
+            const watermarks = cleaned.match(watermarkRegex);
+            const textWithoutWatermarks = cleaned.replace(watermarkRegex, '').trim();
+
+            console.log("Extracted text length:", cleaned.length);
+            console.log("Text without watermarks length:", textWithoutWatermarks.length);
+
+            if (textWithoutWatermarks.length < 50 && watermarks) {
+                toast.warning("This PDF appears to be a scanned image. AI cannot read image text directly.", {
+                    duration: 6000,
+                    description: "Only 'CamScanner' watermarks were found. Please use a text-based PDF or OCR the document first."
+                });
+            } else if (cleaned.length === 0) {
+                toast.error("No text could be extracted. The PDF might be empty or purely image-based.");
+            } else {
+                toast.success(`Extracted ${cleaned.length} characters from ${totalPages} pages.`);
+            }
 
         } catch (error: any) {
             console.error("PDF Extraction Error:", error);
-            toast.error("Failed to parse PDF. Ensure it is text-based (not scanned images).");
+            const errorMsg = error.message || String(error);
+            toast.error(`Failed to parse PDF: ${errorMsg}. Ensure it is text-based (not scanned images).`);
         } finally {
             setIsExtracting(false);
         }
@@ -148,23 +173,24 @@ const PdfQuizCreator = () => {
         if (previewQuestions.length === 0) return;
 
         // Save to active session for QuestionCreator
-        // Note: Using 'activeCreationSession' key to pre-load data into QuestionCreator
         const sessionData = {
-            numQuestions: previewQuestions.length,
+            numQuestions: numAttend, // How many student attends
             numOptions: 4,
             draftQuestions: previewQuestions.map(q => ({
                 questionText: q.questionText,
                 options: q.options,
                 correctAnswer: q.correctAnswer,
                 marks: 1,
-                timeLimitMinutes: 1, // Defaulting to 1 min
+                timeLimitMinutes: 1,
             })),
-            questionSetName: selectedFile?.name?.replace('.pdf', '') + ' (AI)',
+            questionSetName: selectedFile?.name?.replace('.pdf', '') + ' (AI Pool)',
             courseName: courseName || 'General',
-            step: 2, // Jump to editor (Step 2 of QuestionCreator)
+            step: 2,
             currentSetId: null,
             passMarkPercentage: 50,
-            requiredCorrectAnswers: Math.ceil(previewQuestions.length * 0.5)
+            requiredCorrectAnswers: Math.ceil(previewQuestions.length * 0.5),
+            aiPoolSize: previewQuestions.length, // The full pool generated
+            totalQuestions: numAttend // Sync with attend count
         };
 
         localStorage.setItem('activeCreationSession', JSON.stringify(sessionData));
@@ -248,16 +274,31 @@ const PdfQuizCreator = () => {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label>Question Count</Label>
+                                        <Label>Total Questions to Generate</Label>
                                         <Input
                                             type="number"
-                                            min={1} max={20}
+                                            min={1} max={50}
                                             value={numQuestions}
-                                            onChange={e => setNumQuestions(Number(e.target.value))}
-                                            className="bg-white"
+                                            onChange={e => {
+                                                const val = Number(e.target.value);
+                                                setNumQuestions(val);
+                                                // Sync attend count if it was equal
+                                                if (numAttend === numQuestions) setNumAttend(val);
+                                            }}
+                                            className="bg-white font-bold"
                                         />
                                     </div>
                                     <div className="space-y-2">
+                                        <Label>Questions to Attend</Label>
+                                        <Input
+                                            type="number"
+                                            min={1} max={numQuestions}
+                                            value={numAttend}
+                                            onChange={e => setNumAttend(Number(e.target.value))}
+                                            className="bg-white font-bold text-blue-600"
+                                        />
+                                    </div>
+                                    <div className="space-y-2 col-span-2">
                                         <Label>Difficulty</Label>
                                         <select
                                             className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"

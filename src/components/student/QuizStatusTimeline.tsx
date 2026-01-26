@@ -27,7 +27,11 @@ interface QuizStatusTimelineProps {
 }
 
 const createDateTime = (dateStr: string, timeStr: string): Date => {
-  return new Date(dateStr + 'T' + timeStr + ':00');
+  if (!dateStr || !timeStr) return new Date();
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  // Note: month is 0-indexed in Date constructor
+  return new Date(year, month - 1, day, hours, minutes, 0);
 };
 
 const QuestionCountDisplay = ({ quizId }: { quizId: string }) => {
@@ -89,6 +93,8 @@ const QuizItem = ({ quiz, studentName, handleStartQuiz }: { quiz: QuizTimelineIt
       case 'Live':
         if (isMaxAttemptsReached) return <Button disabled variant="outline" className="w-full sm:w-auto text-warning border-warning/20 bg-warning/5">Max Attempts Reached</Button>;
         return <Button onClick={() => handleStartQuiz(quiz)} className="w-full sm:w-auto bg-info hover:bg-info/90 text-white animate-pulse"><ListChecks className="h-4 w-4 mr-2" /> Start Quiz</Button>;
+      case 'Upcoming':
+        return <Button disabled variant="outline" className="w-full sm:w-auto text-slate-400 border-slate-200"><Clock className="h-4 w-4 mr-2" /> Starts at {formattedStartTime}</Button>;
       case 'Expired':
         return <Button disabled variant="destructive" className="w-full sm:w-auto opacity-70"><XCircle className="h-4 w-4 mr-2" /> Missed</Button>;
       default: return null;
@@ -104,6 +110,9 @@ const QuizItem = ({ quiz, studentName, handleStartQuiz }: { quiz: QuizTimelineIt
     }
     if (status === 'Live') {
       return <Badge className="bg-info/10 text-info border-info/20">Live</Badge>;
+    }
+    if (status === 'Upcoming') {
+      return <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200">Scheduled</Badge>;
     }
     return <Badge className="bg-muted text-muted-foreground">{status}</Badge>;
   };
@@ -132,7 +141,7 @@ const QuizStatusTimeline = ({ studentName, quizzes: propQuizzes }: QuizStatusTim
   const quizzes = propQuizzes || contextQuizzes;
   const navigate = useNavigate();
   const [now, setNow] = useState(new Date());
-  const [activeTab, setActiveTab] = useState<'Live' | 'Completed' | 'Expired'>('Live');
+  const [activeTab, setActiveTab] = useState<'Live' | 'Scheduled' | 'Completed' | 'Expired'>('Live');
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 5000);
@@ -163,15 +172,18 @@ const QuizStatusTimeline = ({ studentName, quizzes: propQuizzes }: QuizStatusTim
           status = 'Live';
         } else if (now > end) {
           status = 'Expired';
+        } else {
+          status = 'Upcoming';
         }
 
         return { ...quiz, startTime: start, endTime: end, status, isCompleted: !!latestSubmittedAttempt?.passed };
-      })
-      .filter(q => q.status !== 'Upcoming');
+      });
+    // Removed filter that hid Upcoming quizzes
   }, [quizzes, quizAttempts, studentName, now]);
 
   const grouped = {
     Live: processedQuizzes.filter(q => q.status === 'Live'),
+    Scheduled: processedQuizzes.filter(q => q.status === 'Upcoming'),
     Completed: processedQuizzes.filter(q => q.status === 'Completed' || q.status === 'Not Completed'),
     Expired: processedQuizzes.filter(q => q.status === 'Expired')
   };
@@ -184,16 +196,16 @@ const QuizStatusTimeline = ({ studentName, quizzes: propQuizzes }: QuizStatusTim
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-2 bg-slate-100 p-1 rounded-xl w-fit">
-        {(['Live', 'Completed', 'Expired'] as const).map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)} className={cn("px-4 py-2 rounded-lg text-xs font-bold transition-all", activeTab === tab ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-800")}>
+      <div className="flex gap-2 bg-slate-100 p-1 rounded-xl w-fit overflow-x-auto max-w-full">
+        {(['Live', 'Scheduled', 'Completed', 'Expired'] as const).map(tab => (
+          <button key={tab} onClick={() => setActiveTab(tab as any)} className={cn("px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap", activeTab === tab ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-800")}>
             {tab} ({grouped[tab].length})
           </button>
         ))}
       </div>
       <div className="space-y-4">
-        {grouped[activeTab].length > 0 ? (
-          grouped[activeTab].map(quiz => <QuizItem key={quiz.id} quiz={quiz as any} studentName={studentName} handleStartQuiz={handleStartQuiz} />)
+        {grouped[activeTab as keyof typeof grouped] && grouped[activeTab as keyof typeof grouped].length > 0 ? (
+          grouped[activeTab as keyof typeof grouped].map(quiz => <QuizItem key={quiz.id} quiz={quiz as any} studentName={studentName} handleStartQuiz={handleStartQuiz} />)
         ) : (
           <Card className="p-12 text-center border-dashed"><p className="text-slate-400 font-medium italic">No quizzes found in this category.</p></Card>
         )}

@@ -30,12 +30,15 @@ export const useSubmitAttempt = () => {
             const { data: userData, error: userError } = await supabase.auth.getUser();
             if (userError || !userData.user) throw new Error("User not authenticated");
 
+            const payload = {
+                ...attempt,
+                student_id: userData.user.id
+            };
+            console.log("Submitting attempt payload to Supabase:", payload);
+
             const { data, error } = await supabase
                 .from('quiz_attempts')
-                .insert({
-                    ...attempt,
-                    student_id: userData.user.id
-                })
+                .insert(payload)
                 .select()
                 .single();
 
@@ -47,7 +50,10 @@ export const useSubmitAttempt = () => {
             toast.success("Result synced to cloud!");
         },
         onError: (error: any) => {
-            console.error("Failed to sync attempt:", error);
+            console.error("Failed to sync attempt to Supabase:", error);
+            if (error.details) console.error("Error details:", error.details);
+            if (error.hint) console.error("Error hint:", error.hint);
+            if (error.message) console.error("Error message:", error.message);
             // Don't show toast error here to avoid panicking student, local storage fallback will handle display
         }
     });

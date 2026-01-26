@@ -24,24 +24,24 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
   const handleEditAsNew = (quiz: Quiz) => {
     // 1. Map Quiz data back to the format expected by QuestionCreator's session storage (Poll structure)
     const draftQuestions = quiz.questions.map(q => ({
-        questionText: q.questionText,
-        options: q.options,
-        correctAnswer: q.correctAnswer,
-        marks: q.marks,
-        timeLimitMinutes: q.timeLimitMinutes,
+      questionText: q.questionText,
+      options: q.options,
+      correctAnswer: q.correctAnswer,
+      marks: q.marks,
+      timeLimitMinutes: q.timeLimitMinutes,
     }));
 
     const sessionData = {
-        numQuestions: quiz.totalQuestions,
-        numOptions: quiz.questions[0]?.options?.length || 4,
-        draftQuestions: draftQuestions,
-        questionSetName: quiz.title.replace(' (AI Generated)', '').replace(' (Copy)', ''),
-        courseName: quiz.courseName,
-        step: 2, // Resume directly to the editor
-        currentSetId: null, // Crucial: Treat as new draft
-        passMarkPercentage: quiz.passPercentage,
-        scheduledEndTime: quiz.endTime,
-        // Scheduling fields are usually set in step 2, but we can pre-fill them if needed
+      numQuestions: quiz.totalQuestions,
+      numOptions: quiz.questions[0]?.options?.length || 4,
+      draftQuestions: draftQuestions,
+      questionSetName: quiz.title.replace(' (AI Generated)', '').replace(' (Copy)', ''),
+      courseName: quiz.courseName,
+      step: 2, // Resume directly to the editor
+      currentSetId: null, // Crucial: Treat as new draft
+      passMarkPercentage: quiz.passPercentage,
+      scheduledEndTime: quiz.endTime,
+      // Scheduling fields are usually set in step 2, but we can pre-fill them if needed
     };
 
     localStorage.setItem('activeCreationSession', JSON.stringify(sessionData));
@@ -179,7 +179,7 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
                   variant="ghost"
                   size="sm"
                   onClick={() => handleDelete(quiz.id, quiz.title)}
-                  className="h-9 px-3 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-all font-bold text-[10px] uppercase tracking-widest"
+                  className="h-9 px-3 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 transition-all font-bold text-[10px] uppercase tracking-widest border border-rose-100"
                 >
                   <Trash className="h-4 w-4" />
                 </Button>

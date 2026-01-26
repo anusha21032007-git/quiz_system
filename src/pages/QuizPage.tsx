@@ -31,13 +31,19 @@ const QuizPage = () => {
   const [questions, setQuestions] = useState<LocalQuestionType[]>([]);
   const [isQuestionsLoading, setIsQuestionsLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [isAnswered, setIsAnswered] = useState(false);
-  const [answers, setAnswers] = useState<{ questionId: string; selectedAnswer: string; isCorrect: boolean; marksObtained: number }[]>([]);
+
+  // Removed separate selectedAnswer state, deriving it from answers array instead
+  const [answers, setAnswers] = useState<{ questionId: string; selectedAnswer: string; }[]>([]);
+
   const [showResults, setShowResults] = useState(false);
   const [quizStudentName, setQuizStudentName] = useState(initialStudentName);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Computed properties
+  const currentQuestion = questions[currentQuestionIndex];
+  const currentAnswerEntry = currentQuestion ? answers.find(a => a.questionId === currentQuestion.id) : null;
+  const currentSelectedOption = currentAnswerEntry?.selectedAnswer || null;
 
   useEffect(() => {
     if (studentData?.name && (!quizStudentName || quizStudentName === 'Guest' || quizStudentName === user?.email)) {
@@ -79,12 +85,18 @@ const QuizPage = () => {
       try {
         const allQuestions = await getQuestionsForQuiz(quizId);
         const targetCount = quiz?.totalQuestions || 5;
+        // Use a consistent seed or storage to prevent re-shuffling on reload if possible,
+        // but for now, we just load them. Ideally, we should check if there's an active incomplete attempt.
         const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
         const selectedQuestions = shuffled.slice(0, Math.min(targetCount, allQuestions.length));
 
         setQuestions(selectedQuestions);
         if (selectedQuestions.length > 0) {
-          setTimeLeft(Math.floor(selectedQuestions[0].timeLimitMinutes * 60));
+          // Calculate total efficiency? Or just sum of limits?
+          // Actually quiz object has timeLimitMinutes which is global for the quiz usually, but here we see per-question limits being summed or used.
+          // Let's use the quiz global limit if available, else sum of questions.
+          const totalTime = quiz?.timeLimitMinutes || selectedQuestions.reduce((acc, q) => acc + q.timeLimitMinutes, 0);
+          setTimeLeft(Math.floor(totalTime * 60));
         }
       } catch (error) {
         console.error("Failed to load questions:", error);
@@ -99,15 +111,13 @@ const QuizPage = () => {
 
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
-    if (showResults || questions.length === 0 || isMaxAttemptsReached || attemptToShow || isAnswered) return;
+    if (showResults || questions.length === 0 || isMaxAttemptsReached || attemptToShow) return;
 
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timerRef.current!);
-          if (!isAnswered) {
-            handleManualNext(true);
-          }
+          handleSubmitQuiz(true); // Auto submit on timeout
           return 0;
         }
         return prev - 1;
@@ -117,9 +127,10 @@ const QuizPage = () => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [currentQuestionIndex, questions.length, showResults, isMaxAttemptsReached, attemptToShow, isAnswered]);
+  }, [questions.length, showResults, isMaxAttemptsReached, attemptToShow]);
 
-  const calculateMarksForQuestion = (question: LocalQuestionType, isCorrect: boolean) => {
+  const calculateMarksForQuestion = (question: LocalQuestionType, selected: string) => {
+    const isCorrect = selected.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
     if (isCorrect) {
       return question.marks;
     } else if (quiz?.negativeMarking) {
@@ -132,46 +143,28 @@ const QuizPage = () => {
   };
 
   const handleSelectAnswer = (option: string) => {
-    if (isAnswered) return;
+    if (showResults) return;
 
-    setSelectedAnswer(option);
-    setIsAnswered(true);
-
-    const currentQuestion = questions[currentQuestionIndex];
-    if (currentQuestion) {
-      const isCorrect = option.trim().toLowerCase() === currentQuestion.correctAnswer.trim().toLowerCase();
-      const marksObtained = calculateMarksForQuestion(currentQuestion, isCorrect);
-
-      setAnswers((prev) => {
-        const newAns = { questionId: currentQuestion.id, selectedAnswer: option, isCorrect, marksObtained };
-        const idx = prev.findIndex(a => a.questionId === currentQuestion.id);
-        if (idx !== -1) {
-          const updated = [...prev];
-          updated[idx] = newAns;
-          return updated;
-        }
-        return [...prev, newAns];
-      });
-
-      if (isCorrect) {
-        toast.success("Correct!", { duration: 2000 });
-      } else {
-        toast.error("Incorrect.", { duration: 2000 });
+    setAnswers((prev) => {
+      const existingIdx = prev.findIndex(a => a.questionId === currentQuestion.id);
+      if (existingIdx !== -1) {
+        const updated = [...prev];
+        updated[existingIdx] = { ...updated[existingIdx], selectedAnswer: option };
+        return updated;
       }
+      return [...prev, { questionId: currentQuestion.id, selectedAnswer: option }];
+    });
+  };
+
+  const handleNext = () => {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
     }
   };
 
-  const handleManualNext = (isAutoSubmit: boolean = false) => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
-      setSelectedAnswer(null);
-      setIsAnswered(false);
-      const nextQ = questions[currentQuestionIndex + 1];
-      if (nextQ) {
-        setTimeLeft(Math.floor(nextQ.timeLimitMinutes * 60));
-      }
-    } else {
-      handleSubmitQuiz(isAutoSubmit);
+  const handlePrev = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(prev => prev - 1);
     }
   };
 
@@ -181,8 +174,23 @@ const QuizPage = () => {
       return;
     }
 
-    const totalScore = answers.reduce((sum, ans) => sum + ans.marksObtained, 0);
-    const correctAnswersCount = answers.filter(ans => ans.isCorrect).length;
+    // Process answers for scoring
+    const processedAnswers = questions.map(q => {
+      const answerEntry = answers.find(a => a.questionId === q.id);
+      const selected = answerEntry?.selectedAnswer || '';
+      const isCorrect = selected.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase();
+      const marksObtained = selected ? calculateMarksForQuestion(q, selected) : 0;
+
+      return {
+        questionId: q.id,
+        selectedAnswer: selected,
+        isCorrect: isCorrect,
+        marksObtained: marksObtained
+      };
+    });
+
+    const totalScore = processedAnswers.reduce((sum, ans) => sum + ans.marksObtained, 0);
+    const correctAnswersCount = processedAnswers.filter(ans => ans.isCorrect).length;
 
     submitQuizAttempt({
       quizId: quiz!.id,
@@ -190,8 +198,8 @@ const QuizPage = () => {
       score: totalScore,
       totalQuestions: questions.length,
       correctAnswersCount,
-      answers: answers,
-      timeTakenSeconds: 0,
+      answers: processedAnswers,
+      timeTakenSeconds: (quiz?.timeLimitMinutes || 0) * 60 - timeLeft, // Approx time taken
       status: 'SUBMITTED',
       violationCount: 0,
     });
@@ -208,7 +216,7 @@ const QuizPage = () => {
 
   const handleBack = () => {
     if (!showResults && !isMaxAttemptsReached) {
-      const confirmed = window.confirm("Are you sure you want to leave the quiz? Your progress will be lost.");
+      const confirmed = window.confirm("Are you sure you want to leave? Your progress will be lost.");
       if (confirmed) {
         navigate('/student');
       }
@@ -217,7 +225,12 @@ const QuizPage = () => {
     }
   };
 
+  // Reuse renderResults from original code or simplified version
   const renderResults = (attempt: any) => {
+    // ... same logic for results ...
+    // To save space in this replacement, I'll copy the minimal needed structure or re-use key parts.
+    // Since I'm replacing the whole file, I need to include the full renderResults logic again.
+
     const finalScore = attempt.score;
     const totalPossibleMarks = (questions.length > 0 ? questions : (attempt.answers || []))
       .reduce((sum: number, q: any) => sum + (q.marks || 0), 0) || attempt.totalMarksPossible || 0;
@@ -310,14 +323,12 @@ const QuizPage = () => {
   }
 
   if (showResults || isMaxAttemptsReached || attemptToShow) {
-    return renderResults(attemptToShow || { score: answers.reduce((s, a) => s + a.marksObtained, 0), answers, studentName: quizStudentName, status: 'SUBMITTED', id: 'current' });
+    return renderResults(attemptToShow || { score: 0, answers, studentName: quizStudentName, status: 'SUBMITTED', id: 'current' });
   }
 
   if (questions.length === 0) {
     return <div className="p-10 text-center">No questions found.</div>;
   }
-
-  const currentQuestion = questions[currentQuestionIndex];
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -331,41 +342,69 @@ const QuizPage = () => {
             {!initialStudentName && (
               <Input placeholder="Your Name" value={quizStudentName} onChange={e => setQuizStudentName(e.target.value)} className="mb-4" />
             )}
-            <h2 className="text-xl font-semibold">{currentQuestionIndex + 1}. {currentQuestion.questionText}</h2>
-            <div className="space-y-2">
+
+            <div className="flex justify-between items-center bg-blue-50 p-3 rounded-lg border border-blue-100 mb-2">
+              <span className="text-sm font-bold text-blue-800">Question {currentQuestionIndex + 1} of {questions.length}</span>
+              <span className="text-xs text-blue-600 font-medium bg-white px-2 py-1 rounded border border-blue-200">
+                Marks: {currentQuestion.marks}
+              </span>
+            </div>
+
+            <h2 className="text-xl font-semibold leading-relaxed">{currentQuestion.questionText}</h2>
+
+            <div className="space-y-3">
               {currentQuestion.options.map((option, index) => {
-                const isSelected = selectedAnswer === option;
-                const isCorrect = option.trim().toLowerCase() === currentQuestion.correctAnswer.trim().toLowerCase();
+                const isSelected = currentSelectedOption === option;
                 return (
                   <button
                     key={index}
                     onClick={() => handleSelectAnswer(option)}
-                    disabled={isAnswered}
                     className={cn(
-                      "w-full p-4 border rounded-xl text-left transition-all",
-                      isSelected && !isAnswered && "border-blue-600 bg-blue-50",
-                      isAnswered && isCorrect && "border-green-600 bg-green-50 text-green-700 font-bold",
-                      isAnswered && isSelected && !isCorrect && "border-red-600 bg-red-50 text-red-700",
-                      !isSelected && !isAnswered && "border-gray-200 hover:bg-gray-100",
-                      isAnswered && !isSelected && !isCorrect && "opacity-50"
+                      "w-full p-4 border-2 rounded-xl text-left transition-all duration-200 relative group",
+                      isSelected
+                        ? "border-blue-600 bg-blue-50 shadow-md transform scale-[1.01]"
+                        : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
                     )}
                   >
-                    {option}
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-colors",
+                        isSelected ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300 text-gray-400 group-hover:border-blue-400"
+                      )}>
+                        {String.fromCharCode(65 + index)}
+                      </div>
+                      <span className={cn("font-medium", isSelected ? "text-blue-900" : "text-gray-700")}>{option}</span>
+                    </div>
                   </button>
                 );
               })}
             </div>
-            {isAnswered && currentQuestion.explanation && (
-              <Alert className="bg-blue-50 border-blue-100">
-                <Info className="h-4 w-4" />
-                <AlertDescription className="text-blue-800 italic">{currentQuestion.explanation}</AlertDescription>
-              </Alert>
-            )}
+
+            {/* Warning if skipping without answer? optional. */}
           </CardContent>
-          <CardFooter className="flex justify-end">
-            {isAnswered && (
-              <Button onClick={() => handleManualNext()} className="bg-blue-600 hover:bg-blue-700 px-8 py-4">
-                {currentQuestionIndex < questions.length - 1 ? 'Next' : 'Finish'}
+          <CardFooter className="flex justify-between pt-6 border-t bg-gray-50/50 rounded-b-xl px-6 py-4">
+            <Button
+              variant="outline"
+              onClick={handlePrev}
+              disabled={currentQuestionIndex === 0}
+              className="w-32 font-bold border-gray-300 hover:bg-white hover:text-gray-900"
+            >
+              Previous
+            </Button>
+
+            {currentQuestionIndex === questions.length - 1 ? (
+              <Button
+                onClick={() => handleSubmitQuiz(false)}
+                className="w-40 font-black bg-green-600 hover:bg-green-700 shadow-lg shadow-green-200 text-white"
+              >
+                Submit Quiz
+              </Button>
+            ) : (
+              <Button
+                onClick={handleNext}
+                className="w-32 font-bold bg-gray-900 text-white hover:bg-black"
+              >
+                Next
               </Button>
             )}
           </CardFooter>
@@ -374,5 +413,4 @@ const QuizPage = () => {
     </div>
   );
 };
-
 export default QuizPage;

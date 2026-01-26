@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { useQuiz, QuizAttempt } from '@/context/QuizContext';
 import GenerateQuizLanding from '@/components/teacher/GenerateQuizLanding';
 import UsersList from '@/components/teacher/UsersList';
+import AvailableQuizzesList from '@/components/teacher/AvailableQuizzesList';
 import HistoryList from '@/components/teacher/HistoryList';
 import CoursesList from '@/components/teacher/CoursesList';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -341,6 +342,7 @@ const TeacherDashboard = () => {
     switch (activeView) {
       case 'overview': return overviewContent;
       case 'create-quiz': return <GenerateQuizLanding />;
+      case 'quizzes': return <AvailableQuizzesList quizzes={quizzes} />;
       case 'courses': return <CoursesList />;
       case 'users': return <UsersList />;
       case 'history': return <HistoryList />;

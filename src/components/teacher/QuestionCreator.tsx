@@ -82,6 +82,8 @@ const QuestionCreator = () => {
   const [showErrors, setShowErrors] = useState(false);
   const [creationStatus, setCreationStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
   // History State
   const [polls, setPolls] = useState<Poll[]>([]);
   const [currentSetId, setCurrentSetId] = useState<string | null>(null);
@@ -145,6 +147,7 @@ const QuestionCreator = () => {
     setNumQuestions(0);
     setNumOptions(0);
     setDraftQuestions([]);
+    setCurrentQuestionIndex(0); // Reset index
     setQuestionSetName('');
     setCourseName('');
     setCurrentSetId(null);
@@ -426,52 +429,79 @@ const QuestionCreator = () => {
 
     if (invalid) {
       setCreationStatus({ type: 'error', message: "Please fill all fields for all questions." });
+      toast.error("Please fill all fields for all questions.");
       return;
     }
 
     if (!scheduledDate || !scheduledTime || !scheduledEndTime) {
       setCreationStatus({ type: 'error', message: "Please select date, start time, and end time." });
+      toast.error("Please select date, start time, and end time to schedule.");
       return;
     }
 
-    const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`).getTime();
-    if (scheduledDateTime <= Date.now()) {
-      setCreationStatus({ type: 'error', message: "Scheduled time must be in the future." });
+    /* 
+       Note about validation: We allow scheduling for "now" or "future". 
+       Strict future check might block users trying to schedule for a minute ago to test "Live" status.
+       So we'll be lenient with "Date.now()" check or remove it. 
+    */
+    // const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`).getTime();
+    // if (scheduledDateTime <= Date.now()) { ... } 
+
+    const finalTitle = questionSetName.trim() || courseName.trim();
+    const finalCourse = courseName.trim();
+
+    if (!finalTitle || !finalCourse || passMarkPercentage === '') {
+      setCreationStatus({ type: 'error', message: "Exam Paper / Course Name is mandatory." });
+      toast.error("Exam Paper / Course Name is mandatory.");
       return;
     }
 
+    const quizId = `qz-sched-${Date.now()}`;
+
+    const quizToAdd: Omit<Quiz, 'id' | 'status'> = {
+      quizId: quizId,
+      title: finalTitle,
+      courseName: finalCourse,
+      questions: [],
+      timeLimitMinutes: draftQuestions.reduce((acc, q) => acc + (Number(q.timeLimitMinutes) || 0), 0),
+      negativeMarking: false,
+      competitionMode: false,
+      scheduledDate: scheduledDate,
+      startTime: scheduledTime,
+      endTime: scheduledEndTime,
+      negativeMarksValue: 0,
+      difficulty: 'Medium',
+      passPercentage: Number(passMarkPercentage),
+      totalQuestions: draftQuestions.length,
+      requiredCorrectAnswers: Math.ceil((draftQuestions.length * Number(passMarkPercentage)) / 100),
+      createdAt: '',
+      maxAttempts: maxAttempts === '' ? 1 : maxAttempts,
+    };
+
+    const questionsToAdd: Omit<Question, 'id'>[] = draftQuestions.map((q) => ({
+      quizId: quizId,
+      questionText: q.questionText,
+      options: q.options,
+      correctAnswer: q.correctAnswer,
+      marks: Number(q.marks) || 1,
+      timeLimitMinutes: parseFloat(String(q.timeLimitMinutes)) || 1,
+      explanation: ''
+    }));
+
+    addQuiz(quizToAdd, questionsToAdd);
+    toast.success(`Quiz scheduled successfully for ${scheduledDate} at ${scheduledTime}!`);
+
+    // Clean up if we were editing a draft
     if (currentSetId) {
-      setPolls(prev => {
-        const updated = prev.map(p => p.pollId === currentSetId ? {
-          ...p,
-          passMarkPercentage: passMarkPercentage as number,
-          status: 'scheduled',
-          scheduledAt: scheduledDateTime,
-          scheduledEndTime: scheduledEndTime
-        } as Poll : p);
-        return updated;
-      });
-    } else {
-      const pollId = `poll_${Date.now()}`;
-      const newPoll: Poll = {
-        pollId,
-        numberOfQuestions: numQuestions as number,
-        mcqCount: numOptions as number,
-        createdAt: Date.now(),
-        status: 'scheduled',
-        draftQuestions,
-        questionSetName,
-        scheduledAt: scheduledDateTime,
-        scheduledEndTime: scheduledEndTime,
-        passMarkPercentage: passMarkPercentage as number,
-        requiredCorrectAnswers: Math.ceil((Number(numQuestions) * (Number(passMarkPercentage) || 0)) / 100)
-      };
-      setPolls(prev => [newPoll, ...prev]);
+      setPolls(prev => prev.filter(p => p.pollId !== currentSetId));
     }
 
     clearActiveSession();
-    setCreationStatus({ type: 'success', message: `Question set scheduled for ${scheduledDate}` });
-    setTimeout(() => setCreationStatus(null), 3000);
+
+    // Redirect after short delay
+    setTimeout(() => {
+      navigate('/teacher?view=quizzes');
+    }, 1500);
   };
 
   const handleDirectCreateQuiz = () => {
@@ -690,44 +720,109 @@ const QuestionCreator = () => {
             </div>
           </CardHeader>
           <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-md">
+                  {currentQuestionIndex + 1}
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-700">Question {currentQuestionIndex + 1} of {draftQuestions.length}</h4>
+                  <p className="text-xs text-gray-500 font-medium">Fill in the details for this question.</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                  disabled={currentQuestionIndex === 0}
+                  className="h-9 px-4 font-bold border-gray-200"
+                >
+                  Previous
+                </Button>
+                <Button
+                  onClick={() => setCurrentQuestionIndex(prev => Math.min(draftQuestions.length - 1, prev + 1))}
+                  disabled={currentQuestionIndex === draftQuestions.length - 1}
+                  className="h-9 px-6 bg-slate-900 text-white hover:bg-black font-bold"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+
             <div className="space-y-12 max-h-[60vh] overflow-y-auto pr-4 p-1">
-              {draftQuestions.map((q, qIndex) => (
-                <Card key={qIndex} className="relative overflow-hidden border-2 border-gray-100 hover:border-blue-100 transition-colors shadow-sm">
-                  <div className="bg-gray-50/50 p-4 border-b flex items-center justify-between">
-                    <h4 className="font-black text-gray-700 uppercase tracking-tighter">Question {qIndex + 1}</h4>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-red-500" onClick={() => handleDeleteQuestionFromDraft(qIndex)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+              {draftQuestions[currentQuestionIndex] && (
+                <Card className="relative overflow-hidden border-2 border-gray-100 hover:border-blue-100 transition-colors shadow-sm animate-in fade-in slide-in-from-right-4 duration-300" key={currentQuestionIndex}>
                   <CardContent className="p-6 space-y-6">
                     <div className="space-y-2">
                       <Label className="text-sm font-bold text-gray-600">Question Text</Label>
-                      <Textarea value={q.questionText} onChange={(e) => handleUpdateQuestion(qIndex, 'questionText', e.target.value)} className="min-h-[100px] border-gray-200" />
+                      <Textarea
+                        value={draftQuestions[currentQuestionIndex].questionText}
+                        onChange={(e) => handleUpdateQuestion(currentQuestionIndex, 'questionText', e.target.value)}
+                        className="min-h-[100px] border-gray-200 text-lg focus:ring-blue-500/20"
+                        placeholder="Type your question here..."
+                      />
                     </div>
                     <div className="grid grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <Label className="text-sm font-bold text-gray-600">Marks</Label>
-                        <Input type="number" value={q.marks} onChange={(e) => handleUpdateQuestion(qIndex, 'marks', e.target.value)} className="font-bold text-blue-600" />
+                        <Input
+                          type="number"
+                          value={draftQuestions[currentQuestionIndex].marks}
+                          onChange={(e) => handleUpdateQuestion(currentQuestionIndex, 'marks', e.target.value)}
+                          className="font-bold text-blue-600 h-11"
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-bold text-gray-600">Time (mins)</Label>
-                        <Input type="number" step="any" value={q.timeLimitMinutes} onChange={(e) => handleUpdateQuestion(qIndex, 'timeLimitMinutes', e.target.value)} className="font-bold text-blue-600" />
+                        <Input
+                          type="number"
+                          step="any"
+                          value={draftQuestions[currentQuestionIndex].timeLimitMinutes}
+                          onChange={(e) => handleUpdateQuestion(currentQuestionIndex, 'timeLimitMinutes', e.target.value)}
+                          className="font-bold text-blue-600 h-11"
+                        />
                       </div>
                     </div>
                     <div className="space-y-4">
                       <Label className="text-sm font-bold text-gray-600">Options & Correct Answer</Label>
-                      <RadioGroup value={q.correctAnswer} onValueChange={(val) => handleUpdateQuestion(qIndex, 'correctAnswer', val)} className="grid gap-3">
-                        {q.options.map((opt, oIndex) => (
-                          <div key={oIndex} className="flex gap-3 items-center">
-                            <RadioGroupItem value={opt} id={`q-${qIndex}-opt-${oIndex}`} disabled={!opt.trim()} />
-                            <Input placeholder={`Option ${oIndex + 1}`} value={opt} onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)} className="flex-1" />
-                          </div>
-                        ))}
-                      </RadioGroup>
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <RadioGroup
+                          value={draftQuestions[currentQuestionIndex].correctAnswer}
+                          onValueChange={(val) => handleUpdateQuestion(currentQuestionIndex, 'correctAnswer', val)}
+                          className="grid gap-3"
+                        >
+                          {draftQuestions[currentQuestionIndex].options.map((opt, oIndex) => (
+                            <div key={oIndex} className="flex gap-3 items-center group">
+                              <RadioGroupItem
+                                value={opt}
+                                id={`q-${currentQuestionIndex}-opt-${oIndex}`}
+                                className="border-2 border-slate-300 text-blue-600"
+                                disabled={!opt.trim()}
+                              />
+                              <div className="flex-1 relative">
+                                <Input
+                                  placeholder={`Option ${oIndex + 1}`}
+                                  value={opt}
+                                  onChange={(e) => handleOptionChange(currentQuestionIndex, oIndex, e.target.value)}
+                                  className="flex-1 bg-white border-slate-200 focus:border-blue-500 h-11"
+                                />
+                                {opt.trim() === draftQuestions[currentQuestionIndex].correctAnswer && opt.trim() !== '' && (
+                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full tracking-wider">
+                                    Correct Answer
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                      </div>
+                      <p className="text-xs text-slate-400 italic">
+                        * Select the radio button next to an option to mark it as the correct answer.
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              )}
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-6 p-6 bg-gray-50/80 border-t rounded-b-lg">
@@ -757,8 +852,8 @@ const QuestionCreator = () => {
                     <Input type="time" value={scheduledEndTime} onChange={(e) => setScheduledEndTime(e.target.value)} className="h-10 border-blue-100 bg-white" />
                   </div>
                 </div>
-                <Button onClick={handleAddToPool} variant="outline" className="w-full border-blue-200 text-blue-700 font-bold h-10 flex items-center justify-center gap-2">
-                  <History className="h-4 w-4" /> Save as Draft / Add to Pool
+                <Button onClick={handleAddToPool} variant="outline" className="w-full border-blue-200 text-blue-700 font-bold h-10 flex items-center justify-center gap-2 hover:bg-blue-50">
+                  <Calendar className="h-4 w-4" /> Schedule Quiz
                 </Button>
               </div>
             )}
