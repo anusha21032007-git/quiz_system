@@ -730,23 +730,7 @@ const QuestionCreator = () => {
                   <p className="text-xs text-gray-500 font-medium">Fill in the details for this question.</p>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
-                  disabled={currentQuestionIndex === 0}
-                  className="h-9 px-4 font-bold border-gray-200"
-                >
-                  Previous
-                </Button>
-                <Button
-                  onClick={() => setCurrentQuestionIndex(prev => Math.min(draftQuestions.length - 1, prev + 1))}
-                  disabled={currentQuestionIndex === draftQuestions.length - 1}
-                  className="h-9 px-6 bg-slate-900 text-white hover:bg-black font-bold"
-                >
-                  Next
-                </Button>
-              </div>
+
             </div>
 
             <div className="space-y-12 max-h-[60vh] overflow-y-auto pr-4 p-1">
@@ -823,6 +807,26 @@ const QuestionCreator = () => {
                   </CardContent>
                 </Card>
               )}
+
+              <div className="flex justify-between items-center pt-4 pb-2 px-1">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                  disabled={currentQuestionIndex === 0}
+                  className="h-10 px-6 font-bold border-gray-300 hover:bg-gray-50"
+                  type="button"
+                >
+                  Previous Question
+                </Button>
+                <Button
+                  onClick={() => setCurrentQuestionIndex(prev => Math.min(draftQuestions.length - 1, prev + 1))}
+                  disabled={currentQuestionIndex === draftQuestions.length - 1}
+                  className="h-10 px-8 bg-blue-600 text-white hover:bg-blue-700 font-bold shadow-md rounded-lg"
+                  type="button"
+                >
+                  Next Question
+                </Button>
+              </div>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-6 p-6 bg-gray-50/80 border-t rounded-b-lg">

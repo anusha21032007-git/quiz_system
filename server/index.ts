@@ -42,7 +42,17 @@ const GenerateRequestSchema = z.object({
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', model: OLLAMA_MODEL });
+    res.json({
+        status: 'ok',
+        ollama: {
+            url: OLLAMA_BASE_URL,
+            model: OLLAMA_MODEL
+        },
+        gemini: {
+            initialized: !!genAI,
+            model: "gemini-1.5-flash"
+        }
+    });
 });
 
 function cleanAIJson(text: string): string {
@@ -191,13 +201,86 @@ Generate now:`;
     return mappedQuestions;
 }
 
+async function generateWithGemini(params: any): Promise<any> {
+    const { topic, difficulty, marks, timeLimitSeconds, optionsCount, count } = params;
+
+    if (!genAI) {
+        throw new Error("Gemini AI not initialized (API Key missing)");
+    }
+
+    console.log(`[Gemini] Generating ${count || 1} questions for "${topic}"...`);
+
+    const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash",
+        generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.7
+        }
+    });
+
+    const prompt = `You are an expert exam question setter.
+Generate ${count || 1} high-quality MCQs for the topic: "${topic}"
+Difficulty: ${difficulty}
+Options per question: ${optionsCount || 4}
+Marks per question: ${marks}
+Time limit per question: ${timeLimitSeconds} seconds
+
+STRICT RULES:
+1. Questions must be 100% about "${topic}"
+2. EXACTLY ONE option must be correct
+3. Other options must be wrong but realistic
+4. Provide a clear explanation for the correct answer
+
+OUTPUT FORMAT (JSON ARRAY):
+[
+  {
+    "question": "Text of the question",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctIndex": 1,
+    "explanation": "Why Option B is correct"
+  }
+]
+
+IMPORTANT: Return ONLY the JSON array.`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    const cleanedText = cleanAIJson(text);
+    const parsed = JSON.parse(cleanedText);
+    const questionsArray = Array.isArray(parsed) ? parsed : (parsed.questions || [parsed]);
+
+    return questionsArray.map((q: any, idx: number) => ({
+        id: idx + 1,
+        question: q.question,
+        options: q.options,
+        correctIndex: q.correctIndex,
+        difficulty: difficulty,
+        marks: marks,
+        timeLimitSeconds: timeLimitSeconds,
+        explanation: q.explanation || ''
+    }));
+}
+
 async function generateBatch(params: any, retryAttempt = 0): Promise<any> {
     console.log(`\n--- [Batch] Attempt ${retryAttempt + 1} | Topic: ${params.topic} | Count: ${params.count} ---`);
 
     try {
+        console.log("[Batch] Attempting with Ollama...");
         return await generateWithOllama(params);
     } catch (err: any) {
         console.error(`[Batch] Ollama failed: ${err.message}`);
+
+        // If it's a connection error or explicit failure, try Gemini if available
+        if (genAI) {
+            console.log("[Batch] Falling back to Gemini AI...");
+            try {
+                return await generateWithGemini(params);
+            } catch (geminiErr: any) {
+                console.error(`[Batch] Gemini fallback also failed: ${geminiErr.message}`);
+            }
+        }
 
         if (retryAttempt < 1) {
             console.log("[Batch] Retrying in 2 seconds...");

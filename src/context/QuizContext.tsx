@@ -381,7 +381,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
         options: q.options,
         correct_answer: q.correctAnswer,
         marks: q.marks,
-        time_limit_minutes: q.time_limit_minutes,
+        time_limit_minutes: q.timeLimitMinutes,
         explanation: q.explanation || '',
       }))
     });
@@ -514,7 +514,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
   }): Promise<Question[]> => {
     try {
       const allGeneratedQuestions: Question[] = [];
-      const BATCH_SIZE = 1; // Faster feedback
+      const BATCH_SIZE = 5; // Faster generation, fewer requests
       const totalBatches = Math.ceil(numQuestions / BATCH_SIZE);
 
       if (numQuestions > 5) {

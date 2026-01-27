@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, Eye, Save, Brain, ListChecks, Info, Wand2 } from 'lucide-react';
+import { PlusCircle, Trash2, Eye, Save, Brain, ListChecks, Info, Wand2, Calendar, Clock } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
@@ -114,6 +114,9 @@ const QuizCreator = () => {
   // New: Explicit Pool Size for AI
   const [aiPoolSize, setAiPoolSize] = useState<number | ''>('');
 
+  // Scheduling Toggle
+  const [showSchedule, setShowSchedule] = useState(false);
+
   // Persistence logic for QuizCreator
   useEffect(() => {
     const saved = localStorage.getItem('quizCreatorState');
@@ -129,6 +132,7 @@ const QuizCreator = () => {
         if (parsed.aiTimePerQuestionSeconds) setAiTimePerQuestionSeconds(parsed.aiTimePerQuestionSeconds);
         if (parsed.aiPoolSize) setAiPoolSize(parsed.aiPoolSize);
         if (parsed.step) setStep(parsed.step);
+        if (parsed.showSchedule !== undefined) setShowSchedule(parsed.showSchedule);
       } catch (e) {
         console.error("Failed to restore QuizCreator session", e);
       }
@@ -145,10 +149,11 @@ const QuizCreator = () => {
       aiMarksPerQuestion,
       aiTimePerQuestionSeconds,
       aiPoolSize,
-      step
+      step,
+      showSchedule
     };
     localStorage.setItem('quizCreatorState', JSON.stringify(stateToSave));
-  }, [quizData, negativeMarking, negativeMarksValue, competitionMode, quizDifficulty, aiPoolSize, step]);
+  }, [quizData, negativeMarking, negativeMarksValue, competitionMode, quizDifficulty, aiPoolSize, step, showSchedule]);
 
   useEffect(() => {
     const draftData = sessionStorage.getItem('draft_quiz_params');
@@ -274,15 +279,21 @@ const QuizCreator = () => {
     if (!quizData.quizTitle.trim()) { toast.error("Please provide a quiz title."); return false; }
     if (!quizData.courseName.trim()) { toast.error("Please provide a course name."); return false; }
     if (quizData.passMarkPercentage === '') { toast.error("Please provide a pass mark percentage."); return false; }
-    if (!quizData.scheduledDate || !quizData.startTime || !quizData.endTime) { toast.error("Please set the full schedule."); return false; }
+    if (quizData.passMarkPercentage === '') { toast.error("Please provide a pass mark percentage."); return false; }
+    if (showSchedule && (!quizData.scheduledDate || !quizData.startTime || !quizData.endTime)) { toast.error("Please set the full schedule."); return false; }
 
-    // Past Date Validation
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const selectedDate = new Date(quizData.scheduledDate);
-    if (selectedDate < today) {
-      toast.error("You can only schedule quizzes for upcoming days, not in the past.");
-      return false;
+    // Past Date Validation - Only if scheduled
+    if (showSchedule) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayTime = today.getTime();
+      const selectedDate = new Date(quizData.scheduledDate);
+      const selectedDateTime = selectedDate.getTime();
+
+      if (selectedDateTime < todayTime) {
+        toast.error("You can only schedule quizzes for upcoming days, not in the past.");
+        return false;
+      }
     }
 
     return true;
@@ -464,9 +475,9 @@ const QuizCreator = () => {
       negativeMarking: negativeMarking,
       negativeMarksValue: negativeMarking ? Number(negativeMarksValue) : 0, // Use negativeMarksValue
       competitionMode: competitionMode,
-      scheduledDate: quizData.scheduledDate,
-      startTime: quizData.startTime,
-      endTime: quizData.endTime,
+      scheduledDate: showSchedule ? quizData.scheduledDate : new Date().toLocaleDateString('en-CA'),
+      startTime: showSchedule ? quizData.startTime : "00:00",
+      endTime: showSchedule ? quizData.endTime : "23:59",
       difficulty: quizDifficulty, // Include difficulty
       passPercentage: Number(quizData.passMarkPercentage) || 0,
       passMarkPercentage: Number(quizData.passMarkPercentage) || 0,
@@ -558,7 +569,10 @@ const QuizCreator = () => {
     setQuizDifficulty('Medium'); // Reset difficulty
     setQuizDifficulty('Medium'); // Reset difficulty
     setAiPoolSize(''); // Reset pool size
+    setQuizDifficulty('Medium'); // Reset difficulty
+    setAiPoolSize(''); // Reset pool size
     setStep(1); // Reset step to 1
+    setShowSchedule(false);
     setCurrentQuestionIndex(0);
 
     // Clear quizStep from URL
@@ -582,7 +596,7 @@ const QuizCreator = () => {
       toast.error("Please select MCQ options (1 to 6)");
       return;
     }
-    if (!quizData.scheduledDate || !quizData.startTime || !quizData.endTime) {
+    if (showSchedule && (!quizData.scheduledDate || !quizData.startTime || !quizData.endTime)) {
       toast.error("Please set the scheduled date, start time, and end time.");
       return;
     }
@@ -650,43 +664,59 @@ const QuizCreator = () => {
 
         {/* Scheduling Inputs */}
         <div className="border-t pt-4 mt-4">
-          <h3 className="text-lg font-semibold mb-2">Quiz Scheduling</h3>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div>
-              <Label htmlFor="scheduledDate">Date</Label>
-              <Input
-                id="scheduledDate"
-                type="date"
-                min={new Date().toISOString().split('T')[0]}
-                value={quizData.scheduledDate}
-                disabled={step === 2}
-                onChange={(e) => handleUpdateQuizDetails('scheduledDate', e.target.value)}
-                className="mt-1"
-              />
+          <div className="w-full flex items-center justify-between p-4 bg-white rounded-xl border border-blue-100 shadow-sm mb-4">
+            <div className="flex items-center gap-3">
+              <Calendar className="h-5 w-5 text-blue-600" />
+              <span className="font-bold text-gray-700">Scheduling Options (Optional)</span>
             </div>
-            <div>
-              <Label htmlFor="startTime">Start Time</Label>
-              <Input
-                id="startTime"
-                type="time"
-                value={quizData.startTime}
-                disabled={step === 2}
-                onChange={(e) => handleUpdateQuizDetails('startTime', e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="endTime">End Time</Label>
-              <Input
-                id="endTime"
-                type="time"
-                value={quizData.endTime}
-                disabled={step === 2}
-                onChange={(e) => handleUpdateQuizDetails('endTime', e.target.value)}
-                className="mt-1"
-              />
-            </div>
+            <Button
+              variant={showSchedule ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowSchedule(!showSchedule)}
+              className={showSchedule ? "bg-blue-600 text-white" : "text-blue-600 border-blue-200"}
+            >
+              {showSchedule ? "Hide Schedule" : "Set Schedule"}
+            </Button>
           </div>
+
+          {showSchedule && (
+            <div className="grid gap-4 md:grid-cols-3 animate-in slide-in-from-top-2 duration-200 bg-blue-50/30 p-4 rounded-xl border border-blue-100/50">
+              <div>
+                <Label htmlFor="scheduledDate" className="flex items-center gap-2 mb-1"><Calendar className="h-4 w-4 text-gray-500" /> Date</Label>
+                <Input
+                  id="scheduledDate"
+                  type="date"
+                  min={new Date().toISOString().split('T')[0]}
+                  value={quizData.scheduledDate}
+                  disabled={step === 2}
+                  onChange={(e) => handleUpdateQuizDetails('scheduledDate', e.target.value)}
+                  className="mt-1 bg-white"
+                />
+              </div>
+              <div>
+                <Label htmlFor="startTime" className="flex items-center gap-2 mb-1"><Clock className="h-4 w-4 text-gray-500" /> Start Time</Label>
+                <Input
+                  id="startTime"
+                  type="time"
+                  value={quizData.startTime}
+                  disabled={step === 2}
+                  onChange={(e) => handleUpdateQuizDetails('startTime', e.target.value)}
+                  className="mt-1 bg-white"
+                />
+              </div>
+              <div>
+                <Label htmlFor="endTime" className="flex items-center gap-2 mb-1"><Clock className="h-4 w-4 text-gray-500" /> End Time</Label>
+                <Input
+                  id="endTime"
+                  type="time"
+                  value={quizData.endTime}
+                  disabled={step === 2}
+                  onChange={(e) => handleUpdateQuizDetails('endTime', e.target.value)}
+                  className="mt-1 bg-white"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Pass Mark Configuration */}
@@ -1093,7 +1123,7 @@ const QuizCreator = () => {
               <Eye className="h-4 w-4 mr-2" /> Preview Quiz
             </Button>
             <Button onClick={handleCreateQuiz} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
-              <Save className="h-4 w-4 mr-2" /> Create & Schedule Quiz
+              <Save className="h-4 w-4 mr-2" /> {showSchedule ? "Schedule Quiz" : "Post Quiz Now"}
             </Button>
           </>
         )}
