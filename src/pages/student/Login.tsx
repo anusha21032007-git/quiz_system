@@ -57,33 +57,33 @@ const StudentLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+    <div className="min-h-screen flex items-center justify-center bg-background p-6">
       <div className="absolute top-8 left-8">
         <Link to="/">
-          <Button variant="ghost" className="gap-2 text-slate-500 hover:text-indigo-600 font-bold">
+          <Button variant="ghost" className="gap-2 text-slate-400 hover:text-primary font-bold">
             <ArrowLeft className="h-4 w-4" /> Back to Home
           </Button>
         </Link>
       </div>
 
-      <Card className="w-full max-w-md border-0 shadow-2xl shadow-indigo-100/50 rounded-[32px] overflow-hidden">
+      <Card className="w-full max-w-md border border-slate-800 shadow-2xl shadow-primary/5 bg-card rounded-[32px] overflow-hidden">
         <CardHeader className="pt-10 pb-6 text-center space-y-2">
-          <div className="mx-auto w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-indigo-100">
-            <UserCircle className="h-8 w-8 text-white" />
+          <div className="mx-auto w-16 h-16 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
+            <UserCircle className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="text-3xl font-black text-slate-900 tracking-tight">Student Login</CardTitle>
-          <CardDescription className="text-slate-500 font-medium tracking-tight">Login with your academic credentials</CardDescription>
+          <CardTitle className="text-3xl font-black text-slate-50 tracking-tight uppercase leading-none">Student Login</CardTitle>
+          <CardDescription className="text-slate-500 font-bold tracking-tight italic">Login with your academic credentials</CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4 px-8 pb-8">
             <div className="space-y-2">
-              <Label htmlFor="registerNumber" className="text-slate-700 font-bold">Register Number / Email</Label>
+              <Label htmlFor="registerNumber" className="text-slate-300 font-bold text-xs uppercase tracking-widest pl-1">Register Number / Email</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                <Mail className="absolute left-3 top-3.5 h-4 w-4 text-slate-500" />
                 <Input
                   id="registerNumber"
                   placeholder="e.g. 2024-001"
-                  className="pl-10 h-11 bg-slate-50 border-slate-100 focus:bg-white focus:ring-indigo-500 rounded-xl"
+                  className="pl-10 h-12 bg-slate-900 border-slate-800 text-slate-100 placeholder-slate-600 focus:bg-slate-900/50 focus:border-primary focus:ring-primary/20 rounded-[14px] transition-all"
                   value={registerNumber}
                   onChange={(e) => setRegisterNumber(e.target.value)}
                   required
@@ -91,14 +91,14 @@ const StudentLogin = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-slate-700 font-bold">Password</Label>
+              <Label htmlFor="password" className="text-slate-300 font-bold text-xs uppercase tracking-widest pl-1">Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                <Lock className="absolute left-3 top-3.5 h-4 w-4 text-slate-500" />
                 <Input
                   id="password"
                   type="password"
                   placeholder="••••••••"
-                  className="pl-10 h-11 bg-slate-50 border-slate-100 focus:bg-white focus:ring-indigo-500 rounded-xl"
+                  className="pl-10 h-12 bg-slate-900 border-slate-800 text-slate-100 placeholder-slate-600 focus:bg-slate-900/50 focus:border-primary focus:ring-primary/20 rounded-[14px] transition-all"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -107,11 +107,11 @@ const StudentLogin = () => {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-6 px-8 pb-10">
-            <Button type="submit" className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 rounded-xl text-lg font-bold shadow-lg shadow-indigo-100" disabled={loading}>
+            <Button type="submit" className="w-full h-12 bg-primary hover:bg-primary/90 text-white rounded-[14px] text-lg font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all active:scale-[0.98]" disabled={loading}>
               {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null} Login
             </Button>
-            <p className="text-sm text-center text-slate-500 font-medium">
-              Not registered? <span className="text-indigo-600 font-bold">Ask your teacher</span>
+            <p className="text-sm text-center text-slate-500 font-bold uppercase tracking-widest text-[10px]">
+              Not registered? <span className="text-primary font-black ml-1">Ask your teacher</span>
             </p>
           </CardFooter>
         </form>

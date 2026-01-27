@@ -32,11 +32,13 @@ const NextActionCard = ({ studentName, averageScore, quizzes: propQuizzes }: Nex
     // Rule 1: No quiz attempted yet
     if (quizAttempts.length === 0) {
       return {
-        title: "Start Your Assessment Journey",
-        message: "Welcome! Start your first quiz to begin tracking your performance.",
+        title: "Simulation Required",
+        message: "No operational data detected. Initialize your first simulation to begin analysis.",
         icon: BookOpen,
-        color: "bg-blue-500",
-        action: <Link to="/student?view=quizzes"><Button className="w-full bg-blue-600 hover:bg-blue-700">View Quizzes</Button></Link>
+        color: "border-primary/30",
+        accent: "text-primary",
+        bg: "bg-primary/5",
+        action: <Link to="/student?view=quizzes" className="block"><Button className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-primary/20">Access Library</Button></Link>
       };
     }
 
@@ -64,11 +66,13 @@ const NextActionCard = ({ studentName, averageScore, quizzes: propQuizzes }: Nex
     // Rule 2: Quiz is scheduled today and is live
     if (liveQuiz) {
       return {
-        title: "Assessment is LIVE Now!",
-        message: `Hurry! ${liveQuiz.title} is active until ${liveQuiz.endTime}.`,
+        title: "Assessment Operative",
+        message: `DECRYPTED: ${liveQuiz.title} is active until ${liveQuiz.endTime}. Urgent action required.`,
         icon: AlertTriangle,
-        color: "bg-green-600",
-        action: <Link to={`/quiz/${liveQuiz.id}`}><Button className="w-full bg-green-700 hover:bg-green-800 animate-pulse">Start Quiz Now</Button></Link>
+        color: "border-success/30",
+        accent: "text-success",
+        bg: "bg-success/5",
+        action: <Link to={`/quiz/${liveQuiz.id}`} className="block"><Button className="w-full h-12 bg-success hover:bg-success/90 text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-success/20 animate-pulse">Initiate Simulation</Button></Link>
       };
     }
 
@@ -87,50 +91,62 @@ const NextActionCard = ({ studentName, averageScore, quizzes: propQuizzes }: Nex
     if (upcomingQuiz && upcomingQuiz.scheduledDate === now.toISOString().split('T')[0]) {
       const startTime = upcomingQuiz.startTime;
       return {
-        title: "Today's Assessment",
-        message: `${upcomingQuiz.title} starts today at ${startTime}. Be prepared.`,
+        title: "Scheduled Operation",
+        message: `${upcomingQuiz.title} sequence begins today at ${startTime}. Stand by.`,
         icon: Clock,
-        color: "bg-indigo-600",
-        action: <Link to="/student?view=quizzes"><Button className="w-full bg-indigo-700 hover:bg-indigo-800">View Schedule</Button></Link>
+        color: "border-primary/20",
+        accent: "text-primary",
+        bg: "bg-primary/5",
+        action: <Link to="/student?view=quizzes" className="block"><Button className="w-full h-12 bg-slate-900 border border-slate-800 text-slate-100 hover:bg-slate-800 font-black uppercase tracking-widest text-xs rounded-xl shadow-white/5">View Protocol</Button></Link>
       };
     }
 
     // Rule 4: Average score is low (below 60%)
     if (averageScore < 60 && quizAttempts.length > 0) {
       return {
-        title: "Focus on Revision",
-        message: "Revise before the next quiz to improve your performance. Review your past results.",
+        title: "Performance Warning",
+        message: "Internal analysis suggests immediate revision. Average accuracy is below historical standards.",
         icon: TrendingUp,
-        color: "bg-red-600",
-        action: <Link to="/student?view=my-results"><Button className="w-full bg-red-700 hover:bg-red-800">Review Results</Button></Link>
+        color: "border-danger/30",
+        accent: "text-danger",
+        bg: "bg-danger/5",
+        action: <Link to="/student?view=my-results" className="block"><Button className="w-full h-12 bg-danger hover:bg-danger/90 text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-danger/20">Review Archives</Button></Link>
       };
     }
 
     // Default: All caught up
     return {
-      title: "All Caught Up!",
-      message: "You have no immediate actions required. Keep up the great work!",
+      title: "All Sequences Nominal",
+      message: "No immediate actions required. Your standing in the simulation is stable.",
       icon: CheckCircle,
-      color: "bg-green-600",
-      action: <Link to="/student?view=my-courses"><Button className="w-full bg-green-700 hover:bg-green-800">Continue Learning</Button></Link>
+      color: "border-slate-800",
+      accent: "text-success",
+      bg: "bg-slate-900/50",
+      action: <Link to="/student?view=my-courses" className="block"><Button className="w-full h-12 bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-100 hover:bg-slate-800 font-black uppercase tracking-widest text-xs rounded-xl">Continue Study</Button></Link>
     };
 
   }, [quizzes, quizAttempts, studentName, averageScore]);
 
   return (
-    <Card className={cn("shadow-lg text-white", recommendation.color)}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3 text-2xl relative">
-          <recommendation.icon className="h-6 w-6" />
+    <Card className={cn("bg-card border-2 shadow-2xl relative overflow-hidden group rounded-[32px]", recommendation.color, recommendation.bg)}>
+      <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl transition-all" />
+
+      <CardHeader className="p-8 pb-4 relative z-10">
+        <CardTitle className="flex items-center gap-4 text-2xl font-black uppercase tracking-tight text-slate-50 relative">
+          <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center border shadow-xl", recommendation.color, recommendation.bg)}>
+            <recommendation.icon className={cn("h-6 w-6", recommendation.accent)} />
+          </div>
           <span className="flex-grow">{recommendation.title}</span>
           {hasNewQuizzes && (
-            <span className="absolute -top-1 -right-1 flex h-3 w-3 rounded-full bg-white shadow-sm ring-2 ring-red-600 ring-offset-2 animate-bounce" />
+            <span className="absolute -top-1 -right-2 flex h-4 w-4 rounded-full bg-danger shadow-lg ring-4 ring-slate-950 animate-bounce" />
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-lg opacity-90">{recommendation.message}</p>
-        {recommendation.action}
+      <CardContent className="p-8 pt-0 space-y-6 relative z-10">
+        <p className="text-xl font-bold text-slate-400 italic tracking-tight">{recommendation.message}</p>
+        <div className="pt-2">
+          {recommendation.action}
+        </div>
       </CardContent>
     </Card>
   );

@@ -97,25 +97,33 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
     <div className="space-y-8">
       <DashboardWelcome studentName={studentName} registerNumber={registerNumber} />
 
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3 relative">
-          <BookOpen className="h-6 w-6 text-blue-600" />
-          Start Your Assessment Journey
-          {hasNewQuizzes && (
-            <span className="flex h-3 w-3 rounded-full bg-red-600 animate-pulse ring-2 ring-white absolute -right-4 top-1" />
-          )}
-        </h2>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between px-2">
+            <h2 className="text-xl font-black text-slate-100 flex items-center gap-4 uppercase tracking-[0.2em]">
+                <BookOpen className="h-6 w-6 text-primary" />
+                Assessment Terminal
+                {hasNewQuizzes && (
+                    <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-primary ring-2 ring-slate-950"></span>
+                    </span>
+                )}
+            </h2>
+        </div>
         {/* Top Row: Next Action Card (Full Width) */}
         <div className="grid gap-6 grid-cols-1">
           <NextActionCard studentName={studentName} averageScore={averageScore} quizzes={quizzes} />
         </div>
 
         {/* Display Active Quizzes List */}
-        <div className="pt-2">
-          <h3 className="text-xl font-semibold mb-4 text-gray-700 flex items-center gap-2">
-            <ListChecks className="h-5 w-5 text-indigo-500" />
-            Available Quizzes
-          </h3>
+        <div className="pt-8">
+          <div className="flex items-center gap-4 mb-6 px-2">
+            <ListChecks className="h-5 w-5 text-primary" />
+            <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500">
+                Simulation Queue
+            </h3>
+            <div className="flex-1 h-px bg-slate-800/50" />
+          </div>
           <QuizStatusTimeline studentName={studentName} quizzes={quizzes} />
         </div>
       </div>
@@ -135,8 +143,14 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
   );
 
   const renderMyCourses = () => (
-    <div className="space-y-8">
-      <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2"><BookOpen className="h-7 w-7 text-green-600" /> My Courses</h2>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col gap-2">
+        <h2 className="text-3xl font-black text-slate-50 flex items-center gap-4 uppercase tracking-tighter">
+            <BookOpen className="h-8 w-8 text-primary" /> 
+            Study Curriculum
+        </h2>
+        <p className="text-slate-500 font-bold italic tracking-tight">Review your indexed disciplines and simulation progress.</p>
+      </div>
       <MyCourses courses={dynamicCourses} quizzes={quizzes} />
     </div>
   );
@@ -163,24 +177,24 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
     return (
       <div className="space-y-8 animate-in fade-in duration-500">
         <div className="flex flex-col gap-2">
-          <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-            <Brain className="h-8 w-8 text-purple-600" />
-            Competitive Prep Sessions
+          <h2 className="text-3xl font-black text-slate-50 flex items-center gap-4 uppercase tracking-tighter">
+            <Brain className="h-8 w-8 text-primary shadow-xl shadow-primary/20" />
+            Concept Mastery Sessions
           </h2>
-          <p className="text-gray-500 max-w-2xl">
-            Join self-paced competitive practice sessions published by your instructors. These focus on concept clarity and open-ended responses.
+          <p className="text-slate-500 font-bold italic tracking-tight">
+            Initiate self-paced concept evaluations to refine your theoretical understanding.
           </p>
         </div>
 
         {competitiveSessions.length === 0 ? (
-          <Card className="p-16 text-center border-dashed border-2 bg-gray-50/50">
-            <div className="flex flex-col items-center gap-4">
-              <div className="bg-white p-4 rounded-full shadow-sm border">
-                <MessageSquare className="h-10 w-10 text-gray-300" />
+          <Card className="p-20 text-center bg-card border border-slate-800 border-dashed rounded-[40px] shadow-inner">
+            <div className="flex flex-col items-center gap-6">
+              <div className="bg-slate-900 border border-slate-800 p-6 rounded-[24px] shadow-xl group hover:border-primary/30 transition-all">
+                <MessageSquare className="h-12 w-12 text-slate-700 group-hover:text-primary/50 transition-all" />
               </div>
-              <div className="space-y-1">
-                <h3 className="text-xl font-semibold text-gray-700">No active sessions</h3>
-                <p className="text-gray-500">Check back later for new competitive practice sessions.</p>
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-slate-100 uppercase tracking-tighter">No Active Protocols</h3>
+                <p className="text-slate-500 font-bold italic tracking-tight">Check the archive later for new conceptual assessments.</p>
               </div>
             </div>
           </Card>
@@ -208,60 +222,57 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
               const isExpired = now > endDateTime;
 
               return (
-                <Card key={session.id} className="group hover:shadow-xl transition-all duration-300 border-purple-100 overflow-hidden flex flex-col">
-                  <div className={cn("h-2 w-full", isLive ? "bg-green-500" : isUpcoming ? "bg-amber-500" : "bg-gray-300")} />
-                  <CardHeader className="pb-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="p-2 bg-purple-50 rounded-lg">
-                        <Briefcase className="h-5 w-5 text-purple-600" />
+                <Card key={session.id} className="group hover:scale-[1.02] hover:bg-slate-900/40 transition-all duration-300 border-slate-800 bg-card overflow-hidden rounded-[24px] flex flex-col shadow-2xl shadow-primary/5">
+                  <div className={cn("h-1.5 w-full", isLive ? "bg-success" : isUpcoming ? "bg-yellow" : "bg-slate-800")} />
+                  <CardHeader className="p-8 pb-4">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="w-12 h-12 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center shadow-inner">
+                        <Briefcase className="h-6 w-6 text-primary" />
                       </div>
                       {isCompleted ? (
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          <CheckCircle className="h-3 w-3 mr-1" /> Completed
+                        <Badge className="bg-success/10 text-success border-success/20 font-black text-[9px] uppercase tracking-widest px-3 py-1">
+                          <CheckCircle className="h-3 w-3 mr-2" /> Verified
                         </Badge>
                       ) : isLive ? (
-                        <Badge className="bg-green-600 hover:bg-green-700 animate-pulse">LIVE NOW</Badge>
+                        <Badge className="bg-primary hover:bg-primary/90 font-black text-[9px] uppercase tracking-widest animate-pulse px-3 py-1">CORE LINK</Badge>
                       ) : isUpcoming ? (
-                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Upcoming</Badge>
+                        <Badge className="bg-slate-900 text-slate-400 border-slate-800 font-black text-[9px] uppercase tracking-widest px-3 py-1">Upcoming</Badge>
                       ) : (
-                        <Badge variant="outline" className="bg-gray-100 text-gray-500 border-gray-200">Expired</Badge>
+                        <Badge className="bg-danger/10 text-danger border-danger/20 font-black text-[9px] uppercase tracking-widest px-3 py-1">Expired</Badge>
                       )}
                     </div>
-                    <CardTitle className="text-xl line-clamp-1 group-hover:text-purple-700 transition-colors">
+                    <CardTitle className="text-xl font-black text-slate-50 group-hover:text-primary transition-colors tracking-tighter uppercase leading-none">
                       {session.title.replace('CMP: ', '').replace('INT: ', '')}
                     </CardTitle>
-                    <CardDescription className="line-clamp-2">
+                    <CardDescription className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-2">
                       {isUpcoming
-                        ? `Starts: ${startDateTime.toLocaleDateString()} at ${session.startTime}`
-                        : `Practical competitive preparation for ${session.courseName}.`}
+                        ? `Begins: ${startDateTime.toLocaleDateString()} at ${session.startTime}`
+                        : `Phase: ${session.courseName} conceptual analysis`}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="flex-grow">
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <div className="flex items-center gap-1.5">
-                        <ListChecks className="h-4 w-4" />
-                        Self-Evaluation
-                      </div>
+                  <CardContent className="px-8 pb-4 flex-grow">
+                    <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                        <ListChecks className="h-4 w-4 text-primary" />
+                        Aptitude Verification
                     </div>
                   </CardContent>
-                  <CardFooter className="pt-4 border-t bg-gray-50/50">
+                  <CardFooter className="p-8 pt-4 bg-slate-950/20 border-t border-slate-800">
                     <Button
                       onClick={() => setSelectedCompetitive(session)}
-                      disabled={!isLive && !isCompleted} // Allow re-entering if completed (logic may vary), but definitely block if not live
+                      disabled={!isLive && !isCompleted}
                       className={cn(
-                        "w-full shadow-md transition-transform gap-2",
-                        !isLive && !isCompleted ? "opacity-70 cursor-not-allowed bg-gray-400 hover:bg-gray-400 text-white" : "",
-                        (isLive || isCompleted) ? "group-hover:scale-[1.02]" : "",
-                        isCompleted ? "bg-gray-800 hover:bg-gray-900" : isLive ? "bg-purple-600 hover:bg-purple-700" : ""
+                        "w-full h-11 font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg transition-all flex items-center justify-center gap-3",
+                        !isLive && !isCompleted ? "bg-slate-800 text-slate-500 cursor-not-allowed opacity-50" : "",
+                        isCompleted ? "bg-slate-900 border border-slate-800 text-slate-100 hover:bg-slate-800" : "bg-primary hover:bg-primary/90 text-white shadow-primary/20"
                       )}
                     >
                       {isCompleted
-                        ? <> <PlayCircle className="h-4 w-4" /> Review Session </>
+                        ? <> <PlayCircle className="h-4 w-4" /> Review Archive </>
                         : isUpcoming
-                          ? `Starts at ${session.startTime}`
+                          ? `Scheduled: ${session.startTime}`
                           : isExpired
-                            ? "Session Expired"
-                            : <> <PlayCircle className="h-4 w-4" /> Start Practice Session </>
+                            ? "Access Denied: Expired"
+                            : <> <PlayCircle className="h-4 w-4" /> Initiate Session </>
                       }
                     </Button>
                   </CardFooter>
@@ -275,8 +286,14 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
   };
 
   const renderMyResults = () => (
-    <div className="space-y-8">
-      <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2"><BarChart className="h-7 w-7 text-purple-600" /> My Quiz History</h2>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col gap-2">
+        <h2 className="text-3xl font-black text-slate-50 flex items-center gap-4 uppercase tracking-tighter">
+            <BarChart className="h-8 w-8 text-primary" /> 
+            Simulation Archives
+        </h2>
+        <p className="text-slate-500 font-bold italic tracking-tight">Access your historical performance data and valuation records.</p>
+      </div>
       <div className="space-y-6">
         <StudentResultsList studentAttempts={studentAttempts} quizzes={quizzes} />
       </div>
@@ -284,13 +301,30 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
   );
 
   const renderLeaderboard = () => (
-    <div className="space-y-8">
-      <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2"><Trophy className="h-7 w-7 text-yellow-600" /> Global Leaderboard</h2>
-      <Card className="p-6 shadow-lg">
-        <p className="text-gray-600 mb-4">View overall rankings across all quizzes and compare your performance with peers.</p>
-        <Link to="/leaderboard">
-          <Button className="bg-indigo-600 hover:bg-indigo-700">Go to Global Leaderboard</Button>
-        </Link>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col gap-2">
+        <h2 className="text-3xl font-black text-slate-50 flex items-center gap-4 uppercase tracking-tighter">
+            <Trophy className="h-8 w-8 text-primary shadow-xl shadow-primary/20" /> 
+            Global Merit Ranking
+        </h2>
+        <p className="text-slate-500 font-bold italic tracking-tight">The ultimate repository of top-tier simulation performers.</p>
+      </div>
+      <Card className="p-10 bg-card border border-slate-800 shadow-2xl shadow-primary/5 rounded-[40px] relative overflow-hidden group">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.03)_0%,transparent_70%)]" />
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
+            <div className="w-32 h-32 bg-slate-900 border border-slate-800 rounded-[32px] flex items-center justify-center shadow-inner group-hover:border-primary/30 transition-all">
+                <Trophy className="h-16 w-16 text-slate-700 group-hover:text-primary transition-all" />
+            </div>
+            <div className="flex-1 text-center md:text-left">
+                <h3 className="text-2xl font-black text-slate-50 uppercase tracking-tighter mb-2">Authorized Access Required</h3>
+                <p className="text-slate-500 font-bold italic tracking-tight mb-8">Synchronize with the global leaderboard to verify your standing among elite scholars.</p>
+                <Link to="/leaderboard">
+                    <Button className="px-10 h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-[0.98]">
+                        Access Merit Registry
+                    </Button>
+                </Link>
+            </div>
+        </div>
       </Card>
     </div>
   );

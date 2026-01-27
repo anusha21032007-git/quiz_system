@@ -4,6 +4,7 @@ import React from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Clock } from 'lucide-react';
 import BackButton from '@/components/ui/BackButton';
+import { cn } from '@/lib/utils';
 
 interface QuizHeaderProps {
   quizTitle: string;
@@ -24,25 +25,33 @@ const QuizHeader = ({ quizTitle, currentQuestionIndex, totalQuestions, timeLeft,
   };
 
   return (
-    <header className="w-full bg-background p-4 border-b border-border sticky top-0 z-10">
-      <div className="max-w-4xl mx-auto space-y-4">
+    <header className="w-full bg-card/80 backdrop-blur-xl p-6 border-b border-slate-800 sticky top-0 z-50">
+      <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between w-full">
-          <BackButton onClick={onBack} />
-          <div className="flex items-center gap-4">
-            <div className="text-muted-foreground font-medium">
-              Question {currentQuestionIndex + 1} of {totalQuestions}
+          <BackButton onClick={onBack} className="text-slate-400 hover:text-primary transition-colors" />
+          <div className="flex items-center gap-6">
+            <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+              Phase {currentQuestionIndex + 1} <span className="text-slate-800 mx-1">/</span> {totalQuestions}
             </div>
-            <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${timeLeft <= 60 ? 'text-destructive border-destructive/20 bg-destructive/10' : 'text-info border-info/20 bg-info/10'}`}>
+            <div className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-xl border font-mono font-bold shadow-inner transition-all",
+              timeLeft <= 60
+                ? 'text-danger border-danger/20 bg-danger/5 shadow-danger/5 animate-pulse'
+                : 'text-primary border-primary/20 bg-primary/5 shadow-primary/5'
+            )}>
               <Clock className="h-4 w-4" />
-              <span className="font-mono font-bold">{formatTime(timeLeft)}</span>
+              <span className="text-lg tracking-tighter">{formatTime(timeLeft)}</span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">{quizTitle}</h1>
-          <div className="w-1/2 max-w-[200px]">
-            <Progress value={progress} className="h-2 bg-muted transition-all" />
+        <div className="flex items-center justify-between gap-8">
+          <h1 className="text-xl font-black text-slate-100 tracking-tighter uppercase truncate max-w-md">{quizTitle}</h1>
+          <div className="flex-1 max-w-[300px] h-2 bg-slate-900 rounded-full border border-slate-800 overflow-hidden shadow-inner">
+            <div
+              className="h-full bg-primary transition-all duration-500 ease-out shadow-[0_0_15px_rgba(99,102,241,0.5)]"
+              style={{ width: `${progress}%` }}
+            />
           </div>
         </div>
       </div>

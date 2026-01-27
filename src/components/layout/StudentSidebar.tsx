@@ -50,13 +50,13 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile }: StudentSidebarP
     <nav className="flex flex-col h-full bg-sidebar text-sidebar-foreground p-4 gap-2">
       <div className="p-4 border-b border-sidebar-border mb-2">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
-            <GraduationCap className="h-5 w-5 text-indigo-600" />
+          <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+            <GraduationCap className="h-5 w-5 text-primary" />
           </div>
-          <span className="text-sm font-bold text-indigo-950 tracking-tight">QUIZ MANAGEMENT SYSTEM</span>
+          <span className="text-sm font-bold text-slate-50 tracking-tight">QUIZ MANAGEMENT SYSTEM</span>
         </div>
         <Link to="/">
-          <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground hover:text-foreground">
+          <Button variant="ghost" size="sm" className="w-full justify-start text-slate-400 hover:text-slate-200 hover:bg-slate-800">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Button>
@@ -86,30 +86,30 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile }: StudentSidebarP
       </div>
 
       {/* Notice Section */}
-      <div className="mt-4 p-4 bg-indigo-50 rounded-xl border border-indigo-100 mx-1">
-        <h3 className="text-[10px] font-bold text-indigo-900 mb-3 flex items-center gap-2 uppercase tracking-widest">
+      <div className="mt-4 p-4 bg-primary/5 rounded-xl border border-primary/10 mx-1">
+        <h3 className="text-[10px] font-bold text-primary mb-3 flex items-center gap-2 uppercase tracking-widest">
           <Bell className="h-3 w-3" /> Notices
         </h3>
         <div className="space-y-3">
           {upcomingQuizzes.length > 0 ? (
             upcomingQuizzes.map((quiz) => (
-              <div key={quiz.id} className="text-[11px] border-l-2 border-indigo-200 pl-2">
-                <p className="font-bold text-indigo-700 leading-tight mb-0.5">{quiz.title}</p>
-                <p className="text-indigo-500/80 font-medium">
+              <div key={quiz.id} className="text-[11px] border-l-2 border-primary/30 pl-2">
+                <p className="font-bold text-slate-300 leading-tight mb-0.5">{quiz.title}</p>
+                <p className="text-slate-500 font-medium">
                   {new Date(quiz.scheduledDate).toLocaleDateString([], { month: 'short', day: 'numeric' })} • {quiz.startTime}
                 </p>
               </div>
             ))
           ) : (
-            <p className="text-[11px] text-indigo-400 italic font-medium">No upcoming quizzes scheduled.</p>
+            <p className="text-[11px] text-slate-600 italic font-medium">No upcoming quizzes scheduled.</p>
           )}
         </div>
       </div>
 
-      <div className="mt-auto pt-4 border-t border-sidebar-border">
+      <div className="mt-auto pt-4 border-t border-slate-800">
         <Button
           variant="outline"
-          className="justify-start gap-3 w-full border-sidebar-border hover:border-destructive hover:text-destructive hover:bg-destructive/10"
+          className="justify-start gap-3 w-full border-slate-800 text-slate-400 hover:border-red-500/50 hover:text-red-400 hover:bg-red-500/10"
           onClick={signOut}
         >
           <LogOut className="h-5 w-5" />
@@ -127,7 +127,7 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile }: StudentSidebarP
             <PanelLeft className="h-5 w-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="sm:max-w-xs p-0 bg-white">
+        <SheetContent side="left" className="sm:max-w-xs p-0 bg-sidebar border-r border-slate-800 shadow-2xl">
           {renderNav()}
         </SheetContent>
       </Sheet>

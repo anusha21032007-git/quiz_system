@@ -73,15 +73,15 @@ const StudentResultsList = ({ studentAttempts, quizzes }: StudentResultsListProp
     const sortedAttempts = [...studentAttempts].sort((a, b) => b.timestamp - a.timestamp);
 
     return (
-        <Card className="shadow-sm border-gray-200">
-            <CardHeader className="flex flex-row items-center justify-between pb-4 border-b bg-gray-50/50">
-                <CardTitle className="flex items-center gap-2 text-xl text-gray-800">
-                    <History className="h-5 w-5 text-indigo-600" /> My Quiz History
+        <Card className="shadow-2xl border-slate-800 bg-card overflow-hidden rounded-[32px]">
+            <CardHeader className="flex flex-row items-center justify-between pb-6 border-b border-slate-800 bg-slate-950/20 px-8">
+                <CardTitle className="flex items-center gap-2 text-xl text-slate-100 font-black uppercase tracking-tight">
+                    <History className="h-5 w-5 text-primary" /> My Quiz History
                 </CardTitle>
                 <Button
                     variant="outline"
                     size="sm"
-                    className="gap-2 text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+                    className="gap-2 text-primary border-primary/20 hover:bg-primary/10 hover:border-primary/40 font-bold uppercase text-[10px] tracking-widest px-6 rounded-xl transition-all"
                     onClick={() => downloadCsv(sortedAttempts, `all_quiz_history_${new Date().toISOString().split('T')[0]}.csv`)}
                     disabled={sortedAttempts.length === 0}
                 >
@@ -90,18 +90,18 @@ const StudentResultsList = ({ studentAttempts, quizzes }: StudentResultsListProp
             </CardHeader>
             <CardContent className="p-0">
                 {sortedAttempts.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">
+                    <div className="p-12 text-center text-slate-500 font-medium uppercase tracking-widest text-xs">
                         You haven't completed any quizzes yet.
                     </div>
                 ) : (
                     <Table>
                         <TableHeader>
-                            <TableRow className="bg-gray-50 hover:bg-gray-50">
-                                <TableHead className="font-semibold text-gray-600">Quiz Title</TableHead>
-                                <TableHead className="font-semibold text-gray-600 text-center">Date</TableHead>
-                                <TableHead className="font-semibold text-gray-600 text-center">Score (%)</TableHead>
-                                <TableHead className="font-semibold text-gray-600 text-center">Status</TableHead>
-                                <TableHead className="font-semibold text-gray-600 text-right">Action</TableHead>
+                            <TableRow className="bg-slate-900/50 hover:bg-slate-900/50 border-slate-800">
+                                <TableHead className="font-bold text-slate-400 uppercase tracking-widest text-[10px] pl-8">Quiz Title</TableHead>
+                                <TableHead className="font-bold text-slate-400 uppercase tracking-widest text-[10px] text-center">Date</TableHead>
+                                <TableHead className="font-bold text-slate-400 uppercase tracking-widest text-[10px] text-center">Score (%)</TableHead>
+                                <TableHead className="font-bold text-slate-400 uppercase tracking-widest text-[10px] text-center">Status</TableHead>
+                                <TableHead className="font-bold text-slate-400 uppercase tracking-widest text-[10px] text-right pr-8">Action</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -112,49 +112,49 @@ const StudentResultsList = ({ studentAttempts, quizzes }: StudentResultsListProp
                                     : (attempt.totalQuestions > 0 ? (attempt.correctAnswersCount / attempt.totalQuestions) * 100 : 0);
 
                                 return (
-                                    <TableRow key={attempt.id} className="hover:bg-gray-50/50 transition-colors">
-                                        <TableCell className="font-medium text-gray-900">
+                                    <TableRow key={attempt.id} className="hover:bg-slate-900/30 transition-colors border-slate-800/50">
+                                        <TableCell className="font-bold text-slate-100 pl-8">
                                             {getQuizTitle(attempt.quizId)}
                                         </TableCell>
-                                        <TableCell className="text-center text-gray-600">
+                                        <TableCell className="text-center text-slate-400 font-medium font-mono text-xs">
                                             {new Date(attempt.timestamp).toLocaleDateString()}
                                         </TableCell>
-                                        <TableCell className="text-center font-medium">
+                                        <TableCell className="text-center font-black">
                                             <span className={cn(
-                                                "px-2 py-1 rounded-md bg-gray-100",
-                                                isPassed ? "text-green-700 bg-green-50" : "text-red-700 bg-red-50"
+                                                "px-3 py-1 rounded-xl border font-mono text-xs",
+                                                isPassed ? "text-success bg-success/10 border-success/20" : "text-danger bg-danger/10 border-danger/20"
                                             )}>
                                                 {percentage.toFixed(1)}%
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-center">
                                             <Badge variant="outline" className={cn(
-                                                "font-normal",
+                                                "font-black uppercase tracking-tight text-[9px] px-3 py-1 rounded-full border",
                                                 attempt.status === 'CORRUPTED'
-                                                    ? "bg-red-900 text-white border-red-900"
+                                                    ? "bg-danger text-white border-danger"
                                                     : isPassed
-                                                        ? "bg-green-100 text-green-700 border-green-200 hover:bg-green-100"
-                                                        : "bg-red-100 text-red-700 border-red-200 hover:bg-red-100"
+                                                        ? "bg-success/10 text-success border-success/20"
+                                                        : "bg-danger/10 text-danger border-danger/20"
                                             )}>
                                                 {attempt.status === 'CORRUPTED' ? (
-                                                    <><ShieldAlert className="h-3 w-3 mr-1" /> Corrupted</>
+                                                    <><ShieldAlert className="h-2.5 w-2.5 mr-1" /> Corrupted</>
                                                 ) : isPassed ? (
-                                                    <><CheckCircle className="h-3 w-3 mr-1" /> Pass</>
+                                                    <><CheckCircle className="h-2.5 w-2.5 mr-1" /> Pass</>
                                                 ) : (
-                                                    <><XCircle className="h-3 w-3 mr-1" /> Fail</>
+                                                    <><XCircle className="h-2.5 w-2.5 mr-1" /> Fail</>
                                                 )}
                                             </Badge>
                                             {attempt.violationCount > 0 && (
-                                                <div className="text-[10px] text-orange-600 font-bold mt-1 uppercase tracking-tighter">
+                                                <div className="text-[9px] text-warning font-black mt-1.5 uppercase tracking-widest bg-warning/10 px-2 py-0.5 rounded-full border border-warning/10 inline-block">
                                                     {attempt.violationCount} {attempt.violationCount === 1 ? 'Violation' : 'Violations'}
                                                 </div>
                                             )}
                                         </TableCell>
-                                        <TableCell className="text-right">
+                                        <TableCell className="text-right pr-8">
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-8 w-8 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50"
+                                                className="h-9 w-9 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
                                                 title="Download Result"
                                                 onClick={() => downloadCsv([attempt], `quiz_result_${attempt.quizId}_${new Date().toISOString().split('T')[0]}.csv`)}
                                             >

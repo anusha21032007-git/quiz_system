@@ -243,57 +243,86 @@ const QuizPage = () => {
     const totalParticipants = attemptsForQuiz.length;
 
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-blue-100 p-8">
-        <Card className="w-full max-w-2xl shadow-xl">
-          <CardHeader className="text-center">
-            <CardTitle className={cn("text-4xl font-bold", isPassed ? "text-green-700" : "text-red-700")}>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl opacity-50" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-success/5 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl opacity-50" />
+
+        <Card className="w-full max-w-2xl border border-slate-800 shadow-2xl shadow-primary/5 bg-card overflow-hidden rounded-[40px] relative z-10">
+          <CardHeader className="text-center pb-10 pt-12">
+            <CardTitle className={cn("text-5xl font-black uppercase tracking-tighter mb-2", isPassed ? "text-success" : "text-danger")}>
               Quiz {isPassed ? "Completed" : "Attempted"}!
             </CardTitle>
+            <div className="h-1.5 w-24 bg-slate-800 rounded-full mx-auto" />
           </CardHeader>
-          <CardContent className="text-center space-y-4">
-            <p className="text-2xl text-gray-800">Hi, <span className="font-semibold">{quizStudentName}</span>!</p>
+          <CardContent className="text-center space-y-10 px-10 pb-12">
+            <p className="text-2xl text-slate-300 font-medium">Excellent effort, Professor <span className="font-bold text-slate-50">{quizStudentName}</span>!</p>
 
-            <div className="py-6 px-4 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200">
-              <p className="text-lg text-gray-600 font-medium">YOUR RESULT</p>
-              <div className={cn("text-6xl font-black mb-2", isPassed ? "text-green-600" : "text-red-600")}>
+            <div className="py-12 px-8 rounded-[32px] bg-slate-900/50 border border-slate-800 shadow-inner relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:bg-primary/20 transition-all" />
+              <p className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Total Achievement</p>
+              <div className={cn("text-7xl font-black mb-4 tracking-tighter", isPassed ? "text-success" : "text-danger")}>
                 {isPassed ? "PASSED" : "FAILED"}
               </div>
-              <p className="text-3xl font-bold text-blue-600 mb-1">Score: {finalScore.toFixed(2)} / {totalPossibleMarks}</p>
-            </div>
-
-            <div className="flex justify-center items-center gap-6 py-4">
-              <div className="text-center">
-                <p className="text-sm text-gray-500 uppercase tracking-wider">Rank</p>
-                <p className="text-4xl font-bold text-indigo-600">#{rank || '-'}</p>
-              </div>
-              <div className="h-10 w-px bg-gray-200" />
-              <div className="text-center">
-                <p className="text-sm text-gray-500 uppercase tracking-wider">Total</p>
-                <p className="text-4xl font-bold text-gray-700">{totalParticipants}</p>
+              <div className="flex items-center justify-center gap-2">
+                <Trophy className="h-6 w-6 text-yellow shadow-yellow/20" />
+                <p className="text-3xl font-black text-slate-50">Score: {finalScore.toFixed(2)} / {totalPossibleMarks}</p>
               </div>
             </div>
 
-            <div className="mt-6">
-              <h3 className="text-xl font-semibold mb-3 text-left">Review:</h3>
-              <div className="space-y-6 max-h-80 overflow-y-auto p-4 border rounded-md bg-gray-50">
+            <div className="grid grid-cols-2 gap-8 py-6 border-y border-slate-800/50">
+              <div className="text-center">
+                <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2">Class Rank</p>
+                <p className="text-5xl font-black text-primary tracking-tighter">#{rank || '-'}</p>
+              </div>
+              <div className="text-center border-l border-slate-800/50">
+                <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2">Total Participants</p>
+                <p className="text-5xl font-black text-slate-200 tracking-tighter">{totalParticipants}</p>
+              </div>
+            </div>
+
+            <div className="mt-8 text-left">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-6 flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-success" /> Performance Review
+              </h3>
+              <div className="space-y-4 max-h-[400px] overflow-y-auto p-2 CustomScrollbar">
                 {(attempt.answers || []).map((ans: any, index: number) => {
                   const q = questions.find(question => question.id === ans.questionId);
                   if (!q) return null;
                   return (
-                    <div key={ans.questionId} className="p-4 rounded-md bg-white shadow-sm text-left">
-                      <p className="font-medium text-gray-800">{index + 1}. {q.questionText}</p>
-                      <p className={cn("text-sm font-bold mt-1", ans.isCorrect ? "text-green-600" : "text-red-600")}>
-                        {ans.isCorrect ? "Correct" : "Incorrect"} - {ans.marksObtained.toFixed(2)} marks
-                      </p>
-                      <div className="mt-2 space-y-1">
-                        {q.options.map((opt, i) => (
-                          <div key={i} className={cn("text-sm p-1 rounded", opt.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase() ? "bg-green-50 text-green-700 font-bold" : (opt === ans.selectedAnswer ? "bg-red-50 text-red-700" : ""))}>
-                            {opt}
-                          </div>
-                        ))}
+                    <div key={ans.questionId} className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm transition-all hover:border-slate-700">
+                      <div className="flex justify-between items-start gap-4 mb-4">
+                        <p className="font-bold text-slate-100 leading-relaxed text-lg">{index + 1}. {q.questionText}</p>
+                        <span className={cn(
+                          "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shrink-0 border",
+                          ans.isCorrect ? "bg-success/10 text-success border-success/20" : "bg-danger/10 text-danger border-danger/20"
+                        )}>
+                          {ans.isCorrect ? "Correct" : "Incorrect"}
+                        </span>
                       </div>
+
+                      <div className="grid gap-2 mb-4">
+                        {q.options.map((opt, i) => {
+                          const isCorrect = opt.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase();
+                          const isSelected = opt === ans.selectedAnswer;
+
+                          return (
+                            <div key={i} className={cn(
+                              "text-sm p-3 rounded-xl border transition-all",
+                              isCorrect
+                                ? "bg-success/10 border-success/30 text-success font-bold"
+                                : isSelected
+                                  ? "bg-danger/10 border-danger/30 text-danger"
+                                  : "bg-slate-950/50 border-slate-800 text-slate-500"
+                            )}>
+                              {opt}
+                            </div>
+                          );
+                        })}
+                      </div>
+
                       {q.explanation && (
-                        <div className="mt-2 text-xs italic text-blue-700 bg-blue-50 p-2 rounded">
+                        <div className="mt-4 text-xs font-medium italic text-primary/80 bg-primary/5 p-4 rounded-xl border border-primary/10 leading-relaxed">
+                          <span className="not-italic font-black text-primary uppercase tracking-widest mr-2">Rationale:</span>
                           {q.explanation}
                         </div>
                       )}
@@ -303,10 +332,14 @@ const QuizPage = () => {
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-center gap-4 mt-6">
-            <Button onClick={() => navigate('/student')} className="bg-blue-600 hover:bg-blue-700">Student Dashboard</Button>
+          <CardFooter className="flex justify-center gap-4 py-8 border-t border-slate-800 bg-slate-950/20">
+            <Button onClick={() => navigate('/student')} className="bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest h-12 px-8 rounded-xl shadow-lg shadow-primary/20 transition-all active:scale-[0.98]">
+              Dashboard
+            </Button>
             {!isPassed && (quiz?.maxAttempts === undefined || quiz.maxAttempts > attemptsCount) && (
-              <Button onClick={() => navigate(0)} variant="destructive"><RefreshCw className="h-4 w-4 mr-2" /> Try Again</Button>
+              <Button onClick={() => navigate(0)} variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 h-12 px-8 rounded-xl font-black uppercase tracking-widest transition-all">
+                <RefreshCw className="h-4 w-4 mr-2" /> Try Again
+              </Button>
             )}
           </CardFooter>
         </Card>
@@ -316,8 +349,11 @@ const QuizPage = () => {
 
   if (!quizId || !quiz || isQuestionsLoading || (user && !studentData && user.email && user.email.includes('@student.eduflow.com'))) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-8">
-        <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+      <div className="min-h-screen flex items-center justify-center bg-background p-8">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-[10px] animate-pulse">Initializing Environment</p>
+        </div>
       </div>
     );
   }
@@ -327,32 +363,40 @@ const QuizPage = () => {
   }
 
   if (questions.length === 0) {
-    return <div className="p-10 text-center">No questions found.</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-background text-slate-500 font-black uppercase tracking-widest">No questions available.</div>;
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-background">
       <QuizHeader quizTitle={quiz.title} currentQuestionIndex={currentQuestionIndex} totalQuestions={questions.length} timeLeft={timeLeft} isMobile={isMobile} onBack={handleBack} />
-      <main className="flex-1 flex items-center justify-center p-4">
-        <Card className="w-full max-w-2xl shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-center">{quiz.title}</CardTitle>
+      <main className="flex-1 flex items-center justify-center p-6">
+        <Card className="w-full max-w-2xl border border-slate-800 shadow-2xl shadow-primary/5 bg-card overflow-hidden rounded-[32px]">
+          <CardHeader className="bg-slate-950/20 px-8 py-6 border-b border-slate-800">
+            <CardTitle className="text-xl font-black text-slate-100 uppercase tracking-tight text-center">{quiz.title}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-8 p-8">
             {!initialStudentName && (
-              <Input placeholder="Your Name" value={quizStudentName} onChange={e => setQuizStudentName(e.target.value)} className="mb-4" />
+              <div className="space-y-2 mb-8">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-1">Identify Yourself</Label>
+                <Input
+                  placeholder="Enter your full name"
+                  value={quizStudentName}
+                  onChange={e => setQuizStudentName(e.target.value)}
+                  className="h-12 bg-slate-900 border-slate-800 text-slate-100 placeholder-slate-600 focus:border-primary rounded-xl transition-all"
+                />
+              </div>
             )}
 
-            <div className="flex justify-between items-center bg-blue-50 p-3 rounded-lg border border-blue-100 mb-2">
-              <span className="text-sm font-bold text-blue-800">Question {currentQuestionIndex + 1} of {questions.length}</span>
-              <span className="text-xs text-blue-600 font-medium bg-white px-2 py-1 rounded border border-blue-200">
-                Marks: {currentQuestion.marks}
+            <div className="flex justify-between items-center bg-slate-900/50 p-4 rounded-2xl border border-slate-800 mb-2">
+              <span className="text-[11px] font-black text-primary uppercase tracking-[0.2em]">Phase {currentQuestionIndex + 1} of {questions.length}</span>
+              <span className="text-[10px] text-slate-500 font-bold bg-slate-950 px-3 py-1 rounded-full border border-slate-800 uppercase tracking-widest">
+                Valuation: {currentQuestion.marks} Marks
               </span>
             </div>
 
-            <h2 className="text-xl font-semibold leading-relaxed">{currentQuestion.questionText}</h2>
+            <h2 className="text-2xl font-bold leading-tight text-slate-50 tracking-tight">{currentQuestion.questionText}</h2>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               {currentQuestion.options.map((option, index) => {
                 const isSelected = currentSelectedOption === option;
                 return (
@@ -360,21 +404,24 @@ const QuizPage = () => {
                     key={index}
                     onClick={() => handleSelectAnswer(option)}
                     className={cn(
-                      "w-full p-4 border-2 rounded-xl text-left transition-all duration-200 relative group",
+                      "w-full p-5 border border-slate-800 rounded-2xl text-left transition-all duration-300 relative group overflow-hidden",
                       isSelected
-                        ? "border-blue-600 bg-blue-50 shadow-md transform scale-[1.01]"
-                        : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
+                        ? "border-primary bg-primary/10 shadow-[0_0_20px_-5px_rgba(99,102,241,0.2)]"
+                        : "bg-slate-950/20 hover:border-slate-700 hover:bg-slate-900"
                     )}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4 relative z-10">
                       <div className={cn(
-                        "w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-colors",
-                        isSelected ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300 text-gray-400 group-hover:border-blue-400"
+                        "w-7 h-7 rounded-xl border flex items-center justify-center text-xs font-black transition-all",
+                        isSelected
+                          ? "border-primary bg-primary text-white shadow-lg shadow-primary/20"
+                          : "border-slate-800 bg-slate-900 text-slate-500 group-hover:border-slate-600 group-hover:text-slate-400"
                       )}>
                         {String.fromCharCode(65 + index)}
                       </div>
-                      <span className={cn("font-medium", isSelected ? "text-blue-900" : "text-gray-700")}>{option}</span>
+                      <span className={cn("font-bold text-lg transition-colors", isSelected ? "text-slate-50" : "text-slate-400 group-hover:text-slate-300")}>{option}</span>
                     </div>
+                    {isSelected && <div className="absolute top-0 right-0 w-24 h-full bg-primary/10 translate-x-8 blur-2xl" />}
                   </button>
                 );
               })}
@@ -382,12 +429,12 @@ const QuizPage = () => {
 
             {/* Warning if skipping without answer? optional. */}
           </CardContent>
-          <CardFooter className="flex justify-between pt-6 border-t bg-gray-50/50 rounded-b-xl px-6 py-4">
+          <CardFooter className="flex justify-between p-8 border-t border-slate-800 bg-slate-950/20">
             <Button
               variant="outline"
               onClick={handlePrev}
               disabled={currentQuestionIndex === 0}
-              className="w-32 font-bold border-gray-300 hover:bg-white hover:text-gray-900"
+              className="w-32 h-11 font-black uppercase tracking-widest text-xs border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-200 rounded-xl transition-all"
             >
               Previous
             </Button>
@@ -395,16 +442,16 @@ const QuizPage = () => {
             {currentQuestionIndex === questions.length - 1 ? (
               <Button
                 onClick={() => handleSubmitQuiz(false)}
-                className="w-40 font-black bg-green-600 hover:bg-green-700 shadow-lg shadow-green-200 text-white"
+                className="w-48 h-11 font-black bg-success hover:bg-success/90 text-white shadow-lg shadow-success/20 uppercase tracking-widest text-xs rounded-xl"
               >
-                Submit Quiz
+                Finalize & Submit
               </Button>
             ) : (
               <Button
                 onClick={handleNext}
-                className="w-32 font-bold bg-gray-900 text-white hover:bg-black"
+                className="w-32 h-11 font-black bg-slate-50 text-slate-900 hover:bg-white uppercase tracking-widest text-xs rounded-xl transition-all shadow-xl shadow-white/5 active:scale-95"
               >
-                Next
+                Forward
               </Button>
             )}
           </CardFooter>

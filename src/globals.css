@@ -4,108 +4,102 @@
 
 @layer base {
   :root {
-    /* App background: #FFFBEB -> 48 100% 96% */
-    --background: 48 100% 96%;
-    /* Body text: #374151 -> 215 19% 27% */
-    --foreground: 215 19% 27%;
+    /* Main app background: More balanced dark, less harsh than before */
+    --background: 221 39% 13%;
+    /* Primary text: Still high contrast, easier to read */
+    --foreground: 0 0% 97%;
 
-    /* Card background: #FFFFFF -> 0 0% 100% */
-    --card: 0 0% 100%;
-    /* Headings text: #1F2937 -> 215 28% 17% */
-    --card-foreground: 215 28% 17%;
+    /* Sidebar / Cards / Panels: Subtler background with more depth */
+    --card: 223 24% 12%;
+    /* Card foreground with better brightness for contrast */
+    --card-foreground: 216 32% 88%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 215 28% 17%;
+    /* Popovers / Floating UI: Warm, elevated gray tone */
+    --popover: 223 12% 20%;
+    --popover-foreground: 0 0% 98%;
 
-    /* Primary button: #EC4899 -> 330 81% 60% */
-    --primary: 330 81% 60%;
+    /* Primary Accent: Richer violet that's more vibrant */
+    --primary: 251 74% 64%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary button: #6366F1 -> 239 84% 67% */
-    --secondary: 239 84% 67%;
-    --secondary-foreground: 0 0% 100%;
+    /* Secondary Accent: Soft bluish gray, friendlier than the original dark */
+    --secondary: 215 18% 27%;
+    --secondary-foreground: 0 0% 98%;
 
-    /* Muted/label text: #9CA3AF -> 215 14% 65% */
-    --muted: 215 14% 96%;
-    --muted-foreground: 215 14% 65%;
+    /* Muted Text: Subtly muted for context clarity */
+    --muted: 220 25% 15%;
+    --muted-foreground: 215 23% 68%;
 
-    /* Hover background: #FDE68A -> 47 97% 77% */
-    --accent: 47 97% 77%;
-    --accent-foreground: 215 19% 27%;
+    /* Hover State / Accent: Energizing light blueish-indigo for emphasis */
+    --accent: 240 89% 58%;
+    --accent-foreground: 0 0% 100%;
 
-    /* Danger actions: #EF4444 -> 0 84% 60% */
-    --destructive: 0 84% 60%;
+    /* Danger Actions: Clear and recognizable */
+    --destructive: 0 88% 64%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Card border: #E5E7EB -> 220 14% 91% */
-    --border: 220 14% 91%;
-    --input: 220 14% 91%;
-    --ring: 330 81% 60%;
+    /* Borders: Cleaner, smoother appearance */
+    --border: 219 18% 26%;
+    --input: 218 14% 35%;
+    --ring: 244 63% 65%;
 
     --radius: 0.75rem;
 
-    /* Sidebar background: #FFF7ED -> 33 100% 96% */
-    --sidebar-background: 33 100% 96%;
-    /* Sidebar text: #374151 -> 215 19% 27% */
-    --sidebar-foreground: 215 19% 27%;
-    /* Active menu text: #DB2777 -> 333 71% 51% */
-    --sidebar-primary: 333 71% 51%;
+    /* Sidebar Background: Visibly rich but warmer black than prior dark-blue blacks */
+    --sidebar-background: 227 40% 6%;
+    /* Sidebar Foreground: Cream-colored but retain high-readability without overpowering tone*/
+    --sidebar-foreground: 48 79% 78%;
+    /* Sidebar Primary (Active): Retaining intense original color but clarified blue depth to intensifier vivid warmth within black settings  */
+    --sidebar-primary: 241 100% 51%;
     --sidebar-primary-foreground: 0 0% 100%;
-    /* Active menu background: #FFE4E6 -> 353 100% 95% */
-    --sidebar-accent: 353 100% 95%;
-    --sidebar-accent-foreground: 333 71% 51%;
-    /* Sidebar border: #FED7AA -> 33 98% 83% */
-    --sidebar-border: 33 98% 83%;
-    --sidebar-ring: 239 84% 67%;
+    /* Sidebar Accent (Hover): Increased faint purply-depth tones with some perceived dimensional gray shifts underneath to enhance pop more clearly perceived instead of low-contrast flatness */
+    --sidebar-accent: 225 20% 18%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    /* Sidebar Border: Subtle but visible separation */
+    --sidebar-border: 220 18% 28%;
+    --sidebar-ring: 244 63% 65%;
 
-    /* Custom Status Colors */
+    /* Custom Status & Highlight Colors */
     --success: 142 71% 45%;
-    --warning: 38 92% 50%;
+    /* #22C55E */
     --info: 199 89% 48%;
+    /* #38BDF8 */
+    --warning: 27 96% 61%;
+    /* #FB923C */
+    --pink: 333 86% 70%;
+    /* #F472B6 */
+    --teal: 171 66% 50%;
+    /* #2DD4BF */
+    --yellow: 48 96% 53%;
+    /* #FACC15 */
 
-    /* Leaderboard Colors */
+    /* Leaderboard / Rank Colors */
     --rank-gold: 48 96% 53%;
     --rank-silver: 210 24% 84%;
     --rank-bronze: 27 96% 61%;
   }
 
+  /* Force Dark Theme as default */
   .dark {
-    /* Keeping dark mode similar for now, usually Rainbow Pastel implies light theme preference */
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 330 81% 60%;
+    --background: 221 39% 13%;
+    --foreground: 0 0% 97%;
+    --card: 223 24% 12%;
+    --card-foreground: 216 32% 88%;
+    --popover: 223 12% 20%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 251 74% 64%;
     --primary-foreground: 0 0% 100%;
-
-    --secondary: 239 84% 67%;
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 330 81% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --secondary: 215 18% 27%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 220 25% 15%;
+    --muted-foreground: 215 23% 68%;
+    --accent: 240 89% 58%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 88% 64%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 219 18% 26%;
+    --input: 218 14% 35%;
+    --ring: 244 63% 65%;
   }
 }
 
@@ -118,7 +112,12 @@
     @apply bg-background text-foreground transition-colors duration-300;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply text-card-foreground font-bold tracking-tight;
   }
 }

@@ -29,7 +29,7 @@ const PerformanceOverview = ({ recentAttempts }: PerformanceOverviewProps) => {
     if (courseKey === 0) courseName = 'Math 101';
     if (courseKey === 1) courseName = 'Physics 202';
     if (courseKey === 2) courseName = 'CS Fundamentals';
-    
+
     if (!acc[courseName]) {
       acc[courseName] = { totalScore: 0, totalMaxScore: 0, count: 0 };
     }
@@ -52,49 +52,102 @@ const PerformanceOverview = ({ recentAttempts }: PerformanceOverviewProps) => {
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <TrendingUp className="h-5 w-5 text-blue-500" /> Score Trend (Last 5 Quizzes)
+      <Card className="bg-card border-slate-800 shadow-2xl shadow-primary/5 rounded-[32px] overflow-hidden">
+        <CardHeader className="bg-slate-950/20 px-8 py-6 border-b border-slate-800">
+          <CardTitle className="flex items-center gap-3 text-lg font-black text-slate-100 uppercase tracking-tight">
+            <TrendingUp className="h-5 w-5 text-primary" /> Performance Log <span className="text-[10px] text-slate-500 font-bold ml-1">(LATEST 5)</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="h-64">
+        <CardContent className="h-72 p-8 overflow-hidden">
           {scoreTrendData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={scoreTrendData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                <XAxis dataKey="name" stroke="#333" />
-                <YAxis domain={[0, 'dataMax']} stroke="#333" />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={2} name="Score Achieved" />
+              <LineChart data={scoreTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                <XAxis
+                  dataKey="name"
+                  stroke="#475569"
+                  fontSize={10}
+                  fontWeight="bold"
+                  axisLine={false}
+                  tickLine={false}
+                  dy={10}
+                />
+                <YAxis
+                  domain={[0, 'dataMax']}
+                  stroke="#475569"
+                  fontSize={10}
+                  fontWeight="bold"
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#020617', border: '1px solid #1e293b', borderRadius: '12px', fontSize: '10px', color: '#f8fafc', fontWeight: 'bold' }}
+                  itemStyle={{ color: '#6366f1' }}
+                />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'black', textTransform: 'uppercase', letterSpacing: '0.1em', paddingTop: '20px' }} />
+                <Line
+                  type="monotone"
+                  dataKey="score"
+                  stroke="#6366f1"
+                  strokeWidth={4}
+                  dot={{ fill: '#6366f1', strokeWidth: 2, r: 4, stroke: '#020617' }}
+                  activeDot={{ r: 6, strokeWidth: 0 }}
+                  name="Score Achieved"
+                  animationDuration={1500}
+                />
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-center text-gray-500 pt-10">No recent attempts to display trend.</p>
+            <p className="text-center text-slate-500 font-bold uppercase tracking-widest text-[10px] pt-20 italic">Insufficient simulation data.</p>
           )}
         </CardContent>
       </Card>
 
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <Target className="h-5 w-5 text-green-500" /> Accuracy by Course
+      <Card className="bg-card border-slate-800 shadow-2xl shadow-primary/5 rounded-[32px] overflow-hidden">
+        <CardHeader className="bg-slate-950/20 px-8 py-6 border-b border-slate-800">
+          <CardTitle className="flex items-center gap-3 text-lg font-black text-slate-100 uppercase tracking-tight">
+            <Target className="h-5 w-5 text-success" /> Disciplinary Accuracy <span className="text-[10px] text-slate-500 font-bold ml-1">(PER COURSE)</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="h-64">
+        <CardContent className="h-72 p-8 overflow-hidden">
           {accuracyByCourseData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={accuracyByCourseData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                <XAxis dataKey="course" stroke="#333" />
-                <YAxis domain={[0, 100]} tickFormatter={(value) => `${value}%`} stroke="#333" />
-                <Tooltip formatter={(value: number) => [`${value}%`, 'Accuracy']} />
-                <Bar dataKey="accuracy" fill="#10b981" radius={[4, 4, 0, 0]} name="Accuracy (%)" />
+              <BarChart data={accuracyByCourseData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                <XAxis
+                  dataKey="course"
+                  stroke="#475569"
+                  fontSize={10}
+                  fontWeight="bold"
+                  axisLine={false}
+                  tickLine={false}
+                  dy={10}
+                />
+                <YAxis
+                  domain={[0, 100]}
+                  tickFormatter={(value) => `${value}%`}
+                  stroke="#475569"
+                  fontSize={10}
+                  fontWeight="bold"
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                  contentStyle={{ backgroundColor: '#020617', border: '1px solid #1e293b', borderRadius: '12px', fontSize: '10px', color: '#f8fafc', fontWeight: 'bold' }}
+                />
+                <Bar
+                  dataKey="accuracy"
+                  fill="#22c55e"
+                  radius={[10, 10, 0, 0]}
+                  name="Accuracy (%)"
+                  barSize={40}
+                  animationDuration={1500}
+                />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-center text-gray-500 pt-10">No course data available.</p>
+            <p className="text-center text-slate-500 font-bold uppercase tracking-widest text-[10px] pt-20 italic">No course aptitude data detected.</p>
           )}
         </CardContent>
       </Card>
