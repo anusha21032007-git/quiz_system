@@ -15,7 +15,7 @@ app.use(express.json({ limit: '50mb' }));
 const PORT = Number(process.env.PORT) || 5000;
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
 let OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2:3b';
-const GEMINI_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.VITE_GEMINI_API_KEY || 'AIzaSyD7lQtPtOhxM616t0k_QT7aEikbTa8tlKg';
+const GEMINI_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 
 const DEBUG_FILE = path.join(__dirname, 'ai_debug.txt');
 
@@ -50,7 +50,7 @@ app.get('/health', (req, res) => {
         },
         gemini: {
             initialized: !!genAI,
-            model: "gemini-1.5-flash"
+            model: "gemini-flash-latest"
         }
     });
 });
@@ -212,7 +212,7 @@ async function generateWithGemini(params: any): Promise<any> {
     console.log(`[Gemini] Generating ${count || 1} questions for "${topic}"...`);
 
     const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
+        model: "gemini-flash-latest",
         generationConfig: {
             responseMimeType: "application/json",
             temperature: 0.7
