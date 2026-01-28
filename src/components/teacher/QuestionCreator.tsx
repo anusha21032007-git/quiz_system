@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { PlusCircle, Trash2, History, X, Settings2, Save, Send, CheckCircle2, Calendar, Clock, Edit, GraduationCap } from 'lucide-react';
+import { PlusCircle, Trash2, History, X, Settings2, Save, Send, CheckCircle2, Calendar, Clock, Edit, GraduationCap, ArrowLeft } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -43,7 +43,7 @@ interface DraftQuestion {
   timeLimitMinutes: number | '';
 }
 
-const QuestionCreator = () => {
+const QuestionCreator = ({ onBack }: { onBack: () => void }) => {
   const { addQuestion, addQuiz, availableCourses } = useQuiz();
   const navigate = useNavigate();
 
@@ -574,29 +574,32 @@ const QuestionCreator = () => {
   return (
     <div className="space-y-6">
       {isSetupVisible ? (
-        <div className="bg-white rounded-xl shadow-lg border border-blue-100 p-8 space-y-8 animate-in slide-in-from-top-4 duration-300 max-w-5xl mx-auto">
-          <div className="flex items-center gap-3 border-b border-blue-50 pb-4">
-            <Settings2 className="h-6 w-6 text-blue-600" />
-            <h3 className="text-2xl font-bold text-gray-800">Question Setup</h3>
+        <div className="bg-card rounded-xl shadow-lg shadow-blue-900/10 border border-border p-8 space-y-8 animate-in slide-in-from-top-4 duration-300 max-w-5xl mx-auto">
+          <div className="flex items-center gap-3 border-b border-border pb-4">
+            <Button variant="ghost" size="icon" onClick={onBack} className="mr-2">
+              <ArrowLeft className="h-6 w-6 text-muted-foreground" />
+            </Button>
+            <Settings2 className="h-6 w-6 text-primary" />
+            <h3 className="text-2xl font-bold text-foreground">Question Setup</h3>
           </div>
 
           <div className="grid gap-8">
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-3">
-                <Label htmlFor="courseName" className="text-lg font-bold text-gray-700">Course Name</Label>
+                <Label htmlFor="courseName" className="text-lg font-bold text-muted-foreground">Course Name</Label>
                 <Select value={courseName} onValueChange={setCourseName}>
                   <SelectTrigger
                     className={cn(
-                      "h-14 text-xl bg-gray-50/50 focus:bg-white transition-all shadow-sm rounded-xl border-blue-100 focus:border-blue-500",
-                      showErrors && !courseName ? "border-red-500 ring-red-50" : ""
+                      "h-14 text-xl bg-background/50 focus:bg-accent/10 transition-all shadow-sm rounded-xl border-border focus:border-primary",
+                      showErrors && !courseName ? "border-destructive ring-destructive/20" : ""
                     )}
                   >
                     <SelectValue placeholder="Select a course..." />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border-blue-50 shadow-xl">
+                  <SelectContent className="rounded-xl border-border bg-popover text-popover-foreground shadow-xl">
                     {availableCourses.length > 0 ? (
                       availableCourses.map((course) => (
-                        <SelectItem key={course} value={course} className="text-lg py-3 rounded-lg focus:bg-indigo-50">
+                        <SelectItem key={course} value={course} className="text-lg py-3 rounded-lg focus:bg-accent focus:text-accent-foreground cursor-pointer">
                           {course}
                         </SelectItem>
                       ))
@@ -610,74 +613,77 @@ const QuestionCreator = () => {
               </div>
 
               <div className="space-y-3">
-                <Label htmlFor="examName" className="text-lg font-bold text-gray-700">Exam Name</Label>
+                <Label htmlFor="examName" className="text-lg font-bold text-muted-foreground">Exam Name</Label>
                 <Input
                   id="examName"
                   placeholder="e.g. Final Exam"
                   value={questionSetName}
                   onChange={(e) => setQuestionSetName(e.target.value)}
-                  className={`h-14 text-xl bg-gray-50/50 focus:bg-white transition-all shadow-sm ${showErrors && (!questionSetName || !questionSetName.trim()) ? 'border-red-500 ring-red-50' : 'border-blue-100 focus:border-blue-500'}`}
+                  className={`h-14 text-xl bg-background/50 focus:bg-accent/10 transition-all shadow-sm ${showErrors && (!questionSetName || !questionSetName.trim()) ? 'border-destructive ring-destructive/20' : 'border-border focus:border-primary'}`}
                 />
               </div>
             </div>
 
             <div className="grid md:grid-cols-3 gap-6">
               <div className="space-y-3">
-                <Label htmlFor="numQuestions" className="text-lg font-bold text-gray-700">Questions</Label>
+                <Label htmlFor="numQuestions" className="text-lg font-bold text-muted-foreground">Questions</Label>
                 <Input
                   id="numQuestions"
                   type="number"
                   value={numQuestions}
                   onChange={(e) => setNumQuestions(e.target.value === '' ? '' : parseInt(e.target.value))}
-                  className="h-14 text-xl bg-gray-50/50 focus:bg-white transition-all shadow-sm border-blue-100 focus:border-blue-500"
+                  className="h-14 text-xl bg-background/50 focus:bg-accent/10 transition-all shadow-sm border-border focus:border-primary"
                 />
               </div>
               <div className="space-y-3">
-                <Label htmlFor="numOptions" className="text-lg font-bold text-gray-700">Options</Label>
+                <Label htmlFor="numOptions" className="text-lg font-bold text-muted-foreground">Options</Label>
                 <Input
                   id="numOptions"
                   type="number"
                   value={numOptions}
                   onChange={(e) => setNumOptions(e.target.value === '' ? '' : parseInt(e.target.value))}
-                  className="h-14 text-xl bg-gray-50/50 focus:bg-white transition-all shadow-sm border-blue-100 focus:border-blue-500"
+                  className="h-14 text-xl bg-background/50 focus:bg-accent/10 transition-all shadow-sm border-border focus:border-primary"
                 />
               </div>
               <div className="space-y-3">
-                <Label htmlFor="passMark" className="text-lg font-bold text-gray-700">Pass %</Label>
+                <Label htmlFor="passMark" className="text-lg font-bold text-muted-foreground">Pass %</Label>
                 <Input
                   id="passMark"
                   type="number"
                   value={passMarkPercentage}
                   onChange={(e) => setPassMarkPercentage(e.target.value === '' ? '' : parseInt(e.target.value))}
-                  className="h-14 text-xl bg-gray-50/50 focus:bg-white transition-all shadow-sm border-blue-100 focus:border-blue-500"
+                  className="h-14 text-xl bg-background/50 focus:bg-accent/10 transition-all shadow-sm border-border focus:border-primary"
                 />
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end pt-6 border-t border-blue-50 gap-4">
-            <Button variant="ghost" onClick={() => navigate('/teacher')} className="px-6 h-12 font-bold text-gray-400">Cancel</Button>
-            <Button onClick={handleProceed} className="bg-blue-600 hover:bg-blue-700 text-white px-10 h-14 rounded-xl font-black text-lg">Proceed to Draft</Button>
+          <div className="flex justify-end pt-6 border-t border-border gap-4">
+            <Button variant="ghost" onClick={() => navigate('/teacher')} className="px-6 h-12 font-bold text-muted-foreground hover:text-foreground">Cancel</Button>
+            <Button onClick={handleProceed} className="bg-primary hover:bg-primary/90 text-primary-foreground px-10 h-14 rounded-xl font-black text-lg shadow-lg shadow-primary/25">Proceed to Draft</Button>
           </div>
         </div>
       ) : step === 1 ? (
-        <Card className="shadow-lg border-none">
-          <CardHeader className="border-b bg-white rounded-t-lg">
-            <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
-              <PlusCircle className="h-6 w-6 text-blue-600" />
+        <Card className="shadow-lg border-border bg-card">
+          <CardHeader className="border-b border-border bg-card/50 rounded-t-lg">
+            <CardTitle className="flex items-center gap-2 text-2xl font-bold text-foreground">
+              <Button variant="ghost" size="icon" onClick={onBack} className="mr-2 -ml-2">
+                <ArrowLeft className="h-6 w-6 text-muted-foreground" />
+              </Button>
+              <PlusCircle className="h-6 w-6 text-primary" />
               Question Creator
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-8">
-            <Button onClick={handleStartNew} className="w-full bg-green-600 hover:bg-green-700 text-white h-16 rounded-xl shadow-md flex items-center justify-center gap-3 text-xl font-bold">
+            <Button onClick={handleStartNew} className="w-full bg-success hover:bg-success/90 text-white h-16 rounded-xl shadow-md flex items-center justify-center gap-3 text-xl font-bold">
               <PlusCircle className="h-6 w-6" /> + New Question
             </Button>
 
             <div className="space-y-4">
-              <h3 className="text-lg font-bold flex items-center gap-2 text-gray-700"><History className="h-5 w-5" /> Question History</h3>
+              <h3 className="text-lg font-bold flex items-center gap-2 text-muted-foreground"><History className="h-5 w-5" /> Question History</h3>
               <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
                 {polls.map(poll => (
-                  <div key={poll.pollId} className="group flex items-center p-4 bg-gray-50 rounded-xl border border-transparent hover:border-blue-200 hover:bg-white transition-all text-sm">
+                  <div key={poll.pollId} className="group flex items-center p-4 bg-muted/10 rounded-xl border border-transparent hover:border-primary/50 hover:bg-muted/20 transition-all text-sm">
                     <div className="w-1/3 flex items-center gap-3">
                       <div className={`h-1.5 w-1.5 rounded-full ${poll.status === 'pending' ? 'bg-violet-400' : poll.status === 'scheduled' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
                       <span className="font-bold text-gray-800 truncate">{poll.questionSetName || `ID: ${poll.pollId.slice(-6)}`}</span>
@@ -710,24 +716,27 @@ const QuestionCreator = () => {
           </CardContent>
         </Card>
       ) : (
-        <Card className="shadow-lg border-none overflow-hidden">
-          <CardHeader className="border-b bg-white rounded-t-lg">
+        <Card className="shadow-lg border-border bg-card overflow-hidden">
+          <CardHeader className="border-b border-border bg-card/50 rounded-t-lg">
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
-                <PlusCircle className="h-6 w-6 text-blue-600" />
+              <CardTitle className="flex items-center gap-2 text-2xl font-bold text-foreground">
+                <Button variant="ghost" size="icon" onClick={onBack} className="mr-2 -ml-2">
+                  <ArrowLeft className="h-6 w-6 text-muted-foreground" />
+                </Button>
+                <PlusCircle className="h-6 w-6 text-primary" />
                 Drafting: {questionSetName || 'Untitled Quiz'}
               </CardTitle>
             </div>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+            <div className="flex items-center justify-between mb-4 bg-primary/10 p-4 rounded-xl border border-primary/20">
               <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-md">
+                <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg shadow-md shadow-primary/25">
                   {currentQuestionIndex + 1}
                 </div>
                 <div>
-                  <h4 className="font-bold text-gray-700">Question {currentQuestionIndex + 1} of {draftQuestions.length}</h4>
-                  <p className="text-xs text-gray-500 font-medium">Fill in the details for this question.</p>
+                  <h4 className="font-bold text-foreground">Question {currentQuestionIndex + 1} of {draftQuestions.length}</h4>
+                  <p className="text-xs text-muted-foreground font-medium">Fill in the details for this question.</p>
                 </div>
               </div>
 
@@ -735,41 +744,41 @@ const QuestionCreator = () => {
 
             <div className="space-y-12 max-h-[60vh] overflow-y-auto pr-4 p-1">
               {draftQuestions[currentQuestionIndex] && (
-                <Card className="relative overflow-hidden border-2 border-gray-100 hover:border-blue-100 transition-colors shadow-sm animate-in fade-in slide-in-from-right-4 duration-300" key={currentQuestionIndex}>
+                <Card className="relative overflow-hidden border-2 border-border hover:border-primary/50 transition-colors shadow-sm animate-in fade-in slide-in-from-right-4 duration-300 bg-card" key={currentQuestionIndex}>
                   <CardContent className="p-6 space-y-6">
                     <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-600">Question Text</Label>
+                      <Label className="text-sm font-bold text-muted-foreground">Question Text</Label>
                       <Textarea
                         value={draftQuestions[currentQuestionIndex].questionText}
                         onChange={(e) => handleUpdateQuestion(currentQuestionIndex, 'questionText', e.target.value)}
-                        className="min-h-[100px] border-gray-200 text-lg focus:ring-blue-500/20"
+                        className="min-h-[100px] bg-background/50 border-input text-lg focus:ring-primary/20"
                         placeholder="Type your question here..."
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label className="text-sm font-bold text-gray-600">Marks</Label>
+                        <Label className="text-sm font-bold text-muted-foreground">Marks</Label>
                         <Input
                           type="number"
                           value={draftQuestions[currentQuestionIndex].marks}
                           onChange={(e) => handleUpdateQuestion(currentQuestionIndex, 'marks', e.target.value)}
-                          className="font-bold text-blue-600 h-11"
+                          className="font-bold text-primary h-11 bg-background/50 border-input"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-bold text-gray-600">Time (mins)</Label>
+                        <Label className="text-sm font-bold text-muted-foreground">Time (mins)</Label>
                         <Input
                           type="number"
                           step="any"
                           value={draftQuestions[currentQuestionIndex].timeLimitMinutes}
                           onChange={(e) => handleUpdateQuestion(currentQuestionIndex, 'timeLimitMinutes', e.target.value)}
-                          className="font-bold text-blue-600 h-11"
+                          className="font-bold text-primary h-11 bg-background/50 border-input"
                         />
                       </div>
                     </div>
                     <div className="space-y-4">
-                      <Label className="text-sm font-bold text-gray-600">Options & Correct Answer</Label>
-                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                      <Label className="text-sm font-bold text-muted-foreground">Options & Correct Answer</Label>
+                      <div className="bg-muted/30 p-4 rounded-xl border border-border">
                         <RadioGroup
                           value={draftQuestions[currentQuestionIndex].correctAnswer}
                           onValueChange={(val) => handleUpdateQuestion(currentQuestionIndex, 'correctAnswer', val)}
@@ -829,11 +838,11 @@ const QuestionCreator = () => {
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col gap-6 p-6 bg-gray-50/80 border-t rounded-b-lg">
-            <div className="w-full flex items-center justify-between p-4 bg-white rounded-xl border border-blue-100 shadow-sm">
+          <CardFooter className="flex flex-col gap-6 p-6 bg-muted/20 border-t border-border rounded-b-lg">
+            <div className="w-full flex items-center justify-between p-4 bg-card rounded-xl border border-border shadow-sm">
               <div className="flex items-center gap-3">
-                <Calendar className="h-5 w-5 text-blue-600" />
-                <span className="font-bold text-gray-700">Scheduling Options (Optional)</span>
+                <Calendar className="h-5 w-5 text-primary" />
+                <span className="font-bold text-foreground">Scheduling Options (Optional)</span>
               </div>
               <Button variant={showSchedule ? "default" : "outline"} size="sm" onClick={() => setShowSchedule(!showSchedule)}>
                 {showSchedule ? "Hide Schedule" : "Set Schedule"}
@@ -841,31 +850,31 @@ const QuestionCreator = () => {
             </div>
 
             {showSchedule && (
-              <div className="w-full p-4 bg-blue-50/30 rounded-xl border border-blue-100/50 space-y-4 animate-in slide-in-from-top-2 duration-200">
+              <div className="w-full p-4 bg-primary/10 rounded-xl border border-primary/20 space-y-4 animate-in slide-in-from-top-2 duration-200">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-sm font-bold text-gray-600 flex items-center gap-2"><Calendar className="h-4 w-4" /> Date</Label>
-                    <Input type="date" min={new Date().toISOString().split('T')[0]} value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} className="h-10 border-blue-100 bg-white" />
+                    <Label className="text-sm font-bold text-muted-foreground flex items-center gap-2"><Calendar className="h-4 w-4" /> Date</Label>
+                    <Input type="date" min={new Date().toISOString().split('T')[0]} value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} className="h-10 border-input bg-background" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-bold text-gray-600 flex items-center gap-2"><Clock className="h-4 w-4" /> Start Time</Label>
-                    <Input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} className="h-10 border-blue-100 bg-white" />
+                    <Label className="text-sm font-bold text-muted-foreground flex items-center gap-2"><Clock className="h-4 w-4" /> Start Time</Label>
+                    <Input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} className="h-10 border-input bg-background" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-bold text-gray-600 flex items-center gap-2"><Clock className="h-4 w-4" /> End Time</Label>
-                    <Input type="time" value={scheduledEndTime} onChange={(e) => setScheduledEndTime(e.target.value)} className="h-10 border-blue-100 bg-white" />
+                    <Label className="text-sm font-bold text-muted-foreground flex items-center gap-2"><Clock className="h-4 w-4" /> End Time</Label>
+                    <Input type="time" value={scheduledEndTime} onChange={(e) => setScheduledEndTime(e.target.value)} className="h-10 border-input bg-background" />
                   </div>
                 </div>
-                <Button onClick={handleAddToPool} variant="outline" className="w-full border-blue-200 text-blue-700 font-bold h-10 flex items-center justify-center gap-2 hover:bg-blue-50">
+                <Button onClick={handleAddToPool} variant="outline" className="w-full border-primary/50 text-primary font-bold h-10 flex items-center justify-center gap-2 hover:bg-primary/10">
                   <Calendar className="h-4 w-4" /> Schedule Quiz
                 </Button>
               </div>
             )}
 
             <div className="flex gap-4 w-full">
-              <Button variant="outline" onClick={() => setStep(1)} className="px-8 h-12 font-bold">Back</Button>
-              <Button variant="outline" onClick={handleSaveAndExit} className="flex-1 h-12 font-bold border-blue-200 text-blue-600">Save Draft</Button>
-              <Button onClick={handleDirectCreateQuiz} className="flex-1 h-12 font-black bg-green-600 hover:bg-green-700 text-white rounded-2xl shadow-lg">
+              <Button variant="outline" onClick={() => setStep(1)} className="px-8 h-12 font-bold hover:bg-muted/50">Back</Button>
+              <Button variant="outline" onClick={handleSaveAndExit} className="flex-1 h-12 font-bold border-primary/50 text-primary hover:bg-primary/10">Save Draft</Button>
+              <Button onClick={handleDirectCreateQuiz} className="flex-1 h-12 font-black bg-success hover:bg-success/90 text-white rounded-2xl shadow-lg shadow-success/20">
                 <CheckCircle2 className="h-5 w-5 mr-2" /> Create Quiz Now
               </Button>
             </div>

@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import QuizHeader from '@/components/quiz/QuizHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import BackButton from '@/components/ui/BackButton';
+import { cn } from '@/lib/utils';
 
 // Define types for the quiz data loaded from session storage
 interface PreviewQuestion {
@@ -106,12 +107,12 @@ const QuizPreviewPage = () => {
 
   if (!quiz || questions.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-8">
-        <Alert className="max-w-md">
-          <Info className="h-4 w-4" />
-          <AlertTitle>Loading Quiz Preview...</AlertTitle>
-          <AlertDescription>
-            Please wait while the quiz preview loads, or navigate back to the teacher dashboard.
+      <div className="min-h-screen flex items-center justify-center bg-background p-8">
+        <Alert className="max-w-md bg-card border-slate-800 text-slate-300">
+          <Info className="h-4 w-4 text-primary" />
+          <AlertTitle className="text-slate-100 font-black uppercase tracking-widest text-xs">Loading Quiz Preview...</AlertTitle>
+          <AlertDescription className="text-slate-500 italic mt-2">
+            Preparing the simulation environment. Please wait...
           </AlertDescription>
         </Alert>
       </div>
@@ -137,7 +138,7 @@ const QuizPreviewPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-background">
       <QuizHeader
         quizTitle={`${quiz.title} (Preview)`}
         currentQuestionIndex={currentQuestionIndex}
@@ -145,45 +146,73 @@ const QuizPreviewPage = () => {
         timeLeft={timeLeft}
         isMobile={isMobile}
       />
-      <div className="absolute top-20 left-4 z-50">
-        <BackButton className="bg-white border rounded-lg px-4 py-2 shadow-sm hover:shadow-md transition-all" />
+      <div className="absolute top-24 left-8 z-20">
+        <BackButton className="bg-slate-900/50 border-slate-800 text-slate-400 hover:text-slate-100 hover:bg-slate-800 rounded-xl px-5 py-2.5 shadow-xl transition-all" />
       </div>
-      <main className="flex-1 flex items-center justify-center p-4">
-        <Card className="w-full max-w-2xl shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-3xl font-bold text-gray-800 text-center">
-              {quiz.title} <span className="text-blue-500">(Preview Mode)</span>
+      <main className="flex-1 flex items-center justify-center p-6 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.03)_0%,transparent_100%)]">
+        <Card className="w-full max-w-2xl border border-slate-800 shadow-2xl shadow-primary/5 bg-card overflow-hidden rounded-[32px]">
+          <CardHeader className="bg-slate-950/20 px-8 py-8 border-b border-slate-800 text-center">
+            <CardTitle className="text-2xl font-black text-slate-100 uppercase tracking-tight">
+              {quiz.title} <span className="text-primary ml-2">(PREVIEW)</span>
             </CardTitle>
-            <p className="text-center text-gray-600">This is a preview. No answers will be saved.</p>
+            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-2 italic">Simulation Mode: Responses are not recorded</p>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <h2 className="text-2xl font-semibold text-gray-900">{currentQuestion.questionText} ({currentQuestion.marks} marks)</h2>
-            <RadioGroup onValueChange={setSelectedAnswer} value={selectedAnswer || ''} className="space-y-3">
-              {currentQuestion.options.map((option, index) => (
-                <div key={index} className="flex items-center space-x-3 p-3 border rounded-md hover:bg-gray-100 cursor-pointer">
-                  <RadioGroupItem value={option} id={`option-${index}`} disabled /> {/* Disable selection in preview */}
-                  <Label htmlFor={`option-${index}`} className="text-lg font-normal flex-grow cursor-pointer">
-                    {option}
-                  </Label>
-                  {option === currentQuestion.correctAnswer && (
-                    <span className="text-green-600 font-semibold text-sm">(Correct Answer)</span>
-                  )}
-                </div>
-              ))}
-            </RadioGroup>
+          <CardContent className="space-y-8 p-10">
+            <div className="flex justify-between items-center bg-slate-900/50 p-4 rounded-2xl border border-slate-800 mb-2">
+              <span className="text-[11px] font-black text-primary uppercase tracking-[0.2em]">Phase {currentQuestionIndex + 1} of {questions.length}</span>
+              <span className="text-[10px] text-slate-500 font-bold bg-slate-950 px-3 py-1 rounded-full border border-slate-800 uppercase tracking-widest">
+                Valuation: {currentQuestion.marks} Marks
+              </span>
+            </div>
+
+            <h2 className="text-2xl font-bold text-slate-50 leading-tight tracking-tight">{currentQuestion.questionText}</h2>
+
+            <div className="space-y-4">
+              {currentQuestion.options.map((option, index) => {
+                const isCorrect = option === currentQuestion.correctAnswer;
+                return (
+                  <div
+                    key={index}
+                    className={cn(
+                      "w-full p-5 border rounded-2xl relative group overflow-hidden transition-all duration-300",
+                      isCorrect
+                        ? "border-success/30 bg-success/5 shadow-[0_0_20px_-5px_rgba(34,197,94,0.1)]"
+                        : "border-slate-800 bg-slate-950/20"
+                    )}
+                  >
+                    <div className="flex items-center gap-4 relative z-10">
+                      <div className={cn(
+                        "w-7 h-7 rounded-xl border flex items-center justify-center text-xs font-black transition-all",
+                        isCorrect
+                          ? "border-success bg-success text-white shadow-lg shadow-success/20"
+                          : "border-slate-800 bg-slate-900 text-slate-500"
+                      )}>
+                        {String.fromCharCode(65 + index)}
+                      </div>
+                      <span className={cn("font-bold text-lg", isCorrect ? "text-slate-50" : "text-slate-400")}>{option}</span>
+                      {isCorrect && (
+                        <span className="ml-auto text-[10px] font-black uppercase tracking-[0.2em] text-success bg-success/10 px-3 py-1 rounded-full border border-success/20">
+                          Solution
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </CardContent>
-          <CardFooter className="flex justify-between mt-6">
+          <CardFooter className="flex justify-between p-8 border-t border-slate-800 bg-slate-950/20">
             <Button
               onClick={handlePreviousQuestion}
               disabled={currentQuestionIndex === 0}
               variant="outline"
-              className="text-lg px-6 py-3"
+              className="w-32 h-11 font-black uppercase tracking-widest text-xs border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-200 rounded-xl transition-all"
             >
               Previous
             </Button>
             <Button
               onClick={handleNextQuestion}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-6 py-3"
+              className="w-48 h-11 font-black bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 uppercase tracking-widest text-xs rounded-xl"
             >
               {currentQuestionIndex < questions.length - 1 ? 'Next Question' : 'End Preview'}
             </Button>

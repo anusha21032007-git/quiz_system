@@ -22,7 +22,7 @@ interface DraftQuestion {
     hints?: string;
 }
 
-const PdfQuizCreator = () => {
+const PdfQuizCreator = ({ onBack }: { onBack: () => void }) => {
     const { addQuiz } = useQuiz();
     const navigate = useNavigate();
 
@@ -216,9 +216,12 @@ const PdfQuizCreator = () => {
 
     return (
         <div className="space-y-8 pb-20">
-            <Card className="shadow-xl bg-white rounded-3xl overflow-hidden border-0">
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-white">
+            <Card className="shadow-xl bg-card rounded-3xl overflow-hidden border-border">
+                <div className="bg-gradient-to-r from-primary/80 to-secondary/80 p-8 text-primary-foreground">
                     <h2 className="text-3xl font-black flex items-center gap-3">
+                        <Button variant="ghost" size="icon" onClick={onBack} className="-ml-2 mr-1 text-primary-foreground/80 hover:text-white hover:bg-white/10">
+                            <ArrowLeft className="h-8 w-8" />
+                        </Button>
                         <FileText className="h-8 w-8" />
                         Document to Quiz
                     </h2>
@@ -230,8 +233,8 @@ const PdfQuizCreator = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                         <div className="space-y-6">
                             <div className="space-y-2">
-                                <Label className="text-lg font-bold text-gray-700">1. Upload Document</Label>
-                                <div className="border-2 border-dashed border-blue-100 bg-blue-50/30 rounded-2xl p-8 text-center hover:bg-blue-50 transition-colors relative group">
+                                <Label className="text-lg font-bold text-foreground">1. Upload Document</Label>
+                                <div className="border-2 border-dashed border-border bg-muted/20 rounded-2xl p-8 text-center hover:bg-muted/30 transition-colors relative group">
                                     <Input
                                         ref={fileInputRef}
                                         type="file"
@@ -250,20 +253,20 @@ const PdfQuizCreator = () => {
                                         </button>
                                     )}
                                     <div className="flex flex-col items-center gap-3">
-                                        <div className="h-16 w-16 bg-white rounded-2xl shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <div className="h-16 w-16 bg-card rounded-2xl shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
                                             {isExtracting ? (
-                                                <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+                                                <Loader2 className="h-8 w-8 text-primary animate-spin" />
                                             ) : selectedFile ? (
-                                                <FileCheck className="h-8 w-8 text-green-600" />
+                                                <FileCheck className="h-8 w-8 text-success" />
                                             ) : (
-                                                <FileText className="h-8 w-8 text-blue-300" />
+                                                <FileText className="h-8 w-8 text-muted-foreground" />
                                             )}
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="font-bold text-gray-700 text-lg">
+                                            <p className="font-bold text-foreground text-lg">
                                                 {selectedFile ? selectedFile.name : "Click to Upload PDF"}
                                             </p>
-                                            <p className="text-sm text-gray-400 font-medium">Max 20MB • Text-based PDFs only</p>
+                                            <p className="text-sm text-muted-foreground font-medium">Max 20MB • Text-based PDFs only</p>
                                         </div>
                                     </div>
                                 </div>
@@ -271,12 +274,12 @@ const PdfQuizCreator = () => {
 
                             {isExtracting && (
                                 <div className="space-y-2">
-                                    <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-blue-600">
+                                    <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-primary">
                                         <span>Extracting Text...</span>
                                         <span>{extractionProgress}%</span>
                                     </div>
-                                    <div className="h-2 bg-blue-100 rounded-full overflow-hidden">
-                                        <div className="h-full bg-blue-600 transition-all duration-300" style={{ width: `${extractionProgress}%` }} />
+                                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                        <div className="h-full bg-primary transition-all duration-300" style={{ width: `${extractionProgress}%` }} />
                                     </div>
                                 </div>
                             )}
@@ -284,15 +287,15 @@ const PdfQuizCreator = () => {
 
                         {/* CONFIGURATION */}
                         <div className="space-y-6">
-                            <Label className="text-lg font-bold text-gray-700">2. Configuration</Label>
-                            <div className="bg-gray-50 rounded-2xl p-6 space-y-6 border border-gray-100">
+                            <Label className="text-lg font-bold text-foreground">2. Configuration</Label>
+                            <div className="bg-muted/10 rounded-2xl p-6 space-y-6 border border-border">
                                 <div className="space-y-2">
                                     <Label>Course / Subject Name</Label>
                                     <Input
                                         placeholder="e.g. History 101"
                                         value={courseName}
                                         onChange={e => setCourseName(e.target.value)}
-                                        className="bg-white"
+                                        className="bg-background border-input"
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
@@ -308,7 +311,7 @@ const PdfQuizCreator = () => {
                                                 // Sync attend count if it was equal
                                                 if (numAttend === numQuestions) setNumAttend(val);
                                             }}
-                                            className="bg-white font-bold"
+                                            className="bg-background font-bold"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -318,13 +321,13 @@ const PdfQuizCreator = () => {
                                             min={1} max={numQuestions}
                                             value={numAttend}
                                             onChange={e => setNumAttend(Number(e.target.value))}
-                                            className="bg-white font-bold text-blue-600"
+                                            className="bg-background font-bold text-primary"
                                         />
                                     </div>
                                     <div className="space-y-2 col-span-2">
                                         <Label>Difficulty</Label>
                                         <select
-                                            className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                             value={difficulty}
                                             onChange={(e) => setDifficulty(e.target.value as any)}
                                         >
@@ -339,7 +342,7 @@ const PdfQuizCreator = () => {
                             <Button
                                 onClick={handleGenerate}
                                 disabled={!extractedText || isGenerating || isExtracting}
-                                className="w-full h-14 bg-black hover:bg-gray-800 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isGenerating ? (
                                     <span className="flex items-center gap-2">
@@ -360,9 +363,9 @@ const PdfQuizCreator = () => {
 
                     {/* 2. PREVIEW TEXT (Collapsible/Scrollable) */}
                     {extractedText && (
-                        <div className="space-y-3 pt-4 border-t">
-                            <Label className="text-sm font-bold text-gray-500 uppercase tracking-wider">Extracted Context Preview</Label>
-                            <div className="bg-slate-50 p-4 rounded-xl border text-xs text-gray-600 font-mono h-32 overflow-y-auto leading-relaxed">
+                        <div className="space-y-3 pt-4 border-t border-dashed border-border">
+                            <Label className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Extracted Context Preview</Label>
+                            <div className="bg-muted/10 p-4 rounded-xl border border-border text-xs text-muted-foreground font-mono h-32 overflow-y-auto leading-relaxed">
                                 {extractedText.substring(0, 2000)}...
                             </div>
                         </div>
@@ -370,9 +373,9 @@ const PdfQuizCreator = () => {
 
                     {/* 3. GENERATED RESULTS */}
                     {previewQuestions.length > 0 && (
-                        <div className="space-y-6 pt-8 border-t-2 border-dashed">
+                        <div className="space-y-6 pt-8 border-t-2 border-dashed border-border">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-2xl font-black text-gray-800">Generated Preview</h3>
+                                <h3 className="text-2xl font-black text-foreground">Generated Preview</h3>
                                 <div className="flex gap-3">
                                     <Button variant="outline" onClick={() => setPreviewQuestions([])}>Discard</Button>
                                     <Button onClick={handleProceedToEditor} className="bg-green-600 hover:bg-green-700 text-white font-bold px-8">
@@ -383,21 +386,21 @@ const PdfQuizCreator = () => {
 
                             <div className="grid gap-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                                 {previewQuestions.map((q, idx) => (
-                                    <div key={idx} className="p-6 bg-white border-2 border-gray-100 rounded-2xl hover:border-blue-200 transition-colors group">
+                                    <div key={idx} className="p-6 bg-card border-2 border-border rounded-2xl hover:border-primary/30 transition-colors group">
                                         <div className="flex gap-4">
-                                            <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-100 text-blue-700 font-black flex items-center justify-center">{idx + 1}</span>
+                                            <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 text-primary font-black flex items-center justify-center">{idx + 1}</span>
                                             <div className="space-y-3 flex-1">
-                                                <p className="font-bold text-lg text-gray-800">{q.questionText}</p>
+                                                <p className="font-bold text-lg text-foreground">{q.questionText}</p>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                     {q.options.map((opt, oIdx) => (
-                                                        <div key={oIdx} className={`p-3 rounded-lg text-sm font-medium border ${opt === q.correctAnswer ? 'bg-green-50 border-green-200 text-green-800' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>
+                                                        <div key={oIdx} className={`p-3 rounded-lg text-sm font-medium border ${opt === q.correctAnswer ? 'bg-success/10 border-success/30 text-success' : 'bg-muted/10 border-border text-muted-foreground'}`}>
                                                             {opt}
-                                                            {opt === q.correctAnswer && <span className="ml-2 text-green-600">✓</span>}
+                                                            {opt === q.correctAnswer && <span className="ml-2 text-success">✓</span>}
                                                         </div>
                                                     ))}
                                                 </div>
                                                 {q.hints && (
-                                                    <div className="text-xs text-blue-500 bg-blue-50 p-2 rounded inline-block font-medium">
+                                                    <div className="text-xs text-info bg-info/10 p-2 rounded inline-block font-medium">
                                                         ℹ️ {q.hints}
                                                     </div>
                                                 )}

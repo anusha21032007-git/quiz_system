@@ -4,63 +4,64 @@
 
 @layer base {
   :root {
-    /* App background: #FFFBEB -> 48 100% 96% */
-    --background: 48 100% 96%;
-    /* Body text: #374151 -> 215 19% 27% */
-    --foreground: 215 19% 27%;
+    /* Main app background: #050B1A */
+    --background: 222 69% 6%;
+    /* Primary text: #FFFFFF */
+    --foreground: 0 0% 100%;
 
-    /* Card background: #FFFFFF -> 0 0% 100% */
-    --card: 0 0% 100%;
-    /* Headings text: #1F2937 -> 215 28% 17% */
-    --card-foreground: 215 28% 17%;
+    /* Sidebar / Cards / Panels: #0C1B33 */
+    --card: 217 62% 12%;
+    /* Card foreground: #94A3B8 */
+    --card-foreground: 215 20% 65%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 215 28% 17%;
+    /* Popovers: #0C1B33 */
+    --popover: 217 62% 12%;
+    --popover-foreground: 0 0% 100%;
 
-    /* Primary button: #EC4899 -> 330 81% 60% */
-    --primary: 330 81% 60%;
+    /* Primary Accent: #3B82F6 (Neon Blue) */
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary button: #6366F1 -> 239 84% 67% */
+    /* Secondary Accent: #6366F1 (Indigo) */
     --secondary: 239 84% 67%;
     --secondary-foreground: 0 0% 100%;
 
-    /* Muted/label text: #9CA3AF -> 215 14% 65% */
-    --muted: 215 14% 96%;
-    --muted-foreground: 215 14% 65%;
+    /* Muted Text: #94A3B8 */
+    --muted: 215 20% 65%;
+    --muted-foreground: 215 20% 65%;
 
-    /* Hover background: #FDE68A -> 47 97% 77% */
-    --accent: 47 97% 77%;
-    --accent-foreground: 215 19% 27%;
+    /* Hover State / Accent: Neon Blue Glow */
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
 
-    /* Danger actions: #EF4444 -> 0 84% 60% */
+    /* Danger Actions: #EF4444 */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Card border: #E5E7EB -> 220 14% 91% */
-    --border: 220 14% 91%;
-    --input: 220 14% 91%;
-    --ring: 330 81% 60%;
+    /* Borders: #1E293B */
+    --border: 215 32% 17%;
+    --input: 217 33% 17%;
+    --ring: 217 91% 60%;
 
     --radius: 0.75rem;
 
-    /* Sidebar background: #FFF7ED -> 33 100% 96% */
-    --sidebar-background: 33 100% 96%;
-    /* Sidebar text: #374151 -> 215 19% 27% */
-    --sidebar-foreground: 215 19% 27%;
-    /* Active menu text: #DB2777 -> 333 71% 51% */
-    --sidebar-primary: 333 71% 51%;
+    /* Sidebar Background: #071225 */
+    --sidebar-background: 218 68% 9%;
+    /* Sidebar Foreground: #94A3B8 */
+    --sidebar-foreground: 215 20% 65%;
+    /* Sidebar Primary (Active): #3B82F6 */
+    --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    /* Active menu background: #FFE4E6 -> 353 100% 95% */
-    --sidebar-accent: 353 100% 95%;
-    --sidebar-accent-foreground: 333 71% 51%;
-    /* Sidebar border: #FED7AA -> 33 98% 83% */
-    --sidebar-border: 33 98% 83%;
-    --sidebar-ring: 239 84% 67%;
+    /* Sidebar Accent (Hover): #0C1B33 */
+    --sidebar-accent: 217 62% 12%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    /* Sidebar Border: #1E293B */
+    --sidebar-border: 215 32% 17%;
+    --sidebar-ring: 217 91% 60%;
 
-    /* Custom Status Colors */
+    /* Custom Status & Highlights */
     --success: 142 71% 45%;
-    --warning: 38 92% 50%;
+    --warning: 48 96% 51%;
     --info: 199 89% 48%;
 
     /* Leaderboard Colors */
@@ -70,42 +71,33 @@
   }
 
   .dark {
-    /* Keeping dark mode similar for now, usually Rainbow Pastel implies light theme preference */
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 330 81% 60%;
+    --background: 222 69% 6%;
+    --foreground: 0 0% 100%;
+    --card: 217 62% 12%;
+    --card-foreground: 215 20% 65%;
+    --popover: 217 62% 12%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
-
     --secondary: 239 84% 67%;
     --secondary-foreground: 0 0% 100%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 330 81% 60%;
+    --muted: 215 20% 65%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 32% 17%;
+    --input: 217 33% 17%;
+    --ring: 217 91% 60%;
+    --sidebar-background: 218 68% 9%;
+    --sidebar-foreground: 215 20% 65%;
+    --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 217 62% 12%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 215 32% 17%;
+    --sidebar-ring: 217 91% 60%;
   }
 }
 
@@ -118,7 +110,12 @@
     @apply bg-background text-foreground transition-colors duration-300;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply text-card-foreground font-bold tracking-tight;
   }
 }

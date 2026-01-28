@@ -44,22 +44,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const StatCard = ({ title, value, trend, icon: Icon, color, isLoading }: any) => (
-  <div className={cn("bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm transition-all hover:shadow-md", color)}>
+  <div className={cn("bg-card p-6 rounded-[24px] border border-slate-800 shadow-sm transition-all hover:shadow-lg hover:scale-[1.02]", color)}>
     <div className="flex justify-between items-start mb-4">
       <div>
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{title}</p>
-        <p className="text-3xl font-bold text-slate-900">
-          {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-indigo-600" /> : value}
+        <p className="text-3xl font-bold text-slate-50">
+          {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : value}
         </p>
       </div>
-      <div className={cn("p-2 rounded-xl", color.replace('bg-', 'bg-').replace('border-', 'bg-').split(' ')[0] + "/10")}>
-        <Icon className={cn("h-5 w-5", color.replace('bg-', 'text-').split(' ')[1])} />
+      <div className={cn("p-2 rounded-xl bg-opacity-10", color.replace('text-', 'bg-'))}>
+        <Icon className={cn("h-5 w-5", color)} />
       </div>
     </div>
-    <div className="flex items-center gap-1 text-xs font-semibold text-emerald-500">
+    <div className="flex items-center gap-1 text-xs font-semibold text-success">
       <TrendingUp className="h-3 w-3" />
       <span>{trend}</span>
-      <span className="text-slate-400 font-normal ml-1">from last month</span>
+      <span className="text-slate-500 font-normal ml-1">from last month</span>
     </div>
   </div>
 );
@@ -262,55 +262,40 @@ const TeacherDashboard = () => {
       {/* Welcome Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight">
-            Welcome back, <span className="text-indigo-600 underline decoration-indigo-200 underline-offset-8">{teacherData?.full_name || user?.email?.split('@')[0] || 'Professor'}</span>
+          <h2 className="text-4xl font-extrabold text-slate-50 tracking-tight">
+            Welcome back, <span className="text-primary underline decoration-primary/30 underline-offset-8">{teacherData?.full_name || user?.email?.split('@')[0] || 'Professor'}</span>
           </h2>
-          <p className="text-slate-500 mt-2 font-medium">Here's a professional overview of your classes today.</p>
+          <p className="text-slate-400 mt-2 font-medium">Here's a professional overview of your classes today.</p>
         </div>
-        <div className="flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100">
-          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-          <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Live Status: Academic Active</span>
+        <div className="flex items-center gap-2 bg-success/10 px-4 py-2 rounded-full border border-success/20">
+          <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
+          <span className="text-xs font-bold text-success uppercase tracking-wider">Live Status: Academic Active</span>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Students"
-          value={studentCount}
-          trend="+12%"
-          icon={UsersIcon}
-          color="border-indigo-100"
-          isLoading={isStudentCountLoading}
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <StatCard
           title="Active Quizzes"
           value={activeQuizzesCount}
           trend="+12%"
           icon={BookOpen}
-          color="border-indigo-100"
+          color="text-info"
           isLoading={isQuizzesLoading}
-        />
-        <StatCard
-          title="Avg. Attendance"
-          value="82%"
-          trend="+12%"
-          icon={TrendingUp}
-          color="border-emerald-100"
         />
         <StatCard
           title="Top Ranks"
           value={topRanksData}
           trend="+12%"
           icon={Trophy}
-          color="border-orange-100"
+          color="text-yellow"
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recent Activity */}
-        <div className="lg:col-span-3 bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm">
-          <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+        <div className="lg:col-span-3 bg-card rounded-[32px] border border-slate-800 p-8 shadow-sm">
+          <h3 className="text-lg font-bold text-slate-50 mb-6 flex items-center gap-2">
             Recent Activity (Last 24h)
           </h3>
           <div className="space-y-2">
@@ -345,16 +330,15 @@ const TeacherDashboard = () => {
       case 'quizzes': return <AvailableQuizzesList quizzes={quizzes} />;
       case 'courses': return <CoursesList />;
       case 'users': return <UsersList />;
-      case 'history': return <HistoryList />;
       default: return overviewContent;
     }
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50/50">
+    <div className="min-h-screen flex bg-background">
       {/* Sidebar - Desktop */}
       {!isMobile && (
-        <aside className="w-72 fixed h-screen bg-white">
+        <aside className="w-72 fixed h-screen bg-card text-card-foreground">
           <TeacherSidebar activeView={activeView} isMobile={false} />
         </aside>
       )}
@@ -362,55 +346,55 @@ const TeacherDashboard = () => {
       {/* Main Content */}
       <div className={cn("flex-1 flex flex-col min-h-screen", !isMobile && "ml-72")}>
         {/* Top Header */}
-        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 px-8 flex items-center justify-between sticky top-0 z-30">
+        <header className="h-20 bg-background/80 backdrop-blur-md border-b border-slate-800 px-8 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-4 flex-1 max-w-xl">
             {isMobile && <TeacherSidebar activeView={activeView} isMobile={true} />}
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
               <Input
                 placeholder="Search students, quizzes..."
-                className="pl-10 h-11 bg-slate-50 border-none rounded-xl w-full focus-visible:ring-indigo-500/20 focus-visible:ring-2"
+                className="pl-10 h-11 bg-[#020617] border border-slate-800 rounded-xl w-full text-slate-200 placeholder:text-slate-500 focus-visible:ring-primary/20 focus-visible:ring-2 focus-visible:border-primary transition-all duration-300"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-6 pl-6 border-l border-slate-100 ml-6">
-            <button className="relative p-2 text-slate-400 hover:text-slate-900 transition-colors">
+          <div className="flex items-center gap-6 pl-6 border-l border-slate-800 ml-6">
+            <button className="relative p-2 text-slate-400 hover:text-slate-100 transition-colors">
               <Bell className="h-5 w-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0F172A]" />
             </button>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <div className="flex items-center gap-3 cursor-pointer p-2 hover:bg-slate-50 rounded-xl transition-colors">
+                <div className="flex items-center gap-3 cursor-pointer p-2 hover:bg-slate-800/50 rounded-xl transition-colors">
                   <div className="text-right hidden sm:block">
-                    <p className="text-sm font-bold text-slate-900">{teacherData?.full_name || user?.email?.split('@')[0] || 'Teacher'}</p>
-                    <p className="text-[10px] text-slate-500 font-medium">{teacherData?.department || 'No Department'}</p>
+                    <p className="text-sm font-bold text-slate-100">{teacherData?.full_name || user?.email?.split('@')[0] || 'Teacher'}</p>
+                    <p className="text-[10px] text-slate-400 font-medium">{teacherData?.department || 'No Department'}</p>
                   </div>
-                  <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
-                    <User className="h-5 w-5 text-indigo-600" />
+                  <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                    <User className="h-5 w-5 text-primary" />
                   </div>
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64" sideOffset={8}>
+              <DropdownMenuContent align="end" className="w-64 bg-slate-900 border-slate-800 text-slate-100" sideOffset={8}>
                 <DropdownMenuLabel className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
-                    <User className="h-5 w-5 text-indigo-600" />
+                  <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                    <User className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex flex-col space-y-0.5">
-                    <p className="text-sm font-bold leading-none text-slate-900">{teacherData?.full_name || "Teacher Account"}</p>
-                    <p className="text-xs leading-none text-muted-foreground flex items-center gap-1">
+                    <p className="text-sm font-bold leading-none text-slate-100">{teacherData?.full_name || "Teacher Account"}</p>
+                    <p className="text-xs leading-none text-slate-400 flex items-center gap-1">
                       <Mail className="h-3 w-3" /> {user?.email}
                     </p>
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setIsProfileEditOpen(true)} className="cursor-pointer">
+                <DropdownMenuSeparator className="bg-slate-800" />
+                <DropdownMenuItem onClick={() => setIsProfileEditOpen(true)} className="cursor-pointer focus:bg-slate-800 focus:text-slate-100">
                   <Edit className="mr-2 h-4 w-4" />
                   <span>Edit Profile</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => signOut()} className="text-red-600 cursor-pointer focus:text-red-600 focus:bg-red-50">
+                <DropdownMenuSeparator className="bg-slate-800" />
+                <DropdownMenuItem onClick={() => signOut()} className="text-red-400 cursor-pointer focus:text-red-400 focus:bg-red-400/10">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Logout</span>
                 </DropdownMenuItem>
@@ -423,7 +407,7 @@ const TeacherDashboard = () => {
         <TeacherProfileEdit open={isProfileEditOpen} onOpenChange={setIsProfileEditOpen} />
 
         {/* Content Area */}
-        <main className="flex-1 p-8 lg:p-12 max-w-[1600px] mx-auto w-full">
+        <main className="flex-1 pt-1 px-8 pb-8 lg:pt-2 lg:px-12 lg:pb-12 max-w-[1600px] mx-auto w-full">
           {renderContent()}
         </main>
       </div>

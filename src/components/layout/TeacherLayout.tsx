@@ -16,13 +16,13 @@ const TeacherLayout = ({ children, activeView, title = "Teacher Dashboard" }: Te
     const isMobile = useIsMobile();
 
     return (
-        <div className="min-h-screen flex flex-col bg-gray-50">
-            <header className="flex items-center justify-between p-4 border-b bg-white shadow-sm lg:hidden">
+        <div className="min-h-screen flex flex-col bg-background">
+            <header className="flex items-center justify-between p-4 border-b border-slate-800 bg-card shadow-sm lg:hidden">
                 <div className="flex items-center gap-2">
                     <TeacherSidebar activeView={activeView} isMobile={isMobile} />
-                    <BackButton />
+                    <BackButton className="text-slate-400 font-bold" />
                 </div>
-                <h1 className="text-xl font-bold text-gray-800">{title}</h1>
+                <h1 className="text-xl font-black text-slate-50 uppercase tracking-tight">{title}</h1>
             </header>
 
             <div className="flex flex-1">
@@ -33,11 +33,11 @@ const TeacherLayout = ({ children, activeView, title = "Teacher Dashboard" }: Te
                         </ResizablePanel>
                         <ResizableHandle withHandle />
                         <ResizablePanel defaultSize={80}>
-                            <main className="flex-1 p-8 overflow-auto">
+                            <main className="flex-1 p-8 overflow-auto CustomScrollbar">
                                 <div className="space-y-4 mb-8">
-                                    <div className="flex items-center gap-4">
-                                        <BackButton className="bg-white border rounded-lg px-4 py-2 shadow-sm hover:shadow-md transition-all" />
-                                        <h1 className="text-4xl font-bold text-gray-800 hidden lg:block">{title}</h1>
+                                    <div className="flex items-center gap-6">
+                                        <BackButton className="bg-card border-slate-800 text-slate-400 rounded-[14px] px-5 py-2.5 shadow-xl hover:shadow-primary/5 hover:text-primary hover:border-primary/30 transition-all font-bold uppercase text-[10px] tracking-widest" />
+                                        <h1 className="text-4xl font-black text-slate-50 hidden lg:block uppercase tracking-tighter leading-none">{title}</h1>
                                     </div>
                                 </div>
                                 {children}
@@ -46,9 +46,9 @@ const TeacherLayout = ({ children, activeView, title = "Teacher Dashboard" }: Te
                     </ResizablePanelGroup>
                 )}
                 {isMobile && (
-                    <main className="flex-1 p-4 overflow-auto">
-                        <div className="mb-4">
-                            <BackButton className="bg-white border rounded-lg px-4 py-2 shadow-sm" />
+                    <main className="flex-1 p-4 overflow-auto CustomScrollbar">
+                        <div className="mb-6">
+                            <BackButton className="bg-card border-slate-800 text-slate-400 rounded-xl px-4 py-2.5 shadow-lg font-bold uppercase text-[10px] tracking-widest" />
                         </div>
                         {children}
                     </main>

@@ -11,7 +11,6 @@ import {
   PlusCircle,
   Users,
   Trophy,
-  History,
   LogOut,
   GraduationCap,
   BookOpen
@@ -28,28 +27,26 @@ const TeacherSidebar = ({ activeView, isMobile }: TeacherSidebarProps) => {
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard, path: '/teacher?view=overview' },
-    { id: 'create-quiz', label: 'Create Quiz', icon: PlusCircle, path: '/teacher?view=create-quiz' },
     { id: 'quizzes', label: 'Quizzes', icon: BookOpen, path: '/teacher?view=quizzes' },
     { id: 'courses', label: 'Courses', icon: GraduationCap, path: '/teacher?view=courses' },
     { id: 'users', label: 'Users', icon: Users, path: '/teacher?view=users' },
     { id: 'leaderboard', label: 'Global Leaderboard', icon: Trophy, path: '/leaderboard' },
-    { id: 'history', label: 'History', icon: History, path: '/teacher/history' },
   ];
 
   const renderNav = () => (
-    <div className="flex flex-col h-full bg-white text-slate-600">
+    <div className="flex flex-col h-full bg-sidebar text-slate-400">
       <div className="p-6 flex items-center gap-3">
-        <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
-          <GraduationCap className="h-6 w-6 text-indigo-600" />
+        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+          <GraduationCap className="h-6 w-6 text-primary" />
         </div>
-        <span className="text-xl font-bold text-indigo-950 tracking-tight">QUIZ MANAGEMENT SYSTEM</span>
+        <span className="text-xl font-bold text-slate-50 tracking-tight">QUIZ MANAGEMENT SYSTEM</span>
       </div>
 
       <div className="px-6 py-4">
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Core Management</p>
         <nav className="space-y-1">
           {navItems.map((item) => {
-            const isActive = activeView === item.id || (item.id === 'overview' && activeView === 'create-quiz');
+            const isActive = activeView === item.id || (item.id === 'quizzes' && activeView === 'create-quiz');
             return (
               <Link key={item.id} to={item.path} className="block">
                 <Button
@@ -69,19 +66,18 @@ const TeacherSidebar = ({ activeView, isMobile }: TeacherSidebarProps) => {
       </div>
 
       <div className="mt-auto p-6">
-        <div className="bg-sidebar/50 rounded-2xl p-5 border border-sidebar-border/50 mb-4">
-          <p className="text-[10px] font-bold text-sidebar-primary/70 uppercase tracking-widest mb-1">Teacher Account</p>
-          <p className="text-xs font-semibold text-sidebar-foreground truncate">{teacherData?.full_name || user?.email}</p>
+        <div className="bg-slate-900/50 rounded-2xl p-5 border border-slate-800/50 mb-4">
+          <p className="text-[10px] font-bold text-primary/70 uppercase tracking-widest mb-1">Teacher Account</p>
+          <p className="text-xs font-semibold text-slate-300 truncate">{teacherData?.full_name || user?.email}</p>
         </div>
 
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-3 h-11 px-4 text-slate-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all duration-200"
+        <button
+          className="w-full flex items-center gap-3 h-11 px-4 text-slate-400 hover:bg-red-500/10 hover:text-red-400 rounded-xl transition-all duration-200"
           onClick={signOut}
         >
           <LogOut className="h-5 w-5" />
           <span className="font-medium">Logout</span>
-        </Button>
+        </button>
       </div>
     </div>
   );
@@ -95,7 +91,7 @@ const TeacherSidebar = ({ activeView, isMobile }: TeacherSidebarProps) => {
             <span className="sr-only">Toggle Menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="p-0 w-72 bg-white border-r border-slate-100">
+        <SheetContent side="left" className="p-0 w-72 bg-sidebar border-r border-slate-800">
           {renderNav()}
         </SheetContent>
       </Sheet>

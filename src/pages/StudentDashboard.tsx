@@ -42,20 +42,21 @@ const StudentDashboard = () => {
 
   if (isCompetitiveMode) {
     return (
-      <div className="h-screen bg-white">
+      <div className="h-screen bg-background">
         <StudentDashboardContent activeView={activeView} studentName={studentName} registerNumber={registerNumber} />
       </div>
     );
   }
+
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
-      <header className="flex items-center justify-between p-4 border-b bg-white shadow-sm lg:hidden flex-shrink-0">
+    <div className="h-screen flex flex-col bg-background">
+      <header className="flex items-center justify-between p-4 border-b border-slate-800 bg-card shadow-lg lg:hidden flex-shrink-0">
         <div className="flex items-center gap-2">
           <StudentSidebar activeView={activeView} setActiveView={handleViewChange} isMobile={isMobile} />
           <BackButton onClick={handleBack} className="lg:hidden" />
         </div>
-        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-          <LayoutDashboard className="h-6 w-6" /> Student Portal
+        <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
+          <LayoutDashboard className="h-6 w-6 text-primary" /> Student Portal
         </h1>
       </header>
 
@@ -68,10 +69,10 @@ const StudentDashboard = () => {
 
         <div className="flex-1 flex flex-col overflow-hidden">
           {!isMobile && (
-            <header className="flex justify-between items-center px-8 py-4 border-b bg-white shadow-sm flex-shrink-0">
+            <header className="flex justify-between items-center px-8 py-4 border-b border-slate-800 bg-card shadow-md flex-shrink-0">
               <div className="space-y-2">
                 <BackButton onClick={handleBack} />
-                <h1 className="text-4xl font-bold text-gray-800">Student Portal</h1>
+                <h1 className="text-4xl font-bold text-slate-100">Student Portal</h1>
               </div>
               <StudentProfileHeader studentName={studentName} registerNumber={registerNumber} />
             </header>

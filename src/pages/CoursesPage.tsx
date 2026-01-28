@@ -73,17 +73,17 @@ const CoursesPage = () => {
         <TeacherLayout activeView="courses" title="Courses Management">
             <div className="space-y-8 animate-in fade-in duration-500">
                 {/* Add Course Section */}
-                <Card className="shadow-lg border-blue-100 bg-white">
-                    <CardHeader>
-                        <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                            <PlusCircle className="h-6 w-6 text-blue-600" />
+                <Card className="shadow-2xl border-slate-800 bg-card overflow-hidden rounded-[32px]">
+                    <CardHeader className="bg-slate-950/20 px-8 py-6 border-b border-slate-800">
+                        <CardTitle className="text-xl font-black text-slate-100 flex items-center gap-3 uppercase tracking-tight">
+                            <PlusCircle className="h-6 w-6 text-primary" />
                             Add Course
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-4 p-8">
                         <div className="flex flex-col gap-2">
-                            <Label htmlFor="courseName" className="text-sm font-semibold text-gray-700">Course Name</Label>
-                            <div className="flex gap-3">
+                            <Label htmlFor="courseName" className="text-xs font-black text-slate-300 uppercase tracking-widest pl-1">Course Name</Label>
+                            <div className="flex gap-4">
                                 <Input
                                     id="courseName"
                                     placeholder="e.g., Data Structures and Algorithms"
@@ -92,10 +92,10 @@ const CoursesPage = () => {
                                         setNewCourseName(e.target.value);
                                         if (e.target.value.trim()) setError('');
                                     }}
-                                    className={cn("flex-1", error && "border-red-500 focus-visible:ring-red-500")}
+                                    className={cn("flex-1 h-12 bg-slate-900 border-slate-800 text-slate-100 placeholder-slate-600 focus:bg-slate-900/50 focus:border-primary focus:ring-primary/20 rounded-xl transition-all", error && "border-danger focus-visible:ring-danger/20")}
                                     onKeyDown={(e) => e.key === 'Enter' && handleAddCourse()}
                                 />
-                                <Button onClick={handleAddCourse} className="bg-blue-600 hover:bg-blue-700">
+                                <Button onClick={handleAddCourse} className="bg-primary hover:bg-primary/90 text-white h-12 px-8 rounded-xl font-black uppercase text-xs tracking-widest shadow-lg shadow-primary/20 transition-all active:scale-[0.98]">
                                     Add Course
                                 </Button>
                             </div>
@@ -110,36 +110,36 @@ const CoursesPage = () => {
                 </Card>
 
                 {/* Courses List Section */}
-                <Card className="shadow-lg border-gray-100 bg-white">
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                            <BookOpen className="h-6 w-6 text-indigo-600" />
+                <Card className="shadow-2xl border-slate-800 bg-card overflow-hidden rounded-[32px]">
+                    <CardHeader className="flex flex-row items-center justify-between bg-slate-950/20 px-8 py-6 border-b border-slate-800">
+                        <CardTitle className="text-xl font-black text-slate-100 flex items-center gap-3 uppercase tracking-tight">
+                            <BookOpen className="h-6 w-6 text-primary" />
                             Course List
                         </CardTitle>
-                        <span className="text-sm text-gray-500 font-medium bg-gray-50 px-3 py-1 rounded-full border">
+                        <span className="text-[10px] text-primary font-bold uppercase tracking-widest bg-primary/10 px-4 py-1.5 rounded-full border border-primary/20">
                             {courses.length} Courses Total
                         </span>
                     </CardHeader>
-                    <CardContent>
-                        <div className="rounded-md border overflow-hidden">
+                    <CardContent className="p-0">
+                        <div className="overflow-hidden">
                             <Table>
-                                <TableHeader className="bg-gray-50/50">
-                                    <TableRow>
-                                        <TableHead className="font-bold py-4 text-gray-700">Course Name</TableHead>
-                                        <TableHead className="font-bold py-4 w-[200px] text-gray-700">Created Date</TableHead>
+                                <TableHeader>
+                                    <TableRow className="bg-slate-900/50 hover:bg-slate-900/50 border-slate-800">
+                                        <TableHead className="font-bold py-4 text-slate-400 uppercase tracking-widest text-[10px] pl-8">Course Name</TableHead>
+                                        <TableHead className="font-bold py-4 w-[200px] text-slate-400 uppercase tracking-widest text-[10px] pr-8">Created Date</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {courses.length > 0 ? (
                                         courses.map((course) => (
-                                            <TableRow key={course.id} className="hover:bg-blue-50/30 transition-colors group">
-                                                <TableCell className="font-medium text-gray-900 py-4">{course.name}</TableCell>
-                                                <TableCell className="text-gray-500 py-4">{course.createdDate}</TableCell>
+                                            <TableRow key={course.id} className="hover:bg-slate-900/30 transition-colors border-slate-800/50 group">
+                                                <TableCell className="font-bold text-slate-100 py-5 pl-8">{course.name}</TableCell>
+                                                <TableCell className="text-slate-400 py-5 font-mono text-xs pr-8">{course.createdDate}</TableCell>
                                             </TableRow>
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={2} className="text-center py-12 text-gray-400">
+                                            <TableCell colSpan={2} className="text-center py-12 text-slate-500 font-bold uppercase tracking-widest text-[10px]">
                                                 No courses found. Add your first course above.
                                             </TableCell>
                                         </TableRow>
