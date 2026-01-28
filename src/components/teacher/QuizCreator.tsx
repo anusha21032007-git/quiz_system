@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, Eye, Save, Brain, ListChecks, Info, Wand2, Calendar, Clock } from 'lucide-react';
+import { PlusCircle, Trash2, Eye, Save, Brain, ListChecks, Info, Wand2, Calendar, Clock, ArrowLeft } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
@@ -66,7 +66,7 @@ interface StoredQuiz {
   }[];
 }
 
-const QuizCreator = () => {
+const QuizCreator = ({ onBack }: { onBack: () => void }) => {
   const navigate = useNavigate();
   const { generateAIQuestions, addQuiz, availableCourses } = useQuiz(); // Removed addQuestion
 
@@ -608,10 +608,13 @@ const QuizCreator = () => {
   };
 
   return (
-    <Card className="shadow-lg">
+    <Card className="shadow-lg bg-card border-border">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-2xl">
-          <ListChecks className="h-6 w-6" /> {step === 1 ? 'Configure Quiz' : 'Manage Questions'}
+        <CardTitle className="flex items-center gap-2 text-2xl text-foreground">
+          <Button variant="ghost" size="icon" onClick={onBack} className="mr-2 -ml-2">
+            <ArrowLeft className="h-6 w-6 text-muted-foreground" />
+          </Button>
+          <ListChecks className="h-6 w-6 text-primary" /> {step === 1 ? 'Configure Quiz' : 'Manage Questions'}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -636,13 +639,13 @@ const QuizCreator = () => {
             onValueChange={(value) => handleUpdateQuizDetails('courseName', value)}
             disabled={step === 2}
           >
-            <SelectTrigger className="w-full mt-1 h-12 rounded-xl border-slate-200">
+            <SelectTrigger className="w-full mt-1 h-12 rounded-xl border-border bg-background">
               <SelectValue placeholder="Select a course..." />
             </SelectTrigger>
-            <SelectContent className="rounded-xl shadow-xl">
+            <SelectContent className="rounded-xl shadow-xl border-border bg-popover text-popover-foreground">
               {availableCourses.length > 0 ? (
                 availableCourses.map((course) => (
-                  <SelectItem key={course} value={course} className="py-3 focus:bg-indigo-50">
+                  <SelectItem key={course} value={course} className="py-3 focus:bg-accent focus:text-accent-foreground cursor-pointer">
                     {course}
                   </SelectItem>
                 ))
@@ -663,26 +666,26 @@ const QuizCreator = () => {
         </div>
 
         {/* Scheduling Inputs */}
-        <div className="border-t pt-4 mt-4">
-          <div className="w-full flex items-center justify-between p-4 bg-white rounded-xl border border-blue-100 shadow-sm mb-4">
+        <div className="border-t border-border pt-4 mt-4">
+          <div className="w-full flex items-center justify-between p-4 bg-muted/20 rounded-xl border border-border shadow-sm mb-4">
             <div className="flex items-center gap-3">
-              <Calendar className="h-5 w-5 text-blue-600" />
-              <span className="font-bold text-gray-700">Scheduling Options (Optional)</span>
+              <Calendar className="h-5 w-5 text-primary" />
+              <span className="font-bold text-foreground">Scheduling Options (Optional)</span>
             </div>
             <Button
               variant={showSchedule ? "default" : "outline"}
               size="sm"
               onClick={() => setShowSchedule(!showSchedule)}
-              className={showSchedule ? "bg-blue-600 text-white" : "text-blue-600 border-blue-200"}
+              className={showSchedule ? "bg-primary text-primary-foreground" : "text-primary border-primary/30 hover:bg-primary/10"}
             >
               {showSchedule ? "Hide Schedule" : "Set Schedule"}
             </Button>
           </div>
 
           {showSchedule && (
-            <div className="grid gap-4 md:grid-cols-3 animate-in slide-in-from-top-2 duration-200 bg-blue-50/30 p-4 rounded-xl border border-blue-100/50">
+            <div className="grid gap-4 md:grid-cols-3 animate-in slide-in-from-top-2 duration-200 bg-primary/10 p-4 rounded-xl border border-primary/20">
               <div>
-                <Label htmlFor="scheduledDate" className="flex items-center gap-2 mb-1"><Calendar className="h-4 w-4 text-gray-500" /> Date</Label>
+                <Label htmlFor="scheduledDate" className="flex items-center gap-2 mb-1"><Calendar className="h-4 w-4 text-muted-foreground" /> Date</Label>
                 <Input
                   id="scheduledDate"
                   type="date"
@@ -690,29 +693,29 @@ const QuizCreator = () => {
                   value={quizData.scheduledDate}
                   disabled={step === 2}
                   onChange={(e) => handleUpdateQuizDetails('scheduledDate', e.target.value)}
-                  className="mt-1 bg-white"
+                  className="mt-1 bg-background border-input"
                 />
               </div>
               <div>
-                <Label htmlFor="startTime" className="flex items-center gap-2 mb-1"><Clock className="h-4 w-4 text-gray-500" /> Start Time</Label>
+                <Label htmlFor="startTime" className="flex items-center gap-2 mb-1"><Clock className="h-4 w-4 text-muted-foreground" /> Start Time</Label>
                 <Input
                   id="startTime"
                   type="time"
                   value={quizData.startTime}
                   disabled={step === 2}
                   onChange={(e) => handleUpdateQuizDetails('startTime', e.target.value)}
-                  className="mt-1 bg-white"
+                  className="mt-1 bg-background border-input"
                 />
               </div>
               <div>
-                <Label htmlFor="endTime" className="flex items-center gap-2 mb-1"><Clock className="h-4 w-4 text-gray-500" /> End Time</Label>
+                <Label htmlFor="endTime" className="flex items-center gap-2 mb-1"><Clock className="h-4 w-4 text-muted-foreground" /> End Time</Label>
                 <Input
                   id="endTime"
                   type="time"
                   value={quizData.endTime}
                   disabled={step === 2}
                   onChange={(e) => handleUpdateQuizDetails('endTime', e.target.value)}
-                  className="mt-1 bg-white"
+                  className="mt-1 bg-background border-input"
                 />
               </div>
             </div>
@@ -720,10 +723,10 @@ const QuizCreator = () => {
         </div>
 
         {/* Pass Mark Configuration */}
-        <div className="border-t pt-4 mt-4">
+        <div className="border-t border-border pt-4 mt-4">
           <div className="flex items-center gap-2 mb-3">
-            <Target className="h-5 w-5 text-blue-600" />
-            <h3 className="text-lg font-semibold">Pass Criteria</h3>
+            <Target className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold text-foreground">Pass Criteria</h3>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
@@ -750,10 +753,10 @@ const QuizCreator = () => {
               />
             </div>
             <div className="flex flex-col justify-end pb-2">
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-sm font-medium text-muted-foreground">
                 {quizData.totalQuestions && quizData.passMarkPercentage !== '' ? (
                   <>
-                    Minimum Correct Answers Required: <span className="text-blue-600 font-bold">
+                    Minimum Correct Answers Required: <span className="text-primary font-bold">
                       {Math.ceil((Number(quizData.totalQuestions) * Number(quizData.passMarkPercentage)) / 100)}
                     </span> / {quizData.totalQuestions}
                   </>

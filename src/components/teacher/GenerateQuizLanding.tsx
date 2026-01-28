@@ -122,36 +122,24 @@ const GenerateQuizLanding = () => {
 
     if (view === 'pdf-gen') {
         return (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                <div className="flex items-center justify-between">
-                    <BackButton onClick={handleBack} className="bg-white shadow-xl shadow-gray-100/50 border border-gray-100 px-8 py-7 rounded-[24px] hover:bg-black hover:text-white transition-all duration-300" />
-                    <div className="px-6 py-2 bg-blue-600 text-white rounded-full text-[10px] font-black uppercase tracking-[0.2em]">Document Parser</div>
-                </div>
-                <PdfQuizCreator />
+            <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+                <PdfQuizCreator onBack={handleBack} />
             </div>
         );
     }
 
     if (view === 'manual') {
         return (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                <div className="flex items-center justify-between">
-                    <BackButton onClick={handleBack} className="bg-white shadow-xl shadow-gray-100/50 border border-gray-100 px-8 py-7 rounded-[24px] hover:bg-black hover:text-white transition-all duration-300" />
-                    <div className="px-6 py-2 bg-gray-900 text-white rounded-full text-[10px] font-black uppercase tracking-[0.2em]">Manual Creation</div>
-                </div>
-                <QuestionCreator />
+            <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+                <QuestionCreator onBack={handleBack} />
             </div>
         );
     }
 
     if (view === 'automated') {
         return (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                <div className="flex items-center justify-between">
-                    <BackButton onClick={handleBack} className="bg-white shadow-xl shadow-gray-100/50 border border-gray-100 px-8 py-7 rounded-[24px] hover:bg-black hover:text-white transition-all duration-300" />
-                    <div className="px-6 py-2 bg-indigo-600 text-white rounded-full text-[10px] font-black uppercase tracking-[0.2em]">AI Generator</div>
-                </div>
-                <QuizCreator />
+            <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+                <QuizCreator onBack={handleBack} />
             </div>
         );
     }
@@ -160,7 +148,7 @@ const GenerateQuizLanding = () => {
         return (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
                 <div className="flex items-center justify-between">
-                    <BackButton onClick={handleBack} className="bg-white shadow-xl shadow-gray-100/50 border border-gray-100 px-8 py-7 rounded-[24px] hover:bg-black hover:text-white transition-all duration-300" />
+                    <BackButton onClick={handleBack} className="bg-card shadow-lg shadow-black/5 border border-border/50 px-8 py-7 rounded-[24px] hover:bg-primary hover:text-primary-foreground text-muted-foreground transition-all duration-300" />
                     <div className="px-6 py-2 bg-rose-600 text-white rounded-full text-[10px] font-black uppercase tracking-[0.2em]">Competitive Mode</div>
                 </div>
                 <CompetitiveMode />
