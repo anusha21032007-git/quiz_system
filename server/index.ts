@@ -87,13 +87,14 @@ function cleanAIJson(text: string): string {
 }
 
 async function generateWithOllama(params: any): Promise<any> {
-    const { topic, difficulty, marks, timeLimitSeconds, optionsCount } = params;
+    const { topic, difficulty, marks, timeLimitSeconds, optionsCount, count } = params;
     const numOptions = optionsCount || 4;
+    const qCount = count || 1;
 
     // TEXT-BASED ANSWER MATCHING (eliminates AI index confusion)
     const prompt = `You are an expert exam question setter.
 
-Generate 1 high-quality MCQ for: "${topic}"
+Generate ${qCount} high-quality MCQ for: "${topic}"
 
 Difficulty: ${difficulty}
 Options: ${numOptions}
@@ -330,6 +331,8 @@ async function generateFromContextWithOllama(params: any): Promise<any> {
 
     const numOptions = optionsCount || 4;
 
+    const qCount = params.count || 5;
+
     const prompt = `Step 1: Clean the EXTRACTED PDF TEXT by removing noise lines like:
 - "Scanned with CamScanner"
 - Repeated headers/footers
@@ -346,7 +349,7 @@ STRICT RULES:
 4. Each question must include a 1-line explanation from the text.
 
 TASK:
-Generate 10 high-quality MCQs based on the content.
+Generate ${qCount} high-quality MCQs based on the content.
 
 OUTPUT FORMAT (JSON ONLY):
 {

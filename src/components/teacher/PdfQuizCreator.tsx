@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { FileText, Save, Brain, ArrowLeft, Loader2, FileCheck, RefreshCw } from 'lucide-react';
+import { FileText, Save, Brain, ArrowLeft, Loader2, FileCheck, RefreshCw, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuiz, Quiz, Question } from '@/context/QuizContext';
 import { useNavigate } from 'react-router-dom';
@@ -39,6 +39,19 @@ const PdfQuizCreator = () => {
     const [extractionProgress, setExtractionProgress] = useState<number>(0);
 
     const [previewQuestions, setPreviewQuestions] = useState<DraftQuestion[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleRemoveFile = (e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        setSelectedFile(null);
+        setExtractedText('');
+        setPreviewQuestions([]);
+        setExtractionProgress(0);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+        toast.info("File removed");
+    };
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -220,12 +233,22 @@ const PdfQuizCreator = () => {
                                 <Label className="text-lg font-bold text-gray-700">1. Upload Document</Label>
                                 <div className="border-2 border-dashed border-blue-100 bg-blue-50/30 rounded-2xl p-8 text-center hover:bg-blue-50 transition-colors relative group">
                                     <Input
+                                        ref={fileInputRef}
                                         type="file"
                                         accept=".pdf"
                                         onChange={handleFileChange}
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                         disabled={isExtracting}
                                     />
+                                    {selectedFile && !isExtracting && (
+                                        <button
+                                            onClick={handleRemoveFile}
+                                            className="absolute top-4 right-4 z-20 p-2 bg-white/80 hover:bg-white text-gray-500 hover:text-red-500 rounded-full shadow-sm transition-all border border-gray-100"
+                                            title="Remove File"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    )}
                                     <div className="flex flex-col items-center gap-3">
                                         <div className="h-16 w-16 bg-white rounded-2xl shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
                                             {isExtracting ? (
