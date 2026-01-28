@@ -7,13 +7,17 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, Eye, Save, Brain, ListChecks, Info, Wand2, Calendar, Clock, ArrowLeft } from 'lucide-react';
+import { PlusCircle, Trash2, Eye, Save, Brain, ListChecks, Info, Wand2, Clock, ArrowLeft } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuiz, Quiz, Question } from '@/context/QuizContext';
-import { Target } from 'lucide-react';
+import { Target, ChevronRight } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface LocalQuestion {
   questionText: string;
@@ -278,7 +282,6 @@ const QuizCreator = ({ onBack }: { onBack: () => void }) => {
   const validateQuizDraft = (): boolean => {
     if (!quizData.quizTitle.trim()) { toast.error("Please provide a quiz title."); return false; }
     if (!quizData.courseName.trim()) { toast.error("Please provide a course name."); return false; }
-    if (quizData.passMarkPercentage === '') { toast.error("Please provide a pass mark percentage."); return false; }
     if (quizData.passMarkPercentage === '') { toast.error("Please provide a pass mark percentage."); return false; }
     if (showSchedule && (!quizData.scheduledDate || !quizData.startTime || !quizData.endTime)) { toast.error("Please set the full schedule."); return false; }
 
@@ -567,9 +570,6 @@ const QuizCreator = ({ onBack }: { onBack: () => void }) => {
     setAiCoursePaperName('');
     setAiDifficulty('Easy');
     setQuizDifficulty('Medium'); // Reset difficulty
-    setQuizDifficulty('Medium'); // Reset difficulty
-    setAiPoolSize(''); // Reset pool size
-    setQuizDifficulty('Medium'); // Reset difficulty
     setAiPoolSize(''); // Reset pool size
     setStep(1); // Reset step to 1
     setShowSchedule(false);
@@ -686,37 +686,62 @@ const QuizCreator = ({ onBack }: { onBack: () => void }) => {
             <div className="grid gap-4 md:grid-cols-3 animate-in slide-in-from-top-2 duration-200 bg-primary/10 p-4 rounded-xl border border-primary/20">
               <div>
                 <Label htmlFor="scheduledDate" className="flex items-center gap-2 mb-1"><Calendar className="h-4 w-4 text-muted-foreground" /> Date</Label>
-                <Input
-                  id="scheduledDate"
-                  type="date"
-                  min={new Date().toISOString().split('T')[0]}
-                  value={quizData.scheduledDate}
-                  disabled={step === 2}
-                  onChange={(e) => handleUpdateQuizDetails('scheduledDate', e.target.value)}
-                  className="mt-1 bg-background border-input"
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal mt-1 bg-background border-input h-10 px-3",
+                        !quizData.scheduledDate && "text-muted-foreground"
+                      )}
+                      disabled={step === 2}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {quizData.scheduledDate ? format(new Date(quizData.scheduledDate), "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={quizData.scheduledDate ? new Date(quizData.scheduledDate) : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          handleUpdateQuizDetails('scheduledDate', format(date, "yyyy-MM-dd"));
+                        }
+                      }}
+                      initialFocus
+                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div>
                 <Label htmlFor="startTime" className="flex items-center gap-2 mb-1"><Clock className="h-4 w-4 text-muted-foreground" /> Start Time</Label>
-                <Input
-                  id="startTime"
-                  type="time"
-                  value={quizData.startTime}
-                  disabled={step === 2}
-                  onChange={(e) => handleUpdateQuizDetails('startTime', e.target.value)}
-                  className="mt-1 bg-background border-input"
-                />
+                <div className="relative mt-1">
+                  <Input
+                    id="startTime"
+                    type="time"
+                    value={quizData.startTime}
+                    disabled={step === 2}
+                    onChange={(e) => handleUpdateQuizDetails('startTime', e.target.value)}
+                    className="bg-background border-input h-10 pr-10 appearance-none"
+                  />
+                  <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                </div>
               </div>
               <div>
                 <Label htmlFor="endTime" className="flex items-center gap-2 mb-1"><Clock className="h-4 w-4 text-muted-foreground" /> End Time</Label>
-                <Input
-                  id="endTime"
-                  type="time"
-                  value={quizData.endTime}
-                  disabled={step === 2}
-                  onChange={(e) => handleUpdateQuizDetails('endTime', e.target.value)}
-                  className="mt-1 bg-background border-input"
-                />
+                <div className="relative mt-1">
+                  <Input
+                    id="endTime"
+                    type="time"
+                    value={quizData.endTime}
+                    disabled={step === 2}
+                    onChange={(e) => handleUpdateQuizDetails('endTime', e.target.value)}
+                    className="bg-background border-input h-10 pr-10 appearance-none"
+                  />
+                  <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                </div>
               </div>
             </div>
           )}

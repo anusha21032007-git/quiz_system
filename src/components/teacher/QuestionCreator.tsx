@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { PlusCircle, Trash2, History, X, Settings2, Save, Send, CheckCircle2, Calendar, Clock, Edit, GraduationCap, ArrowLeft } from 'lucide-react';
+import { PlusCircle, Trash2, History, X, Settings2, Save, Send, CheckCircle2, Clock, Edit, GraduationCap, ArrowLeft } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -19,6 +19,9 @@ import { toast } from 'sonner';
 import { useQuiz, Quiz, Question } from '@/context/QuizContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
 
 interface Poll {
   pollId: string;
@@ -854,15 +857,57 @@ const QuestionCreator = ({ onBack }: { onBack: () => void }) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label className="text-sm font-bold text-muted-foreground flex items-center gap-2"><Calendar className="h-4 w-4" /> Date</Label>
-                    <Input type="date" min={new Date().toISOString().split('T')[0]} value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} className="h-10 border-input bg-background" />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full justify-start text-left font-normal h-10 border-input bg-background px-3",
+                            !scheduledDate && "text-muted-foreground"
+                          )}
+                        >
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {scheduledDate ? format(new Date(scheduledDate), "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={scheduledDate ? new Date(scheduledDate) : undefined}
+                          onSelect={(date) => {
+                            if (date) {
+                              setScheduledDate(format(date, "yyyy-MM-dd"));
+                            }
+                          }}
+                          initialFocus
+                          disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-bold text-muted-foreground flex items-center gap-2"><Clock className="h-4 w-4" /> Start Time</Label>
-                    <Input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} className="h-10 border-input bg-background" />
+                    <div className="relative">
+                      <Input
+                        type="time"
+                        value={scheduledTime}
+                        onChange={(e) => setScheduledTime(e.target.value)}
+                        className="h-10 border-input bg-background pr-10 appearance-none"
+                      />
+                      <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-bold text-muted-foreground flex items-center gap-2"><Clock className="h-4 w-4" /> End Time</Label>
-                    <Input type="time" value={scheduledEndTime} onChange={(e) => setScheduledEndTime(e.target.value)} className="h-10 border-input bg-background" />
+                    <div className="relative">
+                      <Input
+                        type="time"
+                        value={scheduledEndTime}
+                        onChange={(e) => setScheduledEndTime(e.target.value)}
+                        className="h-10 border-input bg-background pr-10 appearance-none"
+                      />
+                      <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    </div>
                   </div>
                 </div>
                 <Button onClick={handleAddToPool} variant="outline" className="w-full border-primary/50 text-primary font-bold h-10 flex items-center justify-center gap-2 hover:bg-primary/10">

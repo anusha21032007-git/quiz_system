@@ -33,6 +33,8 @@ const PdfQuizCreator = ({ onBack }: { onBack: () => void }) => {
     const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
 
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [useVisionMode, setUseVisionMode] = useState<boolean>(false);
+    const [extractedImages, setExtractedImages] = useState<string[]>([]);
     const [extractedText, setExtractedText] = useState<string>('');
     const [isExtracting, setIsExtracting] = useState<boolean>(false);
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -45,6 +47,7 @@ const PdfQuizCreator = ({ onBack }: { onBack: () => void }) => {
         if (e) e.stopPropagation();
         setSelectedFile(null);
         setExtractedText('');
+        setExtractedImages([]);
         setPreviewQuestions([]);
         setExtractionProgress(0);
         if (fileInputRef.current) {
@@ -56,97 +59,128 @@ const PdfQuizCreator = ({ onBack }: { onBack: () => void }) => {
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // Validation
             if (file.type !== 'application/pdf') {
                 toast.error("Invalid file format. Please upload a PDF.");
                 return;
             }
-            if (file.size > 20 * 1024 * 1024) { // 20MB
+            if (file.size > 20 * 1024 * 1024) {
                 toast.error("File is too large. Max limit is 20MB.");
                 return;
             }
 
             setSelectedFile(file);
             setExtractedText('');
+            setExtractedImages([]);
             setPreviewQuestions([]);
-            await extractFormat(file);
+            await extractFormat(file, useVisionMode);
         }
     };
 
-    const extractFormat = async (file: File) => {
+    // Reload extraction if mode changes
+    useEffect(() => {
+        if (selectedFile) {
+            extractFormat(selectedFile, useVisionMode);
+        }
+    }, [useVisionMode]);
+
+    const extractFormat = async (file: File, visionMode: boolean) => {
         setIsExtracting(true);
         setExtractionProgress(0);
+        setExtractedText('');
+        setExtractedImages([]);
 
         try {
-            // Force worker source before any parsing activity
             pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
-            console.log("Using PDF Worker:", pdfjsWorker);
-
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
-            let fullText = '';
             const totalPages = pdf.numPages;
 
-            for (let i = 1; i <= totalPages; i++) {
-                const page = await pdf.getPage(i);
-                const textContent = await page.getTextContent();
-                const pageText = textContent.items.map((item: any) => item.str).join(' ');
+            if (visionMode) {
+                // IMAGE EXTRACTION (Vision Mode)
+                const images: string[] = [];
+                const maxPages = Math.min(totalPages, 5); // Limit to 5 pages for API safety
 
-                // Basic cleanup
-                fullText += pageText + '\n';
+                for (let i = 1; i <= maxPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const viewport = page.getViewport({ scale: 1.5 }); // Good quality for text reading
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
 
-                // Update progress
-                setExtractionProgress(Math.round((i / totalPages) * 100));
-            }
+                    if (context) {
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
 
-            // Remove excessive whitespace/headers
-            const cleaned = fullText.replace(/\s+/g, ' ').trim();
-            setExtractedText(cleaned);
+                        await page.render({
+                            canvasContext: context,
+                            viewport: viewport,
+                            canvas: canvas
+                        }).promise;
 
-            // Check for common watermark-only extractions (scanned images)
-            const watermarkRegex = /scanned with camscanner/gi;
-            const watermarks = cleaned.match(watermarkRegex);
-            const textWithoutWatermarks = cleaned.replace(watermarkRegex, '').trim();
+                        // Convert to base64 JPEG
+                        images.push(canvas.toDataURL('image/jpeg', 0.8));
+                    }
+                    setExtractionProgress(Math.round((i / maxPages) * 100));
+                }
 
-            console.log("Extracted text length:", cleaned.length);
-            console.log("Text without watermarks length:", textWithoutWatermarks.length);
+                setExtractedImages(images);
+                toast.success(`Captured ${images.length} pages as images for Vision AI.`);
 
-            if (textWithoutWatermarks.length < 50 && watermarks) {
-                toast.warning("This PDF appears to be a scanned image. AI cannot read image text directly.", {
-                    duration: 6000,
-                    description: "Only 'CamScanner' watermarks were found. Please use a text-based PDF or OCR the document first."
-                });
-            } else if (cleaned.length === 0) {
-                toast.error("No text could be extracted. The PDF might be empty or purely image-based.");
             } else {
-                toast.success(`Extracted ${cleaned.length} characters from ${totalPages} pages.`);
+                // TEXT EXTRACTION (Standard Mode)
+                let fullText = '';
+                for (let i = 1; i <= totalPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map((item: any) => item.str).join(' ');
+                    fullText += pageText + '\n';
+                    setExtractionProgress(Math.round((i / totalPages) * 100));
+                }
+
+                const cleaned = fullText.replace(/\s+/g, ' ').trim();
+                const watermarkRegex = /scanned with camscanner/gi;
+                const textWithoutWatermarks = cleaned.replace(watermarkRegex, '').trim();
+
+                if (textWithoutWatermarks.length < 50 && cleaned.length > 0) {
+                    toast.warning("Low text content detected. Switching to Handwriting/Vision Mode recommended.", {
+                        action: {
+                            label: "Switch Mode",
+                            onClick: () => setUseVisionMode(true)
+                        }
+                    });
+                }
+
+                setExtractedText(cleaned);
             }
 
         } catch (error: any) {
             console.error("PDF Extraction Error:", error);
-            const errorMsg = error.message || String(error);
-            toast.error(`Failed to parse PDF: ${errorMsg}. Ensure it is text-based (not scanned images).`);
+            toast.error("Failed to process PDF.");
         } finally {
             setIsExtracting(false);
         }
     };
 
     const handleGenerate = async () => {
-        if (!extractedText) {
+        if (!useVisionMode && !extractedText) {
             toast.error("No text content found.");
+            return;
+        }
+        if (useVisionMode && extractedImages.length === 0) {
+            toast.error("No images extracted.");
             return;
         }
 
         setIsGenerating(true);
-        const toastId = toast.loading("AI is analyzing text and generating questions...");
+        const toastId = toast.loading(useVisionMode ? "Analyzing visual content with Gemini..." : "Analyzing text content...");
 
         try {
             const response = await fetch('http://localhost:5000/api/ai/generate-from-pdf', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    textContent: extractedText,
+                    textContent: useVisionMode ? undefined : extractedText,
+                    images: useVisionMode ? extractedImages : undefined,
                     count: numQuestions,
                     difficulty: difficulty,
                     optionsCount: 4
@@ -159,15 +193,13 @@ const PdfQuizCreator = ({ onBack }: { onBack: () => void }) => {
             }
 
             const data = await response.json();
-
-            // Map to DraftQuestion format
             const generated: DraftQuestion[] = data.questions.map((q: any) => ({
                 questionText: q.question,
                 options: q.options,
                 correctAnswer: q.options[q.correctIndex || 0],
                 marks: 1,
                 timeLimit: 60,
-                hints: q.explanation // Storing explanation as hints
+                hints: q.explanation || ''
             }));
 
             setPreviewQuestions(generated);
@@ -266,7 +298,7 @@ const PdfQuizCreator = ({ onBack }: { onBack: () => void }) => {
                                             <p className="font-bold text-foreground text-lg">
                                                 {selectedFile ? selectedFile.name : "Click to Upload PDF"}
                                             </p>
-                                            <p className="text-sm text-muted-foreground font-medium">Max 20MB • Text-based PDFs only</p>
+                                            <p className="text-sm text-muted-foreground font-medium">Max 20MB • (Digital Text Only - No Handwriting/Images)</p>
                                         </div>
                                     </div>
                                 </div>
@@ -288,6 +320,30 @@ const PdfQuizCreator = ({ onBack }: { onBack: () => void }) => {
                         {/* CONFIGURATION */}
                         <div className="space-y-6">
                             <Label className="text-lg font-bold text-foreground">2. Configuration</Label>
+
+                            {/* Mode Toggle */}
+                            <div className="bg-muted/10 p-4 rounded-xl border border-border flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <Label className="font-bold flex items-center gap-2">
+                                        Enable Handwriting/Vision Mode
+                                        <span className="text-[10px] bg-primary text-white px-2 py-0.5 rounded-full">BETA</span>
+                                    </Label>
+                                    <p className="text-xs text-muted-foreground">Use for scanned docs, handwritten notes, or images.</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Label htmlFor="vision-mode" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                        {useVisionMode ? "ON" : "OFF"}
+                                    </Label>
+                                    <input
+                                        id="vision-mode"
+                                        type="checkbox"
+                                        checked={useVisionMode}
+                                        onChange={(e) => setUseVisionMode(e.target.checked)}
+                                        className="h-5 w-5 accent-primary cursor-pointer"
+                                    />
+                                </div>
+                            </div>
+
                             <div className="bg-muted/10 rounded-2xl p-6 space-y-6 border border-border">
                                 <div className="space-y-2">
                                     <Label>Course / Subject Name</Label>
@@ -341,20 +397,20 @@ const PdfQuizCreator = ({ onBack }: { onBack: () => void }) => {
 
                             <Button
                                 onClick={handleGenerate}
-                                disabled={!extractedText || isGenerating || isExtracting}
+                                disabled={(!extractedText && extractedImages.length === 0) || isGenerating || isExtracting}
                                 className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isGenerating ? (
                                     <span className="flex items-center gap-2">
                                         <Loader2 className="animate-spin h-5 w-5" /> Generating...
                                     </span>
-                                ) : !extractedText ? (
+                                ) : (!extractedText && extractedImages.length === 0) ? (
                                     <span className="flex items-center gap-2">
                                         <Brain className="h-5 w-5" /> Waiting for Content...
                                     </span>
                                 ) : (
                                     <span className="flex items-center gap-2">
-                                        <Brain className="h-5 w-5" /> Generate from Content
+                                        <Brain className="h-5 w-5" /> Generate from {useVisionMode ? "Images" : "Text"}
                                     </span>
                                 )}
                             </Button>
@@ -362,12 +418,25 @@ const PdfQuizCreator = ({ onBack }: { onBack: () => void }) => {
                     </div>
 
                     {/* 2. PREVIEW TEXT (Collapsible/Scrollable) */}
-                    {extractedText && (
+                    {(extractedText || extractedImages.length > 0) && (
                         <div className="space-y-3 pt-4 border-t border-dashed border-border">
-                            <Label className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Extracted Context Preview</Label>
-                            <div className="bg-muted/10 p-4 rounded-xl border border-border text-xs text-muted-foreground font-mono h-32 overflow-y-auto leading-relaxed">
-                                {extractedText.substring(0, 2000)}...
-                            </div>
+                            <Label className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
+                                {useVisionMode ? `Captured ${extractedImages.length} Pages (Visual Context)` : "Extracted Context Preview"}
+                            </Label>
+
+                            {useVisionMode ? (
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {extractedImages.map((img, idx) => (
+                                        <div key={idx} className="aspect-[3/4] rounded-lg overflow-hidden border border-border shadow-sm">
+                                            <img src={img} alt={`Page ${idx + 1}`} className="w-full h-full object-cover" />
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="bg-muted/10 p-4 rounded-xl border border-border text-xs text-muted-foreground font-mono h-32 overflow-y-auto leading-relaxed">
+                                    {extractedText.substring(0, 2000)}...
+                                </div>
+                            )}
                         </div>
                     )}
 

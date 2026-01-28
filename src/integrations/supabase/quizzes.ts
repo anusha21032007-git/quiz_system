@@ -133,9 +133,8 @@ export const useCreateQuiz = () => {
         .from("quizzes")
         .insert({
           ...quizData,
-          pass_percentage: quizData.pass_mark_percentage, // Map explicit key for DB
-          pass_mark_percentage: undefined, // Remove old key to avoid error
-          difficulty: undefined, // Remove if not in DB schema to avoid PGRST204
+          pass_mark_percentage: quizData.pass_mark_percentage,
+          difficulty: quizData.difficulty,
           teacher_id: user.id,
           status: 'published'
         }) // Set status to published

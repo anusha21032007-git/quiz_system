@@ -10,7 +10,7 @@ dotenv.config();
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 
 const PORT = Number(process.env.PORT) || 5000;
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
@@ -313,7 +313,8 @@ app.post('/api/ai/generate-questions', async (req, res) => {
 
 // Schema for PDF Context request
 const GenerateFromPdfSchema = z.object({
-    textContent: z.string().min(1), // Loosened for testing/small documents
+    textContent: z.string().optional(), // Can be empty if images are provided
+    images: z.array(z.string()).optional(), // Base64 images for vision
     topic: z.string().optional(),
     count: z.number().min(1).max(50).default(5),
     difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
@@ -325,12 +326,7 @@ const GenerateFromPdfSchema = z.object({
 async function generateFromContextWithOllama(params: any): Promise<any> {
     const { textContent, difficulty, marks, timeLimitSeconds, optionsCount } = params;
 
-    // Truncate text if it's too long for the context window (approx 4000 chars safety margin)
-    // Llama 3.2 supports larger context, but we keep it safe for speed.
     const truncatedContext = textContent.slice(0, 12000);
-
-    const numOptions = optionsCount || 4;
-
     const qCount = params.count || 5;
 
     const prompt = `Step 1: Clean the EXTRACTED PDF TEXT by removing noise lines like:
@@ -381,7 +377,7 @@ Generate JSON now:`;
             stream: false,
             format: 'json',
             options: {
-                temperature: 0.1, // Even stricter for cleaning/validation
+                temperature: 0.1,
                 num_predict: 2500,
                 top_p: 0.9
             }
@@ -401,12 +397,10 @@ Generate JSON now:`;
     const cleanedText = cleanAIJson(text);
     const parsed = JSON.parse(cleanedText);
 
-    // Handle AI-reported context error
     if (parsed.error === "NOT_ENOUGH_CONTEXT_FROM_PDF") {
         throw new Error("PDF content is too short (less than 150 words of subject matter) or contains only noise.");
     }
 
-    // Handle nested topics if generated (for robustness) or raw questions array
     let questionsArray: any[] = [];
     if (parsed.topics && Array.isArray(parsed.topics)) {
         parsed.topics.forEach((topic: any) => {
@@ -418,18 +412,16 @@ Generate JSON now:`;
         questionsArray = Array.isArray(parsed) ? parsed : (parsed.questions || [parsed]);
     }
 
-    // Map and Validate
     return questionsArray.map((q: any, idx: number) => {
         let correctIndex = q.options.findIndex((opt: string) =>
             opt.trim().toLowerCase() === (q.correctAnswer || "").trim().toLowerCase()
         );
 
         if (correctIndex === -1) {
-            // Fuzzy match fallback
             correctIndex = q.options.findIndex((opt: string) =>
                 opt.includes(q.correctAnswer) || q.correctAnswer.includes(opt)
             );
-            if (correctIndex === -1) correctIndex = 0; // Fail safe
+            if (correctIndex === -1) correctIndex = 0;
         }
 
         return {
@@ -445,12 +437,89 @@ Generate JSON now:`;
     });
 }
 
+async function generateFromImagesWithGemini(params: any): Promise<any> {
+    const { images, difficulty, marks, timeLimitSeconds, count, optionsCount } = params;
+
+    if (!genAI) throw new Error("Gemini AI is not initialized");
+
+    console.log(`[Gemini Vision] Analyzing ${images.length} images...`);
+
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+
+    const prompt = `You are an expert exam setter. Analyze these images of valid study material (notes, textbook pages, or diagrams).
+    
+    TASK:
+    Generate ${count} multiple-choice questions (MCQs) based STRICTLY on the visual content.
+    
+    Difficulty: ${difficulty}
+    Options per question: ${optionsCount}
+    
+    OUTPUT JSON ARRAY ONLY:
+    [
+      {
+        "question": "Question text...",
+        "options": ["A", "B", "C", "D"],
+        "correctIndex": 0,
+        "explanation": "Explanation..."
+      }
+    ]
+    `;
+
+    // Prepare image parts
+    const imageParts = images.map((base64: string) => {
+        // Remove header if present (data:image/jpeg;base64,...)
+        const data = base64.replace(/^data:image\/\w+;base64,/, "");
+        return {
+            inlineData: {
+                data: data,
+                mimeType: "image/jpeg",
+            },
+        };
+    });
+
+    try {
+        const result = await model.generateContent([prompt, ...imageParts]);
+        const response = await result.response;
+        const text = response.text();
+
+        const cleanedText = cleanAIJson(text);
+        const parsed = JSON.parse(cleanedText);
+        const questionsArray = Array.isArray(parsed) ? parsed : (parsed.questions || [parsed]);
+
+        return questionsArray.map((q: any, idx: number) => ({
+            id: idx + 1,
+            question: q.question,
+            options: q.options,
+            correctIndex: q.correctIndex,
+            difficulty: difficulty,
+            marks: marks,
+            timeLimitSeconds: timeLimitSeconds,
+            explanation: q.explanation || "Derived from visual content"
+        }));
+
+    } catch (error: any) {
+        console.error("Gemini Vision Error:", error);
+        throw new Error("Failed to analyze images: " + error.message);
+    }
+}
+
 app.post('/api/ai/generate-from-pdf', async (req, res) => {
     try {
         const params = GenerateFromPdfSchema.parse(req.body);
-        const questions = await generateFromContextWithOllama(params); // Use dedicated strict function
 
-        console.log(`[Success] PDF Context Gen | Returned: ${questions.length} questions`);
+        let questions = [];
+
+        if (params.images && params.images.length > 0) {
+            console.log("[Request] Using Vision API (Images provided)");
+            questions = await generateFromImagesWithGemini(params);
+        } else if (params.textContent && params.textContent.length > 50) {
+            console.log("[Request] Using Text API");
+            questions = await generateFromContextWithOllama(params);
+        } else {
+            throw new Error("No valid content provided. Provide extracted text or images.");
+        }
+
+        console.log(`[Success] Content Gen | Returned: ${questions.length} questions`);
         res.json({
             topic: params.topic || "Document Analysis",
             questions: questions
