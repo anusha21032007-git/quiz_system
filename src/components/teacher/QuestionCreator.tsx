@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { PlusCircle, Trash2, History, X, Settings2, Save, Send, CheckCircle2, Clock, Edit, GraduationCap, ArrowLeft } from 'lucide-react';
+import { PlusCircle, Trash2, History, X, Settings2, Save, Send, CheckCircle2, Clock, Edit, GraduationCap, ArrowLeft, Calendar } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -20,8 +20,16 @@ import { useQuiz, Quiz, Question } from '@/context/QuizContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import { Calendar as ShadcnCalendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Poll {
   pollId: string;
@@ -96,6 +104,8 @@ const QuestionCreator = ({ onBack }: { onBack: () => void }) => {
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [scheduledEndTime, setScheduledEndTime] = useState(''); // New State
+  const [showSetupModal, setShowSetupModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'schedule' | 'direct' | null>(null);
 
   // Load session and history from local storage on initial mount
   useEffect(() => {
@@ -111,7 +121,7 @@ const QuestionCreator = ({ onBack }: { onBack: () => void }) => {
         if (parsed.step !== undefined) setStep(parsed.step);
         if (parsed.currentSetId !== undefined) setCurrentSetId(parsed.currentSetId);
         if (parsed.passMarkPercentage !== undefined) setPassMarkPercentage(parsed.passMarkPercentage);
-        if (parsed.scheduledEndTime !== undefined) setScheduledEndTime(parsed.scheduledEndTime);
+        // Removed: scheduledEndTime and other scheduling states - calendar should only show on explicit user action
       } catch (e) {
         console.error("Failed to restore creation session", e);
       }
@@ -132,12 +142,12 @@ const QuestionCreator = ({ onBack }: { onBack: () => void }) => {
       step,
       currentSetId,
       passMarkPercentage,
-      scheduledEndTime,
+      // Removed: scheduledEndTime and other scheduling states - calendar should only show on explicit user action
       totalQuestions: numQuestions,
       requiredCorrectAnswers: Math.ceil((Number(numQuestions) * (Number(passMarkPercentage) || 0)) / 100)
     };
     localStorage.setItem('activeCreationSession', JSON.stringify(sessionData));
-  }, [numQuestions, numOptions, draftQuestions, questionSetName, courseName, step, currentSetId, scheduledEndTime]);
+  }, [numQuestions, numOptions, draftQuestions, questionSetName, courseName, step, currentSetId, passMarkPercentage]);
 
   // Sync Polls
   useEffect(() => {
@@ -405,7 +415,7 @@ const QuestionCreator = ({ onBack }: { onBack: () => void }) => {
 
       setScheduledDate(`${year}-${month}-${day}`);
       setScheduledTime(`${hours}:${mins}`);
-      setShowSchedule(true);
+      setShowSchedule(false);
     } else {
       setShowSchedule(false);
       setScheduledDate('');
@@ -450,14 +460,14 @@ const QuestionCreator = ({ onBack }: { onBack: () => void }) => {
     // const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`).getTime();
     // if (scheduledDateTime <= Date.now()) { ... } 
 
-    const finalTitle = questionSetName.trim() || courseName.trim();
-    const finalCourse = courseName.trim();
-
-    if (!finalTitle || !finalCourse || passMarkPercentage === '') {
-      setCreationStatus({ type: 'error', message: "Exam Paper / Course Name is mandatory." });
-      toast.error("Exam Paper / Course Name is mandatory.");
+    if (!courseName.trim() || !questionSetName.trim() || passMarkPercentage === '') {
+      setPendingAction('schedule');
+      setShowSetupModal(true);
       return;
     }
+
+    const finalTitle = questionSetName.trim();
+    const finalCourse = courseName.trim();
 
     const quizId = `qz-sched-${Date.now()}`;
 
@@ -517,14 +527,14 @@ const QuestionCreator = ({ onBack }: { onBack: () => void }) => {
       return;
     }
 
-    const finalTitle = questionSetName.trim() || courseName.trim();
-    const finalCourse = courseName.trim();
-
-    if (!finalTitle || !finalCourse || passMarkPercentage === '') {
-      setCreationStatus({ type: 'error', message: "Exam Paper / Course Name is mandatory." });
-      toast.error("Exam Paper / Course Name is mandatory.");
+    if (!courseName.trim() || !questionSetName.trim() || passMarkPercentage === '') {
+      setPendingAction('direct');
+      setShowSetupModal(true);
       return;
     }
+
+    const finalTitle = questionSetName.trim();
+    const finalCourse = courseName.trim();
 
     const quizId = `qz-direct-${Date.now()}`;
 
@@ -572,6 +582,20 @@ const QuestionCreator = ({ onBack }: { onBack: () => void }) => {
     setTimeout(() => {
       window.location.href = '/student';
     }, 1500);
+  };
+
+  const handleFinalSubmit = () => {
+    if (!courseName.trim() || !questionSetName.trim() || passMarkPercentage === '') {
+      toast.error("Please fill all fields.");
+      return;
+    }
+    setShowSetupModal(false);
+    if (pendingAction === 'schedule') {
+      handleAddToPool();
+    } else if (pendingAction === 'direct') {
+      handleDirectCreateQuiz();
+    }
+    setPendingAction(null);
   };
 
   return (
@@ -685,7 +709,7 @@ const QuestionCreator = ({ onBack }: { onBack: () => void }) => {
             <div className="space-y-4">
               <h3 className="text-lg font-bold flex items-center gap-2 text-muted-foreground"><History className="h-5 w-5" /> Question History</h3>
               <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                {polls.map(poll => (
+                {polls.filter(p => p.status !== 'completed').map(poll => (
                   <div key={poll.pollId} className="group flex items-center p-4 bg-muted/10 rounded-xl border border-transparent hover:border-primary/50 hover:bg-muted/20 transition-all text-sm">
                     <div className="w-1/3 flex items-center gap-3">
                       <div className={`h-1.5 w-1.5 rounded-full ${poll.status === 'pending' ? 'bg-violet-400' : poll.status === 'scheduled' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
@@ -871,7 +895,7 @@ const QuestionCreator = ({ onBack }: { onBack: () => void }) => {
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
+                        <ShadcnCalendar
                           mode="single"
                           selected={scheduledDate ? new Date(scheduledDate) : undefined}
                           onSelect={(date) => {
@@ -926,6 +950,67 @@ const QuestionCreator = ({ onBack }: { onBack: () => void }) => {
           </CardFooter>
         </Card>
       )}
+
+      <Dialog open={showSetupModal} onOpenChange={setShowSetupModal}>
+        <DialogContent className="sm:max-w-[500px] rounded-2xl border-primary/20 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold flex items-center gap-2 text-primary">
+              <Settings2 className="h-6 w-6" /> Final Quiz Setup
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-lg">
+              Please provide the mandatory details before finalizing your quiz.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-6">
+            <div className="space-y-2">
+              <Label htmlFor="modalCourseName" className="text-sm font-bold text-muted-foreground">Course Name</Label>
+              <Select value={courseName || ""} onValueChange={setCourseName}>
+                <SelectTrigger id="modalCourseName" className="h-12 text-lg rounded-xl border-border focus:ring-primary/20">
+                  <SelectValue placeholder="Select a course..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-border shadow-xl">
+                  {availableCourses.map((course) => (
+                    <SelectItem key={course} value={course} className="text-lg py-2 cursor-pointer">
+                      {course}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="modalExamName" className="text-sm font-bold text-muted-foreground">Exam Paper Name</Label>
+              <Input
+                id="modalExamName"
+                placeholder="e.g. Unit 1 Quiz"
+                value={questionSetName}
+                onChange={(e) => setQuestionSetName(e.target.value)}
+                className="h-12 text-lg rounded-xl border-border focus:ring-primary/20"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="modalPassMark" className="text-sm font-bold text-muted-foreground">Pass Percentage (%)</Label>
+              <Input
+                id="modalPassMark"
+                type="number"
+                min="0"
+                max="100"
+                placeholder="e.g. 50"
+                value={passMarkPercentage}
+                onChange={(e) => setPassMarkPercentage(e.target.value === '' ? '' : parseInt(e.target.value))}
+                className="h-12 text-lg rounded-xl border-border focus:ring-primary/20"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSetupModal(false)} className="h-12 px-6 font-bold rounded-xl">
+              Cancel
+            </Button>
+            <Button onClick={handleFinalSubmit} className="h-12 px-10 font-black bg-primary text-primary-foreground rounded-xl shadow-lg shadow-primary/20">
+              Save & Finalize
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, Eye, Save, Brain, ListChecks, Info, Wand2, Clock, ArrowLeft } from 'lucide-react';
+import { PlusCircle, Trash2, Eye, Save, Brain, ListChecks, Info, Wand2, Clock, ArrowLeft, Calendar } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
@@ -15,9 +15,17 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuiz, Quiz, Question } from '@/context/QuizContext';
 import { Target, ChevronRight } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import { Calendar as ShadcnCalendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface LocalQuestion {
   questionText: string;
@@ -120,6 +128,7 @@ const QuizCreator = ({ onBack }: { onBack: () => void }) => {
 
   // Scheduling Toggle
   const [showSchedule, setShowSchedule] = useState(false);
+  const [showSetupModal, setShowSetupModal] = useState(false);
 
   // Persistence logic for QuizCreator
   useEffect(() => {
@@ -136,7 +145,7 @@ const QuizCreator = ({ onBack }: { onBack: () => void }) => {
         if (parsed.aiTimePerQuestionSeconds) setAiTimePerQuestionSeconds(parsed.aiTimePerQuestionSeconds);
         if (parsed.aiPoolSize) setAiPoolSize(parsed.aiPoolSize);
         if (parsed.step) setStep(parsed.step);
-        if (parsed.showSchedule !== undefined) setShowSchedule(parsed.showSchedule);
+        // Removed: showSchedule restoration - calendar should only show on explicit user action
       } catch (e) {
         console.error("Failed to restore QuizCreator session", e);
       }
@@ -153,11 +162,11 @@ const QuizCreator = ({ onBack }: { onBack: () => void }) => {
       aiMarksPerQuestion,
       aiTimePerQuestionSeconds,
       aiPoolSize,
-      step,
-      showSchedule
+      step
+      // Removed: showSchedule - calendar should only show on explicit user action
     };
     localStorage.setItem('quizCreatorState', JSON.stringify(stateToSave));
-  }, [quizData, negativeMarking, negativeMarksValue, competitionMode, quizDifficulty, aiPoolSize, step, showSchedule]);
+  }, [quizData, negativeMarking, negativeMarksValue, competitionMode, quizDifficulty, aiPoolSize, step]);
 
   useEffect(() => {
     const draftData = sessionStorage.getItem('draft_quiz_params');
@@ -492,6 +501,10 @@ const QuizCreator = ({ onBack }: { onBack: () => void }) => {
   };
 
   const handleCreateQuiz = () => {
+    if (!quizData.quizTitle.trim() || !quizData.courseName.trim() || quizData.passMarkPercentage === '') {
+      setShowSetupModal(true);
+      return;
+    }
     const finalQuizData = prepareQuizForOutput();
     if (finalQuizData) {
 
@@ -533,6 +546,15 @@ const QuizCreator = ({ onBack }: { onBack: () => void }) => {
       // Reset form regardless of immediate success (mutation handles success/error toast)
       resetForm();
     }
+  };
+
+  const handleFinalSubmit = () => {
+    if (!quizData.quizTitle.trim() || !quizData.courseName.trim() || quizData.passMarkPercentage === '') {
+      toast.error("Please fill all fields.");
+      return;
+    }
+    setShowSetupModal(false);
+    handleCreateQuiz();
   };
 
   const handlePreviewQuiz = () => {
@@ -602,167 +624,609 @@ const QuizCreator = ({ onBack }: { onBack: () => void }) => {
     }
     if (quizData.passMarkPercentage === '' || quizData.passMarkPercentage < 0 || quizData.passMarkPercentage > 100) {
       toast.error("Please enter a valid pass mark percentage (0-100).");
+      localStorage.removeItem('quizCreatorState');
       return;
     }
     setStep(2);
   };
 
   return (
-    <Card className="shadow-lg bg-card border-border">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-2xl text-foreground">
-          <Button variant="ghost" size="icon" onClick={onBack} className="mr-2 -ml-2">
-            <ArrowLeft className="h-6 w-6 text-muted-foreground" />
-          </Button>
-          <ListChecks className="h-6 w-6 text-primary" /> {step === 1 ? 'Configure Quiz' : 'Manage Questions'}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="quizTitle">Paper Name</Label>
-          <Input
-            id="quizTitle"
-            placeholder="Enter Paper Name / Topic"
-            value={quizData.quizTitle}
-            disabled={step === 2} // Lock
-            onChange={(e) => {
-              handleUpdateQuizDetails('quizTitle', e.target.value);
-              setAiCoursePaperName(e.target.value);
-            }}
-            className="mt-1"
-          />
-        </div>
-        <div className="space-y-3">
-          <Label htmlFor="courseName">Course Name (for Student Dashboard)</Label>
-          <Select
-            value={quizData.courseName}
-            onValueChange={(value) => handleUpdateQuizDetails('courseName', value)}
-            disabled={step === 2}
-          >
-            <SelectTrigger className="w-full mt-1 h-12 rounded-xl border-border bg-background">
-              <SelectValue placeholder="Select a course..." />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl shadow-xl border-border bg-popover text-popover-foreground">
-              {availableCourses.length > 0 ? (
-                availableCourses.map((course) => (
-                  <SelectItem key={course} value={course} className="py-3 focus:bg-accent focus:text-accent-foreground cursor-pointer">
-                    {course}
-                  </SelectItem>
-                ))
-              ) : (
-                <div className="p-4 text-center space-y-2">
-                  <p className="text-sm font-medium text-slate-500">No courses added yet.</p>
-                  <Button
-                    variant="link"
-                    className="text-indigo-600 font-bold p-0"
-                    onClick={() => navigate('/teacher?view=courses')}
-                  >
-                    Add Courses in Management
-                  </Button>
-                </div>
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Scheduling Inputs */}
-        <div className="border-t border-border pt-4 mt-4">
-          <div className="w-full flex items-center justify-between p-4 bg-muted/20 rounded-xl border border-border shadow-sm mb-4">
-            <div className="flex items-center gap-3">
-              <Calendar className="h-5 w-5 text-primary" />
-              <span className="font-bold text-foreground">Scheduling Options (Optional)</span>
-            </div>
-            <Button
-              variant={showSchedule ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowSchedule(!showSchedule)}
-              className={showSchedule ? "bg-primary text-primary-foreground" : "text-primary border-primary/30 hover:bg-primary/10"}
-            >
-              {showSchedule ? "Hide Schedule" : "Set Schedule"}
+    <>
+      <Card className="shadow-lg bg-card border-border">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-2xl text-foreground">
+            <Button variant="ghost" size="icon" onClick={onBack} className="mr-2 -ml-2">
+              <ArrowLeft className="h-6 w-6 text-muted-foreground" />
             </Button>
+            <ListChecks className="h-6 w-6 text-primary" /> {step === 1 ? 'Configure Quiz' : 'Manage Questions'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="quizTitle">Paper Name</Label>
+            <Input
+              id="quizTitle"
+              placeholder="Enter Paper Name / Topic"
+              value={quizData.quizTitle}
+              disabled={step === 2} // Lock
+              onChange={(e) => {
+                handleUpdateQuizDetails('quizTitle', e.target.value);
+                setAiCoursePaperName(e.target.value);
+              }}
+              className="mt-1"
+            />
+          </div>
+          <div className="space-y-3">
+            <Label htmlFor="courseName">Course Name (for Student Dashboard)</Label>
+            <Select
+              value={quizData.courseName}
+              onValueChange={(value) => handleUpdateQuizDetails('courseName', value)}
+              disabled={step === 2}
+            >
+              <SelectTrigger className="w-full mt-1 h-12 rounded-xl border-border bg-background">
+                <SelectValue placeholder="Select a course..." />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl shadow-xl border-border bg-popover text-popover-foreground">
+                {availableCourses.length > 0 ? (
+                  availableCourses.map((course) => (
+                    <SelectItem key={course} value={course} className="py-3 focus:bg-accent focus:text-accent-foreground cursor-pointer">
+                      {course}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="p-4 text-center space-y-2">
+                    <p className="text-sm font-medium text-slate-500">No courses added yet.</p>
+                    <Button
+                      variant="link"
+                      className="text-indigo-600 font-bold p-0"
+                      onClick={() => navigate('/teacher?view=courses')}
+                    >
+                      Add Courses in Management
+                    </Button>
+                  </div>
+                )}
+              </SelectContent>
+            </Select>
           </div>
 
-          {showSchedule && (
-            <div className="grid gap-4 md:grid-cols-3 animate-in slide-in-from-top-2 duration-200 bg-primary/10 p-4 rounded-xl border border-primary/20">
-              <div>
-                <Label htmlFor="scheduledDate" className="flex items-center gap-2 mb-1"><Calendar className="h-4 w-4 text-muted-foreground" /> Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full justify-start text-left font-normal mt-1 bg-background border-input h-10 px-3",
-                        !quizData.scheduledDate && "text-muted-foreground"
-                      )}
+          {/* Scheduling Inputs */}
+          <div className="border-t border-border pt-4 mt-4">
+            <div className="w-full flex items-center justify-between p-4 bg-muted/20 rounded-xl border border-border shadow-sm mb-4">
+              <div className="flex items-center gap-3">
+                <Calendar className="h-5 w-5 text-primary" />
+                <span className="font-bold text-foreground">Scheduling Options (Optional)</span>
+              </div>
+              <Button
+                variant={showSchedule ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowSchedule(!showSchedule)}
+                className={showSchedule ? "bg-primary text-primary-foreground" : "text-primary border-primary/30 hover:bg-primary/10"}
+              >
+                {showSchedule ? "Hide Schedule" : "Set Schedule"}
+              </Button>
+            </div>
+
+            {showSchedule && (
+              <div className="grid gap-4 md:grid-cols-3 animate-in slide-in-from-top-2 duration-200 bg-primary/10 p-4 rounded-xl border border-primary/20">
+                <div>
+                  <Label htmlFor="scheduledDate" className="flex items-center gap-2 mb-1"><Calendar className="h-4 w-4 text-muted-foreground" /> Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-normal mt-1 bg-background border-input h-10 px-3",
+                          !quizData.scheduledDate && "text-muted-foreground"
+                        )}
+                        disabled={step === 2}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {quizData.scheduledDate ? format(new Date(quizData.scheduledDate), "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <ShadcnCalendar
+                        mode="single"
+                        selected={quizData.scheduledDate ? new Date(quizData.scheduledDate) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            handleUpdateQuizDetails('scheduledDate', format(date, "yyyy-MM-dd"));
+                          }
+                        }}
+                        initialFocus
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div>
+                  <Label htmlFor="startTime" className="flex items-center gap-2 mb-1"><Clock className="h-4 w-4 text-muted-foreground" /> Start Time</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      id="startTime"
+                      type="time"
+                      value={quizData.startTime}
                       disabled={step === 2}
-                    >
-                      <Calendar className="mr-2 h-4 w-4" />
-                      {quizData.scheduledDate ? format(new Date(quizData.scheduledDate), "PPP") : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={quizData.scheduledDate ? new Date(quizData.scheduledDate) : undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          handleUpdateQuizDetails('scheduledDate', format(date, "yyyy-MM-dd"));
-                        }
-                      }}
-                      initialFocus
-                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      onChange={(e) => handleUpdateQuizDetails('startTime', e.target.value)}
+                      className="bg-background border-input h-10 pr-10 appearance-none"
                     />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div>
-                <Label htmlFor="startTime" className="flex items-center gap-2 mb-1"><Clock className="h-4 w-4 text-muted-foreground" /> Start Time</Label>
-                <div className="relative mt-1">
-                  <Input
-                    id="startTime"
-                    type="time"
-                    value={quizData.startTime}
-                    disabled={step === 2}
-                    onChange={(e) => handleUpdateQuizDetails('startTime', e.target.value)}
-                    className="bg-background border-input h-10 pr-10 appearance-none"
-                  />
-                  <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="endTime" className="flex items-center gap-2 mb-1"><Clock className="h-4 w-4 text-muted-foreground" /> End Time</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      id="endTime"
+                      type="time"
+                      value={quizData.endTime}
+                      disabled={step === 2}
+                      onChange={(e) => handleUpdateQuizDetails('endTime', e.target.value)}
+                      className="bg-background border-input h-10 pr-10 appearance-none"
+                    />
+                    <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  </div>
                 </div>
               </div>
+            )}
+          </div>
+
+          {/* Pass Mark Configuration */}
+          <div className="border-t border-border pt-4 mt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Target className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold text-foreground">Pass Criteria</h3>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <Label htmlFor="endTime" className="flex items-center gap-2 mb-1"><Clock className="h-4 w-4 text-muted-foreground" /> End Time</Label>
-                <div className="relative mt-1">
-                  <Input
-                    id="endTime"
-                    type="time"
-                    value={quizData.endTime}
-                    disabled={step === 2}
-                    onChange={(e) => handleUpdateQuizDetails('endTime', e.target.value)}
-                    className="bg-background border-input h-10 pr-10 appearance-none"
-                  />
-                  <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                </div>
+                <Label htmlFor="passMark">Pass Mark Percentage (%)</Label>
+                <Input
+                  id="passMark"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={quizData.passMarkPercentage}
+                  disabled={step === 2}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '') {
+                      handleUpdateQuizDetails('passMarkPercentage', '');
+                      return;
+                    }
+                    const numVal = parseInt(val);
+                    if (numVal >= 0 && numVal <= 100) {
+                      handleUpdateQuizDetails('passMarkPercentage', numVal);
+                    }
+                  }}
+                  className="mt-1"
+                />
+              </div>
+              <div className="flex flex-col justify-end pb-2">
+                <p className="text-sm font-medium text-muted-foreground">
+                  {quizData.totalQuestions && quizData.passMarkPercentage !== '' ? (
+                    <>
+                      Minimum Correct Answers Required: <span className="text-primary font-bold">
+                        {Math.ceil((Number(quizData.totalQuestions) * Number(quizData.passMarkPercentage)) / 100)}
+                      </span> / {quizData.totalQuestions}
+                    </>
+                  ) : (
+                    "Enter total questions and pass percentage"
+                  )}
+                </p>
               </div>
             </div>
-          )}
-        </div>
-
-        {/* Pass Mark Configuration */}
-        <div className="border-t border-border pt-4 mt-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Target className="h-5 w-5 text-primary" />
-            <h3 className="text-lg font-semibold text-foreground">Pass Criteria</h3>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
+
+          {/* Question Count and Options */}
+          {/* Question Count and Options */}
+          <div className="grid gap-4 md:grid-cols-2 border-t pt-4 mt-4">
             <div>
-              <Label htmlFor="passMark">Pass Mark Percentage (%)</Label>
+              <Label htmlFor="totalQuestions">Questions to Attend (Student View)</Label>
               <Input
-                id="passMark"
+                id="totalQuestions"
+                type="number"
+                min="1"
+                value={quizData.totalQuestions}
+                disabled={step === 2} // Lock
+                onChange={(e) => {
+                  const val = e.target.value;
+                  handleUpdateQuizDetails('totalQuestions', val === '' ? '' : parseInt(val));
+                }}
+                className="mt-1 font-bold"
+                placeholder="e.g. 10"
+              />
+              <p className="text-xs text-gray-500 mt-1">Number of questions each student will answer.</p>
+            </div>
+            <div>
+              <Label htmlFor="aiPoolSize">Total Questions to Generate (AI Pool)</Label>
+              <Input
+                id="aiPoolSize"
+                type="number"
+                min="1"
+                value={aiPoolSize}
+                disabled={step === 2} // Lock
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setAiPoolSize(val === '' ? '' : parseInt(val));
+                }}
+                className="mt-1 border-indigo-200 focus:border-indigo-500 font-bold"
+                placeholder="e.g. 50"
+              />
+              <p className="text-xs text-gray-500 mt-1">Total questions AI will generate. Students will get a random subset.</p>
+            </div>
+          </div>
+
+          <div className="border-t pt-4 mt-4">
+            <h3 className="text-lg font-semibold mb-2">Additional Quiz Settings</h3>
+
+            {/* NEW: Difficulty Selection */}
+            <div className="mb-4">
+              <Label htmlFor="quizDifficulty">Quiz Difficulty Level</Label>
+              <Select onValueChange={(value: 'Easy' | 'Medium' | 'Hard') => setQuizDifficulty(value)} value={quizDifficulty} disabled={step === 2}>
+                <SelectTrigger className="w-full mt-1">
+                  <SelectValue placeholder="Select difficulty" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Easy">Easy</SelectItem>
+                  <SelectItem value="Medium">Medium</SelectItem>
+                  <SelectItem value="Hard">Hard</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-between mt-3">
+              <Label htmlFor="enableTimePerQuestion">Enable Time per Question</Label>
+              <Switch
+                id="enableTimePerQuestion"
+                checked={enableTimePerQuestion}
+                onCheckedChange={setEnableTimePerQuestion}
+                disabled={step === 2} // Lock
+              />
+            </div>
+            {enableTimePerQuestion && (
+              <div className="mt-3">
+                <Label htmlFor="defaultTimePerQuestion">Default Time per Question (minutes, optional)</Label>
+                <Input
+                  id="defaultTimePerQuestion"
+                  type="number"
+                  min="1"
+                  placeholder="e.g., 1 (will be overridden by question-specific time)"
+                  value={defaultTimePerQuestion === null ? '' : defaultTimePerQuestion}
+                  disabled={step === 2} // Lock
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setDefaultTimePerQuestion(value === '' ? null : parseInt(value) || 1);
+                  }}
+                  className="mt-1"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  This sets a default for new questions. Individual questions can override this.
+                </p>
+              </div>
+            )}
+            <div className="flex items-center justify-between mt-3">
+              <Label htmlFor="negativeMarking">Enable Negative Marking</Label>
+              <Switch
+                id="negativeMarking"
+                checked={negativeMarking}
+                onCheckedChange={setNegativeMarking}
+                disabled={step === 2} // Lock
+              />
+            </div>
+            {negativeMarking && (
+              <div className="mt-2 pl-2 border-l-2 border-red-200">
+                <Label htmlFor="negativeMarksValue">Negative marks for wrong answer</Label>
+                <Input
+                  id="negativeMarksValue"
+                  type="number"
+                  placeholder="e.g. 0.25"
+                  value={negativeMarksValue}
+                  disabled={step === 2}
+                  onChange={(e) => setNegativeMarksValue(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Step 2 Content */}
+          {
+            step === 2 && (
+              <>
+                <h3 className="text-lg font-semibold mb-2">Questions for "{quizData.quizTitle || 'New Quiz'}"</h3>
+                <div className="flex justify-between items-center mb-4 p-3 border rounded-md bg-blue-50 text-blue-800 font-semibold">
+                  <span>Pool Size: {quizData.questions.length} / Attempt: {quizData.totalQuestions}</span>
+                  <span>Total Marks: {totalQuizMarks}</span>
+                  <span>Total Quiz Time: {totalCalculatedQuizTime} minutes</span>
+                </div>
+
+                {/* AI Question Generation Section */}
+                <div className="border-t pt-4 mt-4 space-y-4">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <Brain className="h-5 w-5" /> Expert Academic Question Generator
+                  </h3>
+                  <div>
+                    <Label htmlFor="aiDifficulty">Difficulty</Label>
+                    <Select onValueChange={(value: 'Easy' | 'Medium' | 'Hard') => setAiDifficulty(value)} value={aiDifficulty}>
+                      <SelectTrigger className="w-full mt-1">
+                        <SelectValue placeholder="Select difficulty" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Easy">Easy</SelectItem>
+                        <SelectItem value="Medium">Medium</SelectItem>
+                        <SelectItem value="Hard">Hard</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="aiMarks">Marks per Question</Label>
+                      <Input
+                        id="aiMarks"
+                        type="number"
+                        min="1"
+                        value={aiMarksPerQuestion}
+                        onChange={(e) => setAiMarksPerQuestion(parseInt(e.target.value) || 1)}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="aiTime">Time per Question (seconds)</Label>
+                      <Input
+                        id="aiTime"
+                        type="number"
+                        min="5"
+                        value={aiTimePerQuestionSeconds}
+                        onChange={(e) => setAiTimePerQuestionSeconds(parseInt(e.target.value) || 60)}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      onClick={handleGenerateAIQuestions}
+                      disabled={isGeneratingAI}
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 h-12 text-lg font-bold shadow-lg shadow-indigo-100 disabled:bg-indigo-400"
+                    >
+                      {isGeneratingAI ? (
+                        <>
+                          <div className="h-5 w-5 mr-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Generating Questions...
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="h-5 w-5 mr-2" />
+                          {quizData.questions.length > 0 ? 'Regenerate' : 'Generate'} {quizData.totalQuestions} Expert Questions for "{aiCoursePaperName || quizData.quizTitle || 'Topic'}"
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-gray-400 hover:text-indigo-600 text-[10px] uppercase tracking-widest font-black"
+                      onClick={() => {
+                        toast.info("Expert Rules: realistic distractors, clear conceptual focus, and no unrelated options.", {
+                          duration: 5000,
+                          icon: <Info className="h-4 w-4" />
+                        });
+                      }}
+                    >
+                      <Info className="h-3 w-3 mr-1.5" /> Review AI Rules & Strict Guidelines
+                    </Button>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-2">
+                    AI will generate {quizData.totalQuestions} questions with <strong className="text-indigo-600">4 options</strong> each (standard MCQ format),
+                    setting each to {aiMarksPerQuestion} marks and {aiTimePerQuestionSeconds} seconds.
+                  </p>
+                </div>
+
+                <div className="space-y-6 max-h-[500px] overflow-y-auto p-3 border rounded-md bg-gray-50 mt-4 relative">
+                  {quizData.questions.length === 0 ? (
+                    <p className="text-gray-500 text-center py-10">
+                      {isGeneratingAI ? "" : "No questions added yet. Click \"Generate Questions with AI\" to begin."}
+                    </p>
+                  ) : (
+                    <>
+                      {/* Wizard Navigation Header */}
+                      <div className="flex items-center justify-between mb-4 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
+                        <div className="flex items-center gap-4">
+                          <div className="h-10 w-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-md">
+                            {currentQuestionIndex + 1}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-gray-700">Question {currentQuestionIndex + 1} of {quizData.questions.length}</h4>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                            disabled={currentQuestionIndex === 0}
+                            className="h-9 px-4 font-bold border-gray-200"
+                          >
+                            Previous
+                          </Button>
+                          <Button
+                            onClick={() => setCurrentQuestionIndex(prev => Math.min(quizData.questions.length - 1, prev + 1))}
+                            disabled={currentQuestionIndex === quizData.questions.length - 1}
+                            className="h-9 px-6 bg-slate-900 text-white hover:bg-black font-bold"
+                          >
+                            Next
+                          </Button>
+                        </div>
+                      </div>
+
+                      {quizData.questions[currentQuestionIndex] && (
+                        <Card className="p-4 border rounded-md bg-white shadow-sm relative animate-in fade-in slide-in-from-right-4 duration-300" key={currentQuestionIndex}>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2 h-7 w-7"
+                            onClick={() => {
+                              handleDeleteQuestionFromDraft(currentQuestionIndex);
+                              if (currentQuestionIndex >= quizData.questions.length - 1) {
+                                setCurrentQuestionIndex(Math.max(0, quizData.questions.length - 2));
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          <div className="space-y-3">
+                            <div>
+                              <Label>Question {currentQuestionIndex + 1}</Label>
+                              <div className="mt-1">
+                                <Textarea
+                                  value={quizData.questions[currentQuestionIndex].questionText}
+                                  onChange={(e) => handleUpdateDraftQuestion(currentQuestionIndex, 'questionText', e.target.value)}
+                                  placeholder="Enter question text..."
+                                  className="min-h-[80px]"
+                                />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-1 gap-2 mt-2">
+                              {quizData.questions[currentQuestionIndex].options.map((option, optIndex) => (
+                                <div key={optIndex} className="flex items-center gap-2 p-2 border rounded-md bg-white text-sm">
+                                  <span className="font-semibold text-gray-500 w-6">{String.fromCharCode(65 + optIndex)}.</span>
+                                  <Input
+                                    value={option}
+                                    onChange={(e) => handleUpdateOption(currentQuestionIndex, optIndex, e.target.value)}
+                                    placeholder={`Option ${optIndex + 1}`}
+                                    className="flex-1"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                            <Label className="text-xs text-indigo-600 font-bold flex items-center gap-1 mb-1">
+                              <Save className="h-3 w-3" /> Correct Answer
+                            </Label>
+                            <RadioGroup
+                              onValueChange={(value) => handleUpdateCorrectAnswerIndex(currentQuestionIndex, value)}
+                              value={quizData.questions[currentQuestionIndex].correctAnswerIndex !== null ?
+                                quizData.questions[currentQuestionIndex].options[quizData.questions[currentQuestionIndex].correctAnswerIndex!] : ''}
+                              className="flex flex-col space-y-2 mt-2"
+                            >
+                              {quizData.questions[currentQuestionIndex].options.map((option, optIndex) => (
+                                option && (
+                                  <div key={optIndex} className="flex items-center space-x-2 bg-indigo-50/30 p-2 rounded-md border border-transparent hover:border-indigo-100">
+                                    <RadioGroupItem value={option} id={`q-correct-${currentQuestionIndex}-${optIndex}`} />
+                                    <Label htmlFor={`q-correct-${currentQuestionIndex}-${optIndex}`} className="font-medium cursor-pointer text-gray-700 w-full">
+                                      {String.fromCharCode(65 + optIndex)}. {option}
+                                    </Label>
+                                  </div>
+                                )
+                              ))}
+                            </RadioGroup>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <Label htmlFor={`q-marks-${currentQuestionIndex}`}>Marks (1-10)</Label>
+                                <Input
+                                  id={`q-marks-${currentQuestionIndex}`}
+                                  type="number"
+                                  min="0"
+                                  max="10"
+                                  value={quizData.questions[currentQuestionIndex].marks}
+                                  onChange={(e) => {
+                                    const val = e.target.value === '' ? '' : parseInt(e.target.value);
+                                    if (val === '' || (val >= 0 && val <= 10)) {
+                                      handleUpdateDraftQuestion(currentQuestionIndex, 'marks', val === '' ? '' : val);
+                                    }
+                                  }}
+                                  className="mt-1"
+                                />
+                              </div>
+                              {enableTimePerQuestion && (
+                                <div>
+                                  <Label htmlFor={`q-time-${currentQuestionIndex}`}>Time (minutes)</Label>
+                                  <Input
+                                    id={`q-time-${currentQuestionIndex}`}
+                                    type="number"
+                                    min="1"
+                                    value={quizData.questions[currentQuestionIndex].timeLimitMinutes}
+                                    onChange={(e) => handleUpdateDraftQuestion(currentQuestionIndex, 'timeLimitMinutes', e.target.value)}
+                                    className="mt-1"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </Card>
+                      )}
+                    </>
+                  )}
+                </div>
+              </>
+            )
+          }
+        </CardContent>
+
+        <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 mt-6">
+          {step === 1 ? (
+            <Button onClick={handleProceed} className="w-full bg-blue-600 hover:bg-blue-700">
+              Proceed
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => setStep(1)} className="w-[100px]">
+                Back
+              </Button>
+              <Button onClick={handlePreviewQuiz} variant="outline" className="w-full sm:w-auto">
+                <Eye className="h-4 w-4 mr-2" /> Preview Quiz
+              </Button>
+              <Button onClick={handleCreateQuiz} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
+                <Save className="h-4 w-4 mr-2" /> {showSchedule ? "Schedule Quiz" : "Post Quiz Now"}
+              </Button>
+            </>
+          )}
+        </CardFooter>
+      </Card>
+
+      <Dialog open={showSetupModal} onOpenChange={setShowSetupModal}>
+        <DialogContent className="sm:max-w-[500px] rounded-2xl border-primary/20 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold flex items-center gap-2 text-primary">
+              <Settings2 className="h-6 w-6" /> Final Quiz Setup
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-lg">
+              Please provide the mandatory details before finalizing your quiz.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-6">
+            <div className="space-y-2">
+              <Label htmlFor="modalCourseName" className="text-sm font-bold text-muted-foreground">Course Name</Label>
+              <Select value={quizData.courseName || ""} onValueChange={(val) => handleUpdateQuizDetails('courseName', val)}>
+                <SelectTrigger id="modalCourseName" className="h-12 text-lg rounded-xl border-border focus:ring-primary/20">
+                  <SelectValue placeholder="Select a course..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-border shadow-xl">
+                  {availableCourses.map((course) => (
+                    <SelectItem key={course} value={course} className="text-lg py-2 cursor-pointer">
+                      {course}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="modalExamName" className="text-sm font-bold text-muted-foreground">Exam Paper Name</Label>
+              <Input
+                id="modalExamName"
+                placeholder="e.g. Unit 1 Quiz"
+                value={quizData.quizTitle}
+                onChange={(e) => handleUpdateQuizDetails('quizTitle', e.target.value)}
+                className="h-12 text-lg rounded-xl border-border focus:ring-primary/20"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="modalPassMark" className="text-sm font-bold text-muted-foreground">Pass Percentage (%)</Label>
+              <Input
+                id="modalPassMark"
                 type="number"
                 min="0"
                 max="100"
+                placeholder="e.g. 50"
                 value={quizData.passMarkPercentage}
-                disabled={step === 2}
                 onChange={(e) => {
                   const val = e.target.value;
                   if (val === '') {
@@ -774,389 +1238,21 @@ const QuizCreator = ({ onBack }: { onBack: () => void }) => {
                     handleUpdateQuizDetails('passMarkPercentage', numVal);
                   }
                 }}
-                className="mt-1"
+                className="h-12 text-lg rounded-xl border-border focus:ring-primary/20"
               />
             </div>
-            <div className="flex flex-col justify-end pb-2">
-              <p className="text-sm font-medium text-muted-foreground">
-                {quizData.totalQuestions && quizData.passMarkPercentage !== '' ? (
-                  <>
-                    Minimum Correct Answers Required: <span className="text-primary font-bold">
-                      {Math.ceil((Number(quizData.totalQuestions) * Number(quizData.passMarkPercentage)) / 100)}
-                    </span> / {quizData.totalQuestions}
-                  </>
-                ) : (
-                  "Enter total questions and pass percentage"
-                )}
-              </p>
-            </div>
           </div>
-        </div>
-
-        {/* Question Count and Options */}
-        {/* Question Count and Options */}
-        <div className="grid gap-4 md:grid-cols-2 border-t pt-4 mt-4">
-          <div>
-            <Label htmlFor="totalQuestions">Questions to Attend (Student View)</Label>
-            <Input
-              id="totalQuestions"
-              type="number"
-              min="1"
-              value={quizData.totalQuestions}
-              disabled={step === 2} // Lock
-              onChange={(e) => {
-                const val = e.target.value;
-                handleUpdateQuizDetails('totalQuestions', val === '' ? '' : parseInt(val));
-              }}
-              className="mt-1 font-bold"
-              placeholder="e.g. 10"
-            />
-            <p className="text-xs text-gray-500 mt-1">Number of questions each student will answer.</p>
-          </div>
-          <div>
-            <Label htmlFor="aiPoolSize">Total Questions to Generate (AI Pool)</Label>
-            <Input
-              id="aiPoolSize"
-              type="number"
-              min="1"
-              value={aiPoolSize}
-              disabled={step === 2} // Lock
-              onChange={(e) => {
-                const val = e.target.value;
-                setAiPoolSize(val === '' ? '' : parseInt(val));
-              }}
-              className="mt-1 border-indigo-200 focus:border-indigo-500 font-bold"
-              placeholder="e.g. 50"
-            />
-            <p className="text-xs text-gray-500 mt-1">Total questions AI will generate. Students will get a random subset.</p>
-          </div>
-        </div>
-
-        <div className="border-t pt-4 mt-4">
-          <h3 className="text-lg font-semibold mb-2">Additional Quiz Settings</h3>
-
-          {/* NEW: Difficulty Selection */}
-          <div className="mb-4">
-            <Label htmlFor="quizDifficulty">Quiz Difficulty Level</Label>
-            <Select onValueChange={(value: 'Easy' | 'Medium' | 'Hard') => setQuizDifficulty(value)} value={quizDifficulty} disabled={step === 2}>
-              <SelectTrigger className="w-full mt-1">
-                <SelectValue placeholder="Select difficulty" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Easy">Easy</SelectItem>
-                <SelectItem value="Medium">Medium</SelectItem>
-                <SelectItem value="Hard">Hard</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center justify-between mt-3">
-            <Label htmlFor="enableTimePerQuestion">Enable Time per Question</Label>
-            <Switch
-              id="enableTimePerQuestion"
-              checked={enableTimePerQuestion}
-              onCheckedChange={setEnableTimePerQuestion}
-              disabled={step === 2} // Lock
-            />
-          </div>
-          {enableTimePerQuestion && (
-            <div className="mt-3">
-              <Label htmlFor="defaultTimePerQuestion">Default Time per Question (minutes, optional)</Label>
-              <Input
-                id="defaultTimePerQuestion"
-                type="number"
-                min="1"
-                placeholder="e.g., 1 (will be overridden by question-specific time)"
-                value={defaultTimePerQuestion === null ? '' : defaultTimePerQuestion}
-                disabled={step === 2} // Lock
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setDefaultTimePerQuestion(value === '' ? null : parseInt(value) || 1);
-                }}
-                className="mt-1"
-              />
-              <p className="text-sm text-gray-500 mt-1">
-                This sets a default for new questions. Individual questions can override this.
-              </p>
-            </div>
-          )}
-          <div className="flex items-center justify-between mt-3">
-            <Label htmlFor="negativeMarking">Enable Negative Marking</Label>
-            <Switch
-              id="negativeMarking"
-              checked={negativeMarking}
-              onCheckedChange={setNegativeMarking}
-              disabled={step === 2} // Lock
-            />
-          </div>
-          {negativeMarking && (
-            <div className="mt-2 pl-2 border-l-2 border-red-200">
-              <Label htmlFor="negativeMarksValue">Negative marks for wrong answer</Label>
-              <Input
-                id="negativeMarksValue"
-                type="number"
-                placeholder="e.g. 0.25"
-                value={negativeMarksValue}
-                disabled={step === 2}
-                onChange={(e) => setNegativeMarksValue(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Step 2 Content */}
-        {
-          step === 2 && (
-            <>
-              <h3 className="text-lg font-semibold mb-2">Questions for "{quizData.quizTitle || 'New Quiz'}"</h3>
-              <div className="flex justify-between items-center mb-4 p-3 border rounded-md bg-blue-50 text-blue-800 font-semibold">
-                <span>Pool Size: {quizData.questions.length} / Attempt: {quizData.totalQuestions}</span>
-                <span>Total Marks: {totalQuizMarks}</span>
-                <span>Total Quiz Time: {totalCalculatedQuizTime} minutes</span>
-              </div>
-
-              {/* AI Question Generation Section */}
-              <div className="border-t pt-4 mt-4 space-y-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Brain className="h-5 w-5" /> Expert Academic Question Generator
-                </h3>
-                <div>
-                  <Label htmlFor="aiDifficulty">Difficulty</Label>
-                  <Select onValueChange={(value: 'Easy' | 'Medium' | 'Hard') => setAiDifficulty(value)} value={aiDifficulty}>
-                    <SelectTrigger className="w-full mt-1">
-                      <SelectValue placeholder="Select difficulty" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Easy">Easy</SelectItem>
-                      <SelectItem value="Medium">Medium</SelectItem>
-                      <SelectItem value="Hard">Hard</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="aiMarks">Marks per Question</Label>
-                    <Input
-                      id="aiMarks"
-                      type="number"
-                      min="1"
-                      value={aiMarksPerQuestion}
-                      onChange={(e) => setAiMarksPerQuestion(parseInt(e.target.value) || 1)}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="aiTime">Time per Question (seconds)</Label>
-                    <Input
-                      id="aiTime"
-                      type="number"
-                      min="5"
-                      value={aiTimePerQuestionSeconds}
-                      onChange={(e) => setAiTimePerQuestionSeconds(parseInt(e.target.value) || 60)}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Button
-                    onClick={handleGenerateAIQuestions}
-                    disabled={isGeneratingAI}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 h-12 text-lg font-bold shadow-lg shadow-indigo-100 disabled:bg-indigo-400"
-                  >
-                    {isGeneratingAI ? (
-                      <>
-                        <div className="h-5 w-5 mr-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Generating Questions...
-                      </>
-                    ) : (
-                      <>
-                        <Wand2 className="h-5 w-5 mr-2" />
-                        {quizData.questions.length > 0 ? 'Regenerate' : 'Generate'} {quizData.totalQuestions} Expert Questions for "{aiCoursePaperName || quizData.quizTitle || 'Topic'}"
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-gray-400 hover:text-indigo-600 text-[10px] uppercase tracking-widest font-black"
-                    onClick={() => {
-                      toast.info("Expert Rules: realistic distractors, clear conceptual focus, and no unrelated options.", {
-                        duration: 5000,
-                        icon: <Info className="h-4 w-4" />
-                      });
-                    }}
-                  >
-                    <Info className="h-3 w-3 mr-1.5" /> Review AI Rules & Strict Guidelines
-                  </Button>
-                </div>
-                <p className="text-sm text-gray-500 mt-2">
-                  AI will generate {quizData.totalQuestions} questions with <strong className="text-indigo-600">4 options</strong> each (standard MCQ format),
-                  setting each to {aiMarksPerQuestion} marks and {aiTimePerQuestionSeconds} seconds.
-                </p>
-              </div>
-
-              <div className="space-y-6 max-h-[500px] overflow-y-auto p-3 border rounded-md bg-gray-50 mt-4 relative">
-                {quizData.questions.length === 0 ? (
-                  <p className="text-gray-500 text-center py-10">
-                    {isGeneratingAI ? "" : "No questions added yet. Click \"Generate Questions with AI\" to begin."}
-                  </p>
-                ) : (
-                  <>
-                    {/* Wizard Navigation Header */}
-                    <div className="flex items-center justify-between mb-4 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-md">
-                          {currentQuestionIndex + 1}
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-gray-700">Question {currentQuestionIndex + 1} of {quizData.questions.length}</h4>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
-                          disabled={currentQuestionIndex === 0}
-                          className="h-9 px-4 font-bold border-gray-200"
-                        >
-                          Previous
-                        </Button>
-                        <Button
-                          onClick={() => setCurrentQuestionIndex(prev => Math.min(quizData.questions.length - 1, prev + 1))}
-                          disabled={currentQuestionIndex === quizData.questions.length - 1}
-                          className="h-9 px-6 bg-slate-900 text-white hover:bg-black font-bold"
-                        >
-                          Next
-                        </Button>
-                      </div>
-                    </div>
-
-                    {quizData.questions[currentQuestionIndex] && (
-                      <Card className="p-4 border rounded-md bg-white shadow-sm relative animate-in fade-in slide-in-from-right-4 duration-300" key={currentQuestionIndex}>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-2 right-2 h-7 w-7"
-                          onClick={() => {
-                            handleDeleteQuestionFromDraft(currentQuestionIndex);
-                            if (currentQuestionIndex >= quizData.questions.length - 1) {
-                              setCurrentQuestionIndex(Math.max(0, quizData.questions.length - 2));
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                        <div className="space-y-3">
-                          <div>
-                            <Label>Question {currentQuestionIndex + 1}</Label>
-                            <div className="mt-1">
-                              <Textarea
-                                value={quizData.questions[currentQuestionIndex].questionText}
-                                onChange={(e) => handleUpdateDraftQuestion(currentQuestionIndex, 'questionText', e.target.value)}
-                                placeholder="Enter question text..."
-                                className="min-h-[80px]"
-                              />
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-1 gap-2 mt-2">
-                            {quizData.questions[currentQuestionIndex].options.map((option, optIndex) => (
-                              <div key={optIndex} className="flex items-center gap-2 p-2 border rounded-md bg-white text-sm">
-                                <span className="font-semibold text-gray-500 w-6">{String.fromCharCode(65 + optIndex)}.</span>
-                                <Input
-                                  value={option}
-                                  onChange={(e) => handleUpdateOption(currentQuestionIndex, optIndex, e.target.value)}
-                                  placeholder={`Option ${optIndex + 1}`}
-                                  className="flex-1"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                          <Label className="text-xs text-indigo-600 font-bold flex items-center gap-1 mb-1">
-                            <Save className="h-3 w-3" /> Correct Answer
-                          </Label>
-                          <RadioGroup
-                            onValueChange={(value) => handleUpdateCorrectAnswerIndex(currentQuestionIndex, value)}
-                            value={quizData.questions[currentQuestionIndex].correctAnswerIndex !== null ?
-                              quizData.questions[currentQuestionIndex].options[quizData.questions[currentQuestionIndex].correctAnswerIndex!] : ''}
-                            className="flex flex-col space-y-2 mt-2"
-                          >
-                            {quizData.questions[currentQuestionIndex].options.map((option, optIndex) => (
-                              option && (
-                                <div key={optIndex} className="flex items-center space-x-2 bg-indigo-50/30 p-2 rounded-md border border-transparent hover:border-indigo-100">
-                                  <RadioGroupItem value={option} id={`q-correct-${currentQuestionIndex}-${optIndex}`} />
-                                  <Label htmlFor={`q-correct-${currentQuestionIndex}-${optIndex}`} className="font-medium cursor-pointer text-gray-700 w-full">
-                                    {String.fromCharCode(65 + optIndex)}. {option}
-                                  </Label>
-                                </div>
-                              )
-                            ))}
-                          </RadioGroup>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label htmlFor={`q-marks-${currentQuestionIndex}`}>Marks (1-10)</Label>
-                              <Input
-                                id={`q-marks-${currentQuestionIndex}`}
-                                type="number"
-                                min="0"
-                                max="10"
-                                value={quizData.questions[currentQuestionIndex].marks}
-                                onChange={(e) => {
-                                  const val = e.target.value === '' ? '' : parseInt(e.target.value);
-                                  if (val === '' || (val >= 0 && val <= 10)) {
-                                    handleUpdateDraftQuestion(currentQuestionIndex, 'marks', val === '' ? '' : val);
-                                  }
-                                }}
-                                className="mt-1"
-                              />
-                            </div>
-                            {enableTimePerQuestion && (
-                              <div>
-                                <Label htmlFor={`q-time-${currentQuestionIndex}`}>Time (minutes)</Label>
-                                <Input
-                                  id={`q-time-${currentQuestionIndex}`}
-                                  type="number"
-                                  min="1"
-                                  value={quizData.questions[currentQuestionIndex].timeLimitMinutes}
-                                  onChange={(e) => handleUpdateDraftQuestion(currentQuestionIndex, 'timeLimitMinutes', e.target.value)}
-                                  className="mt-1"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </Card>
-                    )}
-                  </>
-                )}
-              </div>
-            </>
-          )
-        }
-      </CardContent>
-
-      <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 mt-6">
-        {step === 1 ? (
-          <Button onClick={handleProceed} className="w-full bg-blue-600 hover:bg-blue-700">
-            Proceed
-          </Button>
-        ) : (
-          <>
-            <Button variant="outline" onClick={() => setStep(1)} className="w-[100px]">
-              Back
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSetupModal(false)} className="h-12 px-6 font-bold rounded-xl">
+              Cancel
             </Button>
-            <Button onClick={handlePreviewQuiz} variant="outline" className="w-full sm:w-auto">
-              <Eye className="h-4 w-4 mr-2" /> Preview Quiz
+            <Button onClick={handleFinalSubmit} className="h-12 px-10 font-black bg-primary text-primary-foreground rounded-xl shadow-lg shadow-primary/20">
+              Save & Finalize
             </Button>
-            <Button onClick={handleCreateQuiz} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
-              <Save className="h-4 w-4 mr-2" /> {showSchedule ? "Schedule Quiz" : "Post Quiz Now"}
-            </Button>
-          </>
-        )}
-      </CardFooter>
-    </Card>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
