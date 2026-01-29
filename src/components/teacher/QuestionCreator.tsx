@@ -690,11 +690,66 @@ const QuestionCreator = ({ onBack }: { onBack: () => void }) => {
               </div>
             </div>
 
+<<<<<<< HEAD
             <div className="bg-slate-50 px-8 py-4 border-t border-slate-100 flex justify-end gap-3">
               <Button variant="ghost" onClick={() => navigate('/teacher')} className="h-9 px-4 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-white rounded-md">Cancel</Button>
               <Button onClick={handleProceed} className="h-9 px-6 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white shadow-sm rounded-md transition-all">
                 Continue
               </Button>
+=======
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="space-y-4">
+                <Label htmlFor="numQuestions" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">QUERY COUNT</Label>
+                <Input
+                  id="numQuestions"
+                  type="number"
+                  value={numQuestions}
+                  onChange={(e) => setNumQuestions(e.target.value === '' ? '' : parseInt(e.target.value))}
+                  className="glass-input h-16 text-xl font-black text-[#1E2455]"
+                />
+              </div>
+              <div className="space-y-4">
+                <Label htmlFor="numOptions" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">OPTION MULTIPLICITY</Label>
+                <Input
+                  id="numOptions"
+                  type="number"
+                  value={numOptions}
+                  onChange={(e) => setNumOptions(e.target.value === '' ? '' : parseInt(e.target.value))}
+                  className="glass-input h-16 text-xl font-black text-[#1E2455]"
+                />
+              </div>
+              <div className="space-y-4">
+                <Label htmlFor="passMark" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">PROFICIENCY THRESHOLD (%)</Label>
+                <Input
+                  id="passMark"
+                  type="number"
+                  value={passMarkPercentage}
+                  onChange={(e) => setPassMarkPercentage(e.target.value === '' ? '' : parseInt(e.target.value))}
+                  className="glass-input h-16 text-xl font-black text-[#1E2455]"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-10 border-t border-white/40 gap-6 relative z-10">
+            <Button variant="ghost" onClick={() => navigate('/teacher')} className="h-16 px-10 font-black text-[#7A80B8] uppercase tracking-[0.2em] text-[10px] rounded-2xl hover:bg-[#6C8BFF]/5">Cancel</Button>
+            <Button onClick={handleProceed} className="pastel-button-primary h-16 px-12 text-[10px] tracking-[0.2em]">
+              PROCEED TO QUIZ CREATION
+            </Button>
+          </div>
+        </div>
+      ) : step === 1 ? (
+        <div className="glass-card shadow-lg border-white/60 bg-white/40 backdrop-blur-xl rounded-[48px] overflow-hidden max-w-4xl mx-auto">
+          <div className="border-b border-white/60 bg-white/40 px-10 py-8">
+            <div className="flex items-center gap-5">
+              <Button variant="ghost" size="icon" onClick={onBack} className="mr-2 h-12 w-12 rounded-2xl hover:bg-white/60 border border-transparent hover:border-white/60 transition-all">
+                <ArrowLeft className="h-6 w-6 text-[#7A80B8]" />
+              </Button>
+              <div className="p-3 bg-[#6C8BFF]/10 rounded-2xl">
+                <PlusCircle className="h-7 w-7 text-[#6C8BFF]" />
+              </div>
+              <h3 className="text-3xl font-black text-[#1E2455] uppercase tracking-tighter">Manual Quiz Hub</h3>
+>>>>>>> b205ec2 (working)
             </div>
           </div>
         </div>
@@ -780,9 +835,20 @@ const QuestionCreator = ({ onBack }: { onBack: () => void }) => {
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back
                 </Button>
+<<<<<<< HEAD
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Questions</h4>
                   <span className="text-[10px] font-mono text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100">{currentQuestionIndex + 1} / {draftQuestions.length}</span>
+=======
+                <div>
+                  <h3 className="text-4xl lg:text-5xl font-black text-[#1E2455] uppercase tracking-tighter leading-none mb-3">
+                    Manual Creation Engine
+                  </h3>
+                  <div className="flex items-center gap-4">
+                    <span className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] opacity-60 italic">Fragment /</span>
+                    <span className="text-[10px] font-black text-[#6C8BFF] uppercase tracking-[0.4em]">{questionSetName || 'UNTITLED SEQUENCE'}</span>
+                  </div>
+>>>>>>> b205ec2 (working)
                 </div>
               </div>
 
@@ -935,8 +1001,111 @@ const QuestionCreator = ({ onBack }: { onBack: () => void }) => {
                     )}
                   </div>
 
+<<<<<<< HEAD
                 </div>
               )}
+=======
+          <div className="px-12 py-12 bg-[#1E2455]/5 border-t border-white/60 relative z-10 group">
+            <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent translate-x-full group-hover:translate-x-0 transition-transform duration-1000" />
+
+            <div className="space-y-12 relative z-10">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-10 p-10 glass-card border-white shadow-xl hover:shadow-glass-hover transition-all duration-1000">
+                <div className="flex items-center gap-8">
+                  <div className="w-16 h-16 bg-[#6C8BFF]/10 border border-[#6C8BFF]/20 rounded-2xl flex items-center justify-center animate-pulse">
+                    <Calendar className="h-8 w-8 text-[#6C8BFF]" />
+                  </div>
+                  <div>
+                    <h4 className="text-2xl font-black text-[#1E2455] uppercase tracking-tighter mb-2">Temporal Orchestration</h4>
+                    <p className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.3em] italic">Optional / Future Quiz Scheduling</p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "h-16 px-10 font-black uppercase tracking-[0.2em] text-[10px] rounded-[24px] border transition-all duration-700",
+                    showSchedule ? "bg-[#6C8BFF] text-white border-transparent shadow-lg shadow-[#6C8BFF]/30" : "bg-white/40 border-white text-[#7A80B8] hover:text-[#6C8BFF] hover:bg-[#6C8BFF]/5 hover:border-[#6C8BFF]/30"
+                  )}
+                  onClick={() => setShowSchedule(!showSchedule)}
+                >
+                  {showSchedule ? "DEACTIVATE MODULE" : "ACTIVATE SCHEDULER"}
+                </Button>
+              </div>
+
+              {showSchedule && (
+                <div className="glass-card p-10 border-[#6C8BFF]/20 bg-white shadow-2xl space-y-10 animate-in slide-in-from-top-6 duration-700">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+                    <div className="space-y-4">
+                      <Label className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">Quiz Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "glass-input h-16 w-full justify-start text-left font-black text-lg px-6",
+                              !scheduledDate && "text-[#7A80B8]/40"
+                            )}
+                          >
+                            <Calendar className="mr-4 h-6 w-6 text-[#6C8BFF]" />
+                            {scheduledDate ? format(new Date(scheduledDate), "PPP") : <span className="uppercase tracking-widest text-[10px]">Select Date...</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="glass-card p-0 border-white/60 shadow-2xl rounded-[32px] overflow-hidden" align="start">
+                          <ShadcnCalendar
+                            mode="single"
+                            selected={scheduledDate ? new Date(scheduledDate) : undefined}
+                            onSelect={(date) => {
+                              if (date) {
+                                setScheduledDate(format(date, "yyyy-MM-dd"));
+                              }
+                            }}
+                            initialFocus
+                            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="space-y-4">
+                      <Label className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">Initialization Time</Label>
+                      <div className="relative">
+                        <Input
+                          type="time"
+                          value={scheduledTime}
+                          onChange={(e) => setScheduledTime(e.target.value)}
+                          className="glass-input h-16 text-xl font-black text-[#1E2455] px-6 appearance-none"
+                        />
+                        <Clock className="absolute right-6 top-1/2 -translate-y-1/2 h-6 w-6 text-[#6C8BFF] pointer-events-none" />
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <Label className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">Termination Time</Label>
+                      <div className="relative">
+                        <Input
+                          type="time"
+                          value={scheduledEndTime}
+                          onChange={(e) => setScheduledEndTime(e.target.value)}
+                          className="glass-input h-16 text-xl font-black text-[#1E2455] px-6 appearance-none"
+                        />
+                        <Clock className="absolute right-6 top-1/2 -translate-y-1/2 h-6 w-6 text-[#FF6B8A] pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+                  <Button onClick={handleAddToPool} variant="outline" className="w-full h-20 rounded-[28px] border-[#6C8BFF]/40 text-[#6C8BFF] font-black uppercase tracking-[0.4em] text-[12px] flex items-center justify-center gap-6 hover:bg-[#6C8BFF]/5 hover:shadow-xl transition-all duration-700">
+                    <Calendar className="h-7 w-7" /> COMMENCE SCHEDULED QUIZ
+                  </Button>
+                </div>
+              )}
+
+              <div className="flex flex-col md:flex-row gap-8 w-full pt-10">
+                <Button variant="ghost" onClick={() => setStep(1)} className="h-20 px-12 font-black text-[#7A80B8] uppercase tracking-[0.3em] text-[11px] rounded-[32px] hover:bg-[#6C8BFF]/5 border border-white/60 transition-all">Back to Hub</Button>
+                <Button variant="outline" onClick={handleSaveAndExit} className="flex-1 h-20 rounded-[32px] border-white/60 bg-white/40 text-[#7A80B8] hover:text-[#1E2455] hover:bg-white/60 font-black uppercase tracking-[0.3em] text-[11px] shadow-sm transition-all duration-700">BUFFER TO DRAFT ARCHIVE</Button>
+                <Button onClick={handleDirectCreateQuiz} className="pastel-button-primary flex-1 h-20 rounded-[32px] text-[12px] tracking-[0.3em] group shadow-xl hover:shadow-glass-hover">
+                  <div className="p-2 bg-white/20 rounded-xl mr-5 group-hover:scale-110 group-hover:rotate-12 transition-all">
+                    <CheckCircle2 className="h-7 w-7 text-white" />
+                  </div>
+                  CREATE QUIZ NOW
+                </Button>
+              </div>
+>>>>>>> b205ec2 (working)
             </div>
           </div>
         </div>
@@ -944,6 +1113,7 @@ const QuestionCreator = ({ onBack }: { onBack: () => void }) => {
 
       {/* Final Setup Modal */}
       <Dialog open={showSetupModal} onOpenChange={setShowSetupModal}>
+<<<<<<< HEAD
         <DialogContent className="sm:max-w-lg bg-white border border-slate-200 shadow-xl rounded-xl p-0 overflow-hidden">
           <DialogHeader className="px-6 py-6 border-b border-slate-100 bg-slate-50/50">
             <DialogTitle className="text-lg font-semibold text-slate-800 flex items-center gap-2">
@@ -960,6 +1130,51 @@ const QuestionCreator = ({ onBack }: { onBack: () => void }) => {
               <Label className="text-sm font-medium text-slate-700">Course</Label>
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-md text-sm text-slate-700 font-medium">
                 {courseName || "Not Selected"}
+=======
+        <DialogContent className="glass-card sm:max-w-[600px] border-white/60 bg-white/40 backdrop-blur-3xl rounded-[48px] p-10 overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-[#6C8BFF]/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl -z-10" />
+
+          <DialogHeader className="space-y-6">
+            <div className="flex items-center gap-6">
+              <div className="p-4 bg-[#6C8BFF]/10 rounded-2xl border border-[#6C8BFF]/20">
+                <Wand2 className="h-8 w-8 text-[#6C8BFF]" />
+              </div>
+              <DialogTitle className="text-4xl font-black text-[#1E2455] uppercase tracking-tighter leading-none">
+                Finalize Quiz
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-lg font-bold text-[#3A3F6B] italic opacity-60 tracking-tight leading-relaxed">
+              Verify the mandatory quiz parameters before finalizing.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-8 py-8">
+            <div className="space-y-3">
+              <Label htmlFor="modalCourseName" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">DISCIPLINARY DOMAIN</Label>
+              <Select value={courseName || ""} onValueChange={setCourseName}>
+                <SelectTrigger id="modalCourseName" className="glass-input h-16 text-xl font-black text-[#1E2455] border-white/60">
+                  <SelectValue placeholder="Select a course..." />
+                </SelectTrigger>
+                <SelectContent className="glass-card bg-white/60 border-white/60 shadow-2xl rounded-[24px]">
+                  {availableCourses.map((course) => (
+                    <SelectItem key={course} value={course} className="text-base py-4 px-6 rounded-xl font-black uppercase tracking-tight">
+                      {course}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-3">
+                <Label htmlFor="modalExamName" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">PAPER DESIGNATION</Label>
+                <Input
+                  id="modalExamName"
+                  placeholder="e.g. Unit 1 Quiz"
+                  value={questionSetName}
+                  onChange={(e) => setQuestionSetName(e.target.value)}
+                  className="glass-input h-16 text-xl font-black text-[#1E2455] border-white/60"
+                />
+>>>>>>> b205ec2 (working)
               </div>
             </div>
 

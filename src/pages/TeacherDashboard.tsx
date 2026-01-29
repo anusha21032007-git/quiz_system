@@ -361,7 +361,7 @@ const TeacherDashboard = () => {
       {/* Main Content */}
       <div className={cn("flex-1 flex flex-col min-h-screen", !isMobile && "ml-72")}>
         {/* Top Header */}
-        <header className="h-24 bg-white/20 backdrop-blur-md border-b border-white/30 px-10 flex items-center justify-between sticky top-0 z-30">
+        <header className="h-28 bg-white/20 backdrop-blur-2xl border-b border-white/30 px-10 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-6 flex-1 max-w-xl">
             {isMobile && <TeacherSidebar activeView={activeView} isMobile={true} />}
             <div className="relative flex-1 group">
@@ -376,10 +376,10 @@ const TeacherDashboard = () => {
           <div className="flex items-center gap-8 pl-8 border-l border-white/30 ml-8">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="relative p-3 text-[#7A80B8] hover:text-[#1E2455] bg-white/40 border border-white/50 rounded-2xl transition-all hover:shadow-sm">
-                  <Bell className="h-5 w-5" />
+                <button className="relative p-4 text-[#7A80B8] hover:text-[#1E2455] bg-white/50 border border-white/60 rounded-2xl transition-all hover:shadow-xl hover:translate-y-[-2px] active:scale-95">
+                  <Bell className="h-6 w-6" />
                   {pendingRequests.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#FF6B8A] text-[10px] font-black text-white flex items-center justify-center rounded-full border-2 border-white animate-pulse">
+                    <span className="absolute -top-1 -right-1 w-6 h-6 bg-[#FF6B8A] text-[11px] font-black text-white flex items-center justify-center rounded-full border-2 border-white animate-pulse shadow-lg">
                       {pendingRequests.length}
                     </span>
                   )}
@@ -402,7 +402,15 @@ const TeacherDashboard = () => {
                           <div>
                             <p className="text-sm font-black text-[#1E2455]">{req.name}</p>
                             <p className="text-xs text-[#3A3F6B] font-bold opacity-70 mt-0.5">Access for {req.year} Year • {req.department}</p>
-                            <p className="text-[10px] text-[#7A80B8] font-bold mt-2 uppercase tracking-widest">{formatTimeAgo(new Date(req.created_at).getTime())}</p>
+                            {req.message && (
+                              <div className="mt-2.5 p-3 rounded-xl bg-white/40 border border-[#6C8BFF]/10">
+                                <p className="text-[11px] text-[#3A3F6B] font-medium leading-relaxed italic">"{req.message}"</p>
+                              </div>
+                            )}
+                            <p className="text-[10px] text-[#7A80B8] font-bold mt-2.5 uppercase tracking-widest flex items-center gap-2">
+                              <Clock className="h-3 w-3" />
+                              {formatTimeAgo(new Date(req.created_at).getTime())}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -426,13 +434,13 @@ const TeacherDashboard = () => {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <div className="flex items-center gap-4 cursor-pointer p-2.5 pr-4 bg-white/40 hover:bg-white/60 border border-white/50 rounded-2xl transition-all group">
-                  <div className="w-11 h-11 bg-gradient-to-br from-[#6C8BFF] to-[#E38AD6] rounded-[14px] flex items-center justify-center shadow-md border border-white/30 group-hover:scale-105 transition-transform">
-                    <User className="h-6 w-6 text-white" />
+                <div className="flex items-center gap-5 cursor-pointer p-2.5 pr-6 bg-white/50 hover:bg-white/70 border border-white/60 rounded-[22px] transition-all group hover:shadow-xl hover:translate-y-[-2px] active:scale-95">
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#6C8BFF] to-[#E38AD6] rounded-[16px] flex items-center justify-center shadow-lg border border-white/40 group-hover:scale-105 transition-transform">
+                    <User className="h-7 w-7 text-white" />
                   </div>
                   <div className="text-left hidden sm:block">
-                    <p className="text-sm font-black text-[#1E2455] leading-none mb-1">{teacherData?.full_name || user?.email?.split('@')[0] || 'Teacher'}</p>
-                    <p className="text-[10px] text-[#7A80B8] font-black uppercase tracking-widest leading-none">{teacherData?.department || 'Faculty'}</p>
+                    <p className="text-sm font-black text-[#1E2455] leading-none mb-1.5">{teacherData?.full_name || user?.email?.split('@')[0] || 'Teacher'}</p>
+                    <p className="text-[10px] text-[#7A80B8] font-black uppercase tracking-[0.2em] leading-none">{teacherData?.department || 'Faculty'}</p>
                   </div>
                 </div>
               </DropdownMenuTrigger>

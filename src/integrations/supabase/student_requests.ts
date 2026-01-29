@@ -6,6 +6,7 @@ export interface StudentRequest {
     name: string;
     year: string;
     department: string;
+    message?: string;
     status: 'pending' | 'approved' | 'rejected';
     created_at: string;
 }
@@ -20,9 +21,18 @@ export const useStudentRequests = () => {
                 .order("created_at", { ascending: false });
 
             if (error) {
+                // If table doesn't exist yet, return empty array silently to avoid console noise
+                if (error.code === '42P01' || error.code === 'PGRST205') {
+                    console.warn("Table 'student_requests' missing. Returning empty list.");
+                    return [];
+                }
                 console.error("Error fetching student requests:", error);
+<<<<<<< HEAD
                 // Safely return empty array on any error (like missing table) to prevent app crash
                 return [];
+=======
+                throw new Error(error.message);
+>>>>>>> b205ec2 (working)
             }
             return data || [];
         },

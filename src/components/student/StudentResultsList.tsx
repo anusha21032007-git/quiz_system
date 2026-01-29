@@ -73,99 +73,116 @@ const StudentResultsList = ({ studentAttempts, quizzes }: StudentResultsListProp
     const sortedAttempts = [...studentAttempts].sort((a, b) => b.timestamp - a.timestamp);
 
     return (
-        <Card className="shadow-2xl border-slate-800 bg-card overflow-hidden rounded-[32px]">
-            <CardHeader className="flex flex-row items-center justify-between pb-6 border-b border-slate-800 bg-slate-950/20 px-8">
-                <CardTitle className="flex items-center gap-2 text-xl text-slate-100 font-black uppercase tracking-tight">
-                    <History className="h-5 w-5 text-primary" /> My Quiz History
+        <Card className="glass-card border-white/60 shadow-2xl overflow-hidden mb-12 relative group/main font-poppins">
+            {/* Gradient Accent */}
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#6C8BFF]/5 rounded-full blur-[120px] -z-10 pointer-events-none" />
+
+            <CardHeader className="flex flex-col md:flex-row items-center justify-between gap-8 pb-10 border-b border-white/60 bg-white/40 px-10 backdrop-blur-3xl relative z-10">
+                <CardTitle className="flex items-center gap-6 text-3xl text-[#1E2455] font-black uppercase tracking-tighter leading-none">
+                    <div className="w-16 h-16 bg-white/60 border border-white rounded-2xl flex items-center justify-center shadow-lg group-hover/main:scale-105 transition-all duration-700">
+                        <History className="h-8 w-8 text-[#6C8BFF]" />
+                    </div>
+                    Performance Archives
                 </CardTitle>
                 <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 text-primary border-primary/20 hover:bg-primary/10 hover:border-primary/40 font-bold uppercase text-[10px] tracking-widest px-6 rounded-xl transition-all"
-                    onClick={() => downloadCsv(sortedAttempts, `all_quiz_history_${new Date().toISOString().split('T')[0]}.csv`)}
+                    className="pastel-button-primary h-14 px-10 text-[11px] tracking-[0.2em] shadow-xl"
+                    onClick={() => downloadCsv(sortedAttempts, `performance_report_${new Date().toISOString().split('T')[0]}.csv`)}
                     disabled={sortedAttempts.length === 0}
                 >
-                    <Download className="h-4 w-4" /> Download All Report
+                    <Download className="h-4 w-4 mr-3" /> EXPORT GLOBAL DATA
                 </Button>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="p-0 relative z-10">
                 {sortedAttempts.length === 0 ? (
-                    <div className="p-12 text-center text-slate-500 font-medium uppercase tracking-widest text-xs">
-                        You haven't completed any quizzes yet.
+                    <div className="py-24 text-center">
+                        <div className="w-24 h-24 bg-white/40 border border-white/60 rounded-full flex items-center justify-center mx-auto mb-8 shadow-glass animate-float">
+                            <History className="h-10 w-10 text-[#7A80B8]/40" />
+                        </div>
+                        <p className="text-[#3A3F6B] font-black uppercase tracking-[0.4em] text-[10px] italic opacity-60">
+                            Performance repository is currently empty.
+                        </p>
                     </div>
                 ) : (
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="bg-slate-900/50 hover:bg-slate-900/50 border-slate-800">
-                                <TableHead className="font-bold text-slate-400 uppercase tracking-widest text-[10px] pl-8">Quiz Title</TableHead>
-                                <TableHead className="font-bold text-slate-400 uppercase tracking-widest text-[10px] text-center">Date</TableHead>
-                                <TableHead className="font-bold text-slate-400 uppercase tracking-widest text-[10px] text-center">Score (%)</TableHead>
-                                <TableHead className="font-bold text-slate-400 uppercase tracking-widest text-[10px] text-center">Status</TableHead>
-                                <TableHead className="font-bold text-slate-400 uppercase tracking-widest text-[10px] text-right pr-8">Action</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {sortedAttempts.map((attempt) => {
-                                const isPassed = attempt.passed;
-                                const percentage = (attempt as any).scorePercentage !== undefined
-                                    ? (attempt as any).scorePercentage
-                                    : (attempt.totalQuestions > 0 ? (attempt.correctAnswersCount / attempt.totalQuestions) * 100 : 0);
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-white/20 hover:bg-white/20 border-white/40">
+                                    <TableHead className="font-black text-[#7A80B8] uppercase tracking-[0.4em] text-[10px] pl-10 h-20">Simulation ID</TableHead>
+                                    <TableHead className="font-black text-[#7A80B8] uppercase tracking-[0.4em] text-[10px] text-center h-20">Temporal Marker</TableHead>
+                                    <TableHead className="font-black text-[#7A80B8] uppercase tracking-[0.4em] text-[10px] text-center h-20">Precision Index</TableHead>
+                                    <TableHead className="font-black text-[#7A80B8] uppercase tracking-[0.4em] text-[10px] text-center h-20">Auth Status</TableHead>
+                                    <TableHead className="font-black text-[#7A80B8] uppercase tracking-[0.4em] text-[10px] text-right pr-10 h-20">Telemetry</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {sortedAttempts.map((attempt) => {
+                                    const isPassed = attempt.passed;
+                                    const percentage = (attempt as any).scorePercentage !== undefined
+                                        ? (attempt as any).scorePercentage
+                                        : (attempt.totalQuestions > 0 ? (attempt.correctAnswersCount / attempt.totalQuestions) * 100 : 0);
 
-                                return (
-                                    <TableRow key={attempt.id} className="hover:bg-slate-900/30 transition-colors border-slate-800/50">
-                                        <TableCell className="font-bold text-slate-100 pl-8">
-                                            {getQuizTitle(attempt.quizId)}
-                                        </TableCell>
-                                        <TableCell className="text-center text-slate-400 font-medium font-mono text-xs">
-                                            {new Date(attempt.timestamp).toLocaleDateString()}
-                                        </TableCell>
-                                        <TableCell className="text-center font-black">
-                                            <span className={cn(
-                                                "px-3 py-1 rounded-xl border font-mono text-xs",
-                                                isPassed ? "text-success bg-success/10 border-success/20" : "text-danger bg-danger/10 border-danger/20"
-                                            )}>
-                                                {percentage.toFixed(1)}%
-                                            </span>
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            <Badge variant="outline" className={cn(
-                                                "font-black uppercase tracking-tight text-[9px] px-3 py-1 rounded-full border",
-                                                attempt.status === 'CORRUPTED'
-                                                    ? "bg-danger text-white border-danger"
-                                                    : isPassed
-                                                        ? "bg-success/10 text-success border-success/20"
-                                                        : "bg-danger/10 text-danger border-danger/20"
-                                            )}>
-                                                {attempt.status === 'CORRUPTED' ? (
-                                                    <><ShieldAlert className="h-2.5 w-2.5 mr-1" /> Corrupted</>
-                                                ) : isPassed ? (
-                                                    <><CheckCircle className="h-2.5 w-2.5 mr-1" /> Pass</>
-                                                ) : (
-                                                    <><XCircle className="h-2.5 w-2.5 mr-1" /> Fail</>
-                                                )}
-                                            </Badge>
-                                            {attempt.violationCount > 0 && (
-                                                <div className="text-[9px] text-warning font-black mt-1.5 uppercase tracking-widest bg-warning/10 px-2 py-0.5 rounded-full border border-warning/10 inline-block">
-                                                    {attempt.violationCount} {attempt.violationCount === 1 ? 'Violation' : 'Violations'}
+                                    return (
+                                        <TableRow key={attempt.id} className="hover:bg-white/60 transition-all duration-500 border-white/30 group/row">
+                                            <TableCell className="font-black text-[#1E2455] pl-10 h-24 text-lg tracking-tighter uppercase">
+                                                <div className="flex flex-col">
+                                                    <span className="group-hover/row:text-[#6C8BFF] transition-colors">{getQuizTitle(attempt.quizId)}</span>
+                                                    <span className="text-[9px] font-black text-[#7A80B8] opacity-60 tracking-widest mt-1">REF: {attempt.id.slice(0, 8).toUpperCase()}</span>
                                                 </div>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-right pr-8">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-9 w-9 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
-                                                title="Download Result"
-                                                onClick={() => downloadCsv([attempt], `quiz_result_${attempt.quizId}_${new Date().toISOString().split('T')[0]}.csv`)}
-                                            >
-                                                <Download className="h-4 w-4" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })}
-                        </TableBody>
-                    </Table>
+                                            </TableCell>
+                                            <TableCell className="text-center font-black text-[#3A3F6B] opacity-60 text-xs tracking-tighter">
+                                                {new Date(attempt.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <div className={cn(
+                                                    "inline-flex items-center justify-center w-20 h-10 rounded-2xl border font-black text-xs shadow-sm transition-all duration-500 group-hover/row:scale-110",
+                                                    isPassed
+                                                        ? "text-[#4EE3B2] bg-[#4EE3B2]/10 border-[#4EE3B2]/20 shadow-[#4EE3B2]/5"
+                                                        : "text-[#FF6B8A] bg-[#FF6B8A]/10 border-[#FF6B8A]/20 shadow-[#FF6B8A]/5"
+                                                )}>
+                                                    {percentage.toFixed(0)}%
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <div className="flex flex-col items-center gap-2">
+                                                    <Badge className={cn(
+                                                        "font-black uppercase tracking-[0.2em] text-[9px] px-4 py-2 rounded-full border shadow-sm transition-all duration-500",
+                                                        attempt.status === 'CORRUPTED'
+                                                            ? "bg-[#FF6B8A] text-white border-[#FF6B8A] shadow-[#FF6B8A]/20 scale-105 animate-pulse"
+                                                            : isPassed
+                                                                ? "bg-[#4EE3B2]/10 text-[#4EE3B2] border-[#4EE3B2]/20"
+                                                                : "bg-[#FF6B8A]/10 text-[#FF6B8A] border-[#FF6B8A]/20"
+                                                    )}>
+                                                        {attempt.status === 'CORRUPTED' ? (
+                                                            <><ShieldAlert className="h-3 w-3 mr-2" /> Breach</>
+                                                        ) : isPassed ? (
+                                                            <><CheckCircle className="h-3 w-3 mr-2" /> Valid</>
+                                                        ) : (
+                                                            <><XCircle className="h-3 w-3 mr-2" /> Inval</>
+                                                        )}
+                                                    </Badge>
+                                                    {attempt.violationCount > 0 && (
+                                                        <span className="text-[10px] text-[#FFB86C] font-black uppercase tracking-[0.2em] bg-[#FFB86C]/10 px-3 py-1 rounded-lg border border-[#FFB86C]/20">
+                                                            STRIKES: {attempt.violationCount}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right pr-10">
+                                                <Button
+                                                    size="icon"
+                                                    className="h-14 w-14 rounded-2xl bg-white/40 border border-white/80 text-[#7A80B8] hover:text-[#6C8BFF] hover:bg-white/80 hover:shadow-glass-hover hover:border-[#6C8BFF]/30 transition-all duration-500 shadow-sm"
+                                                    title="Download Registry Export"
+                                                    onClick={() => downloadCsv([attempt], `valuation_${attempt.quizId}_${new Date().toISOString().split('T')[0]}.csv`)}
+                                                >
+                                                    <Download className="h-6 w-6" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    </div>
                 )}
             </CardContent>
         </Card>

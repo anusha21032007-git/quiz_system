@@ -253,7 +253,7 @@ const StudentCompetitiveSession = ({ quiz, studentName, onExit }: StudentCompeti
                 e.key === 'F12' ||
                 (e.ctrlKey && e.key === 'c') || // Copy
                 (e.ctrlKey && e.key === 'v') || // Paste
-                (e.ctrlKey && e.key === 'shift' && e.key === 'i') // DevTools
+                (e.ctrlKey && e.shiftKey && (e.key === 'i' || e.key === 'I')) // DevTools
             ) {
                 e.preventDefault();
                 toast.warning("Keyboard shortcut blocked for exam integrity.");
@@ -359,7 +359,10 @@ const StudentCompetitiveSession = ({ quiz, studentName, onExit }: StudentCompeti
     // We wrap EVERYTHING in the containerRef to ensure requestFullscreen works
     // regardless of which "view" state we are in.
     return (
-        <div ref={containerRef} className="bg-white min-h-screen flex flex-col overflow-hidden selection:bg-black selection:text-white">
+        <div ref={containerRef} className="min-h-screen flex flex-col overflow-hidden selection:bg-[#6C8BFF]/30 selection:text-[#1E2455] relative bg-transparent font-poppins">
+            <div className="absolute inset-0 bg-[#F8FAFF] -z-20" />
+            <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#6C8BFF]/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-[160px] opacity-60 -z-10" />
+            <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-[#E38AD6]/5 rounded-full translate-y-1/2 -translate-x-1/2 blur-[160px] opacity-60 -z-10" />
 
             {/* 1. LOADING STATE */}
             {isLoading && (
@@ -370,30 +373,31 @@ const StudentCompetitiveSession = ({ quiz, studentName, onExit }: StudentCompeti
 
             {/* 2. CORRUPTED STATE */}
             {!isLoading && isCorrupted && (
-                <div className="flex-1 bg-slate-900 flex items-center justify-center p-4">
-                    <Card className="shadow-2xl border-0 overflow-hidden max-w-2xl w-full bg-white animate-in zoom-in-95">
-                        <div className="bg-red-600 p-12 text-white text-center">
-                            <ShieldAlert className="h-24 w-24 mx-auto mb-6 animate-bounce" />
-                            <h2 className="text-4xl font-extrabold tracking-tight">EXAM CORRUPTED</h2>
-                            <div className="mt-4 inline-block px-4 py-1 bg-red-800/50 rounded-full text-xs font-black uppercase tracking-[0.2em]">Rule Violation Detected</div>
+                <div className="flex-1 flex items-center justify-center p-8 backdrop-blur-[2px]">
+                    <Card className="glass-card shadow-2xl border-white/50 overflow-hidden max-w-2xl w-full bg-white/60 animate-in zoom-in-95 duration-1000">
+                        <div className="bg-[#FF6B8A] p-16 text-white text-center shadow-xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
+                            <ShieldAlert className="h-32 w-32 mx-auto mb-8 animate-bounce" />
+                            <h2 className="text-5xl font-black tracking-tighter uppercase font-poppins">EXAM CORRUPTED</h2>
+                            <div className="mt-6 inline-block px-6 py-2 bg-black/20 rounded-full text-[11px] font-black uppercase tracking-[0.3em] shadow-inner backdrop-blur-md">INTEGRITY BREACH DETECTED</div>
                         </div>
-                        <CardContent className="p-12 text-center space-y-8">
-                            <div className="space-y-4">
-                                <h3 className="text-xl font-bold text-gray-900">Exam invalid due to rule violation.</h3>
-                                <p className="text-gray-500 leading-relaxed">This session has been automatically flagged and terminated. Any progress has been discarded as per the integrity policy.</p>
+                        <CardContent className="p-16 text-center space-y-10">
+                            <div className="space-y-6">
+                                <h3 className="text-2xl font-black text-[#1E2455] uppercase tracking-tight">Session invalidated by protocol.</h3>
+                                <p className="text-[#3A3F6B] font-bold italic leading-relaxed opacity-70">This instance has been automatically flagged and terminated as per the strict merit preservation policy.</p>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center">
-                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status</span>
-                                    <span className="font-bold text-red-600">DISQUALIFIED</span>
+                            <div className="grid grid-cols-2 gap-8">
+                                <div className="p-8 bg-white/60 rounded-[32px] border border-white/60 flex flex-col items-center shadow-sm">
+                                    <span className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.3em] mb-2">Outcome</span>
+                                    <span className="font-black text-[#FF6B8A] text-lg tracking-tighter">DISQUALIFIED</span>
                                 </div>
-                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center">
-                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Violations</span>
-                                    <span className="font-bold text-gray-900">{violationCount} Recorded</span>
+                                <div className="p-8 bg-white/60 rounded-[32px] border border-white/60 flex flex-col items-center shadow-sm">
+                                    <span className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.3em] mb-2">Violations</span>
+                                    <span className="font-black text-[#1E2455] text-lg tracking-tighter">{violationCount} INDEXED</span>
                                 </div>
                             </div>
-                            <Button onClick={onExit} className="w-full py-8 text-xl font-black bg-gray-900 hover:bg-gray-800 rounded-3xl transition-all">
-                                Exit to Dashboard
+                            <Button onClick={onExit} className="pastel-button-primary w-full h-20 text-xl font-black uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all">
+                                EXIT TO CONSOLE
                             </Button>
                         </CardContent>
                     </Card>
@@ -402,42 +406,40 @@ const StudentCompetitiveSession = ({ quiz, studentName, onExit }: StudentCompeti
 
             {/* 3. FINISHED STATE */}
             {!isLoading && !isCorrupted && isFinished && (
-                <div className="flex-1 bg-slate-50 flex items-center justify-center p-4">
-                    <Card className="shadow-2xl border-0 overflow-hidden max-w-3xl w-full bg-white animate-in zoom-in-95 duration-700">
-                        <div className="bg-gradient-to-br from-purple-600 to-indigo-700 p-12 text-white text-center relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-full h-full opacity-10">
-                                <div className="absolute translate-x-[-50%] translate-y-[-50%] top-0 left-0 w-64 h-64 bg-white rounded-full blur-3xl"></div>
-                                <div className="absolute translate-x-[50%] translate-y-[50%] bottom-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl"></div>
+                <div className="flex-1 flex items-center justify-center p-8 backdrop-blur-[2px]">
+                    <Card className="glass-card shadow-2xl border-white/50 overflow-hidden max-w-3xl w-full bg-white/60 animate-in zoom-in-95 duration-1000">
+                        <div className="bg-gradient-to-br from-[#6C8BFF] to-[#E38AD6] p-16 text-white text-center relative overflow-hidden shadow-xl">
+                            <div className="absolute top-0 left-0 w-full h-full opacity-20">
+                                <div className="absolute translate-x-[-50%] translate-y-[-50%] top-0 left-0 w-80 h-80 bg-white rounded-full blur-3xl"></div>
+                                <div className="absolute translate-x-[50%] translate-y-[50%] bottom-0 right-0 w-80 h-80 bg-white rounded-full blur-3xl"></div>
                             </div>
-                            <Trophy className="h-20 w-20 mx-auto mb-6 text-yellow-300 relative z-10" />
-                            <h2 className="text-4xl font-black tracking-tight relative z-10 uppercase">Session Complete</h2>
-                            <div className="mt-4 inline-block px-4 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-[0.2em] relative z-10">Status: SUBMITTED</div>
+                            <Trophy className="h-28 w-28 mx-auto mb-8 text-[#FFB86C] relative z-10 animate-pulse" />
+                            <h2 className="text-6xl font-black tracking-tighter relative z-10 uppercase font-poppins">SESSION COMPLETE</h2>
+                            <div className="mt-6 inline-block px-6 py-2 bg-black/20 rounded-full text-[11px] font-black uppercase tracking-[0.4em] relative z-10 shadow-inner backdrop-blur-md">STATUS: SUBMITTED</div>
                         </div>
-                        <CardContent className="p-12 space-y-12">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                                <div className="bg-purple-50 p-6 rounded-[32px] border border-purple-100/50 text-center space-y-1">
-                                    <p className="text-[10px] text-purple-600 font-black uppercase tracking-widest">Score</p>
-                                    <p className="text-4xl font-black text-purple-900">{score}/{questions.length}</p>
+                        <CardContent className="p-16 space-y-16">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                                <div className="bg-[#6C8BFF]/5 p-8 rounded-[40px] border border-[#6C8BFF]/20 text-center space-y-2 group hover:bg-[#6C8BFF]/10 transition-all duration-500">
+                                    <p className="text-[11px] text-[#6C8BFF] font-black uppercase tracking-[0.3em]">SCORE</p>
+                                    <p className="text-5xl font-black text-[#1E2455] tracking-tighter group-hover:scale-110 transition-transform">{score}/{questions.length}</p>
                                 </div>
-                                <div className="bg-green-50 p-6 rounded-[32px] border border-green-100/50 text-center space-y-1">
-                                    <p className="text-[10px] text-green-600 font-black uppercase tracking-widest">Correct</p>
-                                    <p className="text-4xl font-black text-green-900">{(questions.filter((q, i) => (selectedAnswers[i] || "").trim() === (q.correctAnswer || "").trim()).length)}</p>
+                                <div className="bg-[#4EE3B2]/5 p-8 rounded-[40px] border border-[#4EE3B2]/20 text-center space-y-2 group hover:bg-[#4EE3B2]/10 transition-all duration-500">
+                                    <p className="text-[11px] text-[#4EE3B2] font-black uppercase tracking-[0.3em]">CORRECT</p>
+                                    <p className="text-5xl font-black text-[#1E2455] tracking-tighter group-hover:scale-110 transition-transform">{(questions.filter((q, i) => (selectedAnswers[i] || "").trim() === (q.correctAnswer || "").trim()).length)}</p>
                                 </div>
-                                <div className="bg-red-50 p-6 rounded-[32px] border border-red-100/50 text-center space-y-1">
-                                    <p className="text-[10px] text-red-600 font-black uppercase tracking-widest">Wrong</p>
-                                    <p className="text-4xl font-black text-red-900">{Math.max(0, questions.length - (questions.filter((q, i) => (selectedAnswers[i] || "").trim() === (q.correctAnswer || "").trim()).length))}</p>
+                                <div className="bg-[#FF6B8A]/5 p-8 rounded-[40px] border border-[#FF6B8A]/20 text-center space-y-2 group hover:bg-[#FF6B8A]/10 transition-all duration-500">
+                                    <p className="text-[11px] text-[#FF6B8A] font-black uppercase tracking-[0.3em]">WRONG</p>
+                                    <p className="text-5xl font-black text-[#1E2455] tracking-tighter group-hover:scale-110 transition-transform">{Math.max(0, questions.length - (questions.filter((q, i) => (selectedAnswers[i] || "").trim() === (q.correctAnswer || "").trim()).length))}</p>
                                 </div>
-                                <div className="bg-blue-50 p-6 rounded-[32px] border border-blue-100/50 text-center space-y-1">
-                                    <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest">Time</p>
-                                    <p className="text-3xl font-black text-blue-900">{formatTime(timeTaken)}</p>
+                                <div className="bg-[#7A80B8]/5 p-8 rounded-[40px] border border-[#7A80B8]/20 text-center space-y-2 group hover:bg-[#7A80B8]/10 transition-all duration-500">
+                                    <p className="text-[11px] text-[#7A80B8] font-black uppercase tracking-[0.3em]">ELAPSED</p>
+                                    <p className="text-4xl font-black text-[#1E2455] tracking-tighter group-hover:scale-110 transition-transform">{formatTime(timeTaken)}</p>
                                 </div>
                             </div>
 
-                            <div className="space-y-4">
-                                <Button onClick={onExit} className="w-full py-8 text-xl font-black bg-gray-900 hover:bg-gray-800 rounded-3xl shadow-xl transition-all active:scale-95">
-                                    Return to Dashboard
-                                </Button>
-                            </div>
+                            <Button onClick={onExit} className="pastel-button-primary w-full h-24 text-2xl font-black uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all">
+                                RETURN TO CONSOLE
+                            </Button>
                         </CardContent>
                     </Card>
                 </div>
@@ -445,32 +447,33 @@ const StudentCompetitiveSession = ({ quiz, studentName, onExit }: StudentCompeti
 
             {/* 4. LANDING / START SCREEN */}
             {!isLoading && !isCorrupted && !isFinished && !isFullscreen && fullscreenGracePeriod === 0 && (
-                <div className="flex-1 bg-slate-50 flex items-center justify-center p-4">
-                    <Card className="max-w-2xl w-full p-16 text-center space-y-10 rounded-[48px] border-2 border-black/5 bg-white shadow-xl animate-in zoom-in-95">
-                        <div className="bg-black w-24 h-24 rounded-[32px] flex items-center justify-center mx-auto shadow-2xl rotate-12">
-                            <Brain className="h-12 w-12 text-white" />
+                <div className="flex-1 flex items-center justify-center p-8 backdrop-blur-[2px]">
+                    <Card className="max-w-3xl w-full p-20 text-center space-y-12 glass-card border-white/50 bg-white/60 shadow-2xl animate-in zoom-in-95 duration-1000 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-[#6C8BFF]/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl opacity-60" />
+                        <div className="w-32 h-32 bg-gradient-to-br from-[#1E2455] to-[#3A3F6B] rounded-[40px] flex items-center justify-center mx-auto shadow-2xl rotate-6 group-hover:rotate-12 transition-transform duration-700">
+                            <Brain className="h-16 w-16 text-white" />
                         </div>
-                        <div className="space-y-4">
-                            <h2 className="text-5xl font-black text-gray-900 tracking-tighter">Competitive Mode</h2>
-                            <div className="flex flex-col items-center gap-2">
-                                <p className="text-red-600 font-black uppercase text-xs tracking-widest bg-red-50 px-4 py-2 rounded-full border border-red-100">Strict Environment Enabled</p>
-                                <p className="text-gray-500 font-bold max-w-sm mt-2">This exam requires Full Screen. Leaving the screen or switching tabs will corrupt your exam.</p>
+                        <div className="space-y-6">
+                            <h2 className="text-6xl font-black text-[#1E2455] tracking-tighter uppercase font-poppins">COMPETITIVE MODE</h2>
+                            <div className="flex flex-col items-center gap-4">
+                                <p className="text-[#FF6B8A] font-black uppercase text-[11px] tracking-[0.4em] bg-[#FF6B8A]/10 px-6 py-2.5 rounded-full border border-[#FF6B8A]/20 shadow-sm">STRICT ENVIRONMENT ENABLED</p>
+                                <p className="text-[#3A3F6B] font-bold italic max-w-sm mt-4 leading-relaxed opacity-70">"This evaluation protocols require full sensory focus. Departing the interface or switching channels will invalidate your results."</p>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                            <div className="p-6 bg-slate-50 rounded-3xl border border-black/5 space-y-2">
-                                <h4 className="font-black text-[10px] uppercase tracking-widest text-slate-400">Time Limit</h4>
-                                <p className="font-bold text-gray-900">{quiz.timeLimitMinutes} Minutes</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+                            <div className="p-8 bg-white/60 rounded-[32px] border border-white/60 space-y-2 shadow-sm">
+                                <h4 className="font-black text-[11px] uppercase tracking-[0.3em] text-[#7A80B8]">TEMPORAL BOUNDARY</h4>
+                                <p className="font-black text-2xl text-[#1E2455] tracking-tight">{quiz.timeLimitMinutes} MINUTES</p>
                             </div>
-                            <div className="p-6 bg-slate-50 rounded-3xl border border-black/5 space-y-2">
-                                <h4 className="font-black text-[10px] uppercase tracking-widest text-slate-400">Total Questions</h4>
-                                <p className="font-bold text-gray-900">{questions.length} Items</p>
+                            <div className="p-8 bg-white/60 rounded-[32px] border border-white/60 space-y-2 shadow-sm">
+                                <h4 className="font-black text-[11px] uppercase tracking-[0.3em] text-[#7A80B8]">MODULE VOLUME</h4>
+                                <p className="font-black text-2xl text-[#1E2455] tracking-tight">{questions.length} SIMULATION UNITS</p>
                             </div>
                         </div>
 
-                        <Button onClick={enterFullscreen} className="w-full py-10 text-2xl font-black bg-black hover:bg-gray-800 text-white rounded-[32px] shadow-2xl hover:shadow-black/20 transition-all active:scale-95">
-                            Enter Full Screen & Start
+                        <Button onClick={enterFullscreen} className="pastel-button-primary w-full h-24 text-2xl font-black uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all">
+                            INITIALIZE PROTOCOL
                         </Button>
                     </Card>
                 </div>
@@ -519,67 +522,67 @@ const StudentCompetitiveSession = ({ quiz, studentName, onExit }: StudentCompeti
                     )}
 
                     {/* QUIZ HEADER */}
-                    <div className="p-8 md:px-16 flex items-center justify-between border-b-2 border-slate-50 sticky top-0 bg-white/80 backdrop-blur-md z-50">
-                        <div className="flex items-center gap-6">
-                            <div className="bg-black p-3 rounded-2xl shadow-lg">
-                                <Brain className="h-6 w-6 text-white" />
+                    <div className="p-10 md:px-20 flex items-center justify-between border-b border-white/40 bg-white/40 backdrop-blur-3xl z-50 shadow-xl">
+                        <div className="flex items-center gap-8">
+                            <div className="bg-gradient-to-br from-[#1E2455] to-[#3A3F6B] p-4 rounded-2xl shadow-2xl border border-white/20">
+                                <Brain className="h-7 w-7 text-white" />
                             </div>
                             <div className="hidden md:block">
-                                <h2 className="font-black text-2xl tracking-tighter text-black uppercase">{quiz.title}</h2>
-                                <p className="text-[10px] font-black text-slate-400 tracking-[0.3em] uppercase">{studentName} • Competitive Mode</p>
+                                <h2 className="font-black text-3xl tracking-tighter text-[#1E2455] uppercase font-poppins">{quiz.title}</h2>
+                                <p className="text-[11px] font-black text-[#7A80B8] tracking-[0.4em] uppercase opacity-70">{studentName} • VALIDATED CONSOLE</p>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-4">
-                            <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-slate-50 border-2 border-black/5 rounded-2xl">
-                                <div className={cn("w-2 h-2 rounded-full", isFullscreen ? "bg-green-500 animate-pulse" : "bg-red-500")} />
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                    Full Screen: {isFullscreen ? "ON" : "OFF"}
+                        <div className="flex items-center gap-6">
+                            <div className="hidden lg:flex items-center gap-3 px-6 py-3 bg-white/60 border border-white/60 rounded-2xl shadow-sm">
+                                <div className={cn("w-2.5 h-2.5 rounded-full", isFullscreen ? "bg-[#4EE3B2] shadow-[0_0_10px_rgba(78,227,178,0.5)] animate-pulse" : "bg-[#FF6B8A] shadow-[0_0_10px_rgba(255,107,138,0.5)]")} />
+                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#7A80B8]">
+                                    SECURE MODE: {isFullscreen ? "OPTIMAL" : "BREACHED"}
                                 </span>
                             </div>
                             <div className={cn(
-                                "flex items-center gap-3 px-6 py-3 rounded-2xl border-2 font-black text-xl tracking-tight transition-all",
-                                timeLeft < 60 ? "bg-red-50 border-red-600 text-red-600 animate-pulse" : "bg-slate-50 border-black/5 text-slate-900"
+                                "flex items-center gap-4 px-8 py-4 rounded-2xl border-2 font-black text-2xl tracking-tighter transition-all shadow-xl backdrop-blur-md",
+                                timeLeft < 60 ? "bg-[#FF6B8A]/10 border-[#FF6B8A] text-[#FF6B8A] animate-pulse shadow-[#FF6B8A]/10" : "bg-white/60 border-white/60 text-[#1E2455]"
                             )}>
-                                <Timer className="h-5 w-5" />
+                                <Timer className="h-6 w-6" />
                                 {formatTime(timeLeft)}
                             </div>
                             {violationCount > 0 && (
-                                <div className="bg-orange-50 text-orange-600 border-2 border-orange-100 px-4 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hidden sm:block">
-                                    Strikes: {violationCount}/2
+                                <div className="bg-[#FF6B8A]/10 text-[#FF6B8A] border-2 border-[#FF6B8A]/20 px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.4em] hidden sm:block shadow-sm">
+                                    STRIKES: {violationCount}/2
                                 </div>
                             )}
                         </div>
                     </div>
 
                     {/* PROGRESS BAR */}
-                    <div className="w-full h-1.5 bg-slate-50 relative">
+                    <div className="w-full h-2.5 bg-white/30 relative">
                         <div
-                            className="absolute top-0 left-0 h-full bg-black transition-all duration-500 ease-out shadow-[0_0_15px_rgba(0,0,0,0.1)]"
+                            className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#6C8BFF] to-[#E38AD6] transition-all duration-1000 ease-out shadow-lg"
                             style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
                         />
                     </div>
 
                     {/* MAIN CONTENT */}
-                    <main className="flex-1 overflow-y-auto px-6 py-12 md:px-16 scroll-smooth">
-                        <div className="max-w-4xl mx-auto space-y-12">
+                    <main className="flex-1 overflow-y-auto px-10 py-20 md:px-20 scroll-smooth relative">
+                        <div className="max-w-4xl mx-auto space-y-16">
                             {questions.length === 0 ? (
-                                <div className="text-center py-20">
-                                    <h3 className="text-2xl font-black text-gray-900">No Questions Loaded</h3>
-                                    <p className="text-gray-500">Please contact your instructor.</p>
+                                <div className="text-center py-32 glass-card rounded-[40px] border-dashed border-2 border-white/40">
+                                    <h3 className="text-3xl font-black text-[#1E2455] uppercase tracking-tighter">NO MODULE DATA INDEXED</h3>
+                                    <p className="text-[#7A80B8] font-bold italic mt-4">Please contact judicial oversight.</p>
                                 </div>
                             ) : (
                                 <>
-                                    <div className="space-y-6">
-                                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-100 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                                            Question {currentIndex + 1} of {questions.length}
+                                    <div className="space-y-8">
+                                        <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/60 border border-white/60 text-[11px] font-black uppercase tracking-[0.4em] text-[#6C8BFF] shadow-sm">
+                                            SIMULATION UNIT {currentIndex + 1} OF {questions.length}
                                         </div>
-                                        <h3 className="text-3xl md:text-5xl font-black text-black leading-[1.1] tracking-tight">
+                                        <h3 className="text-4xl md:text-6xl font-black text-[#1E2455] leading-[1.05] tracking-tighter font-poppins">
                                             {currentQuestion?.questionText}
                                         </h3>
                                     </div>
 
-                                    <div className="grid grid-cols-1 gap-4">
+                                    <div className="grid grid-cols-1 gap-6">
                                         {currentQuestion?.options && currentQuestion.options.filter(o => o.trim() !== "").length > 0 ? (
                                             currentQuestion.options.map((option, idx) => {
                                                 const isSelected = currentAnswer === option;
@@ -588,39 +591,39 @@ const StudentCompetitiveSession = ({ quiz, studentName, onExit }: StudentCompeti
                                                         key={idx}
                                                         onClick={() => handleOptionSelect(option)}
                                                         className={cn(
-                                                            "w-full flex items-center gap-6 p-8 border-4 transition-all duration-300 rounded-[32px] text-left group relative overflow-hidden",
+                                                            "w-full flex items-center gap-8 p-10 border border-white/60 transition-all duration-500 rounded-[40px] text-left group relative overflow-hidden shadow-sm",
                                                             isSelected
-                                                                ? "bg-black border-black text-white shadow-2xl scale-[1.02]"
-                                                                : "bg-white border-black/5 hover:border-black/20 text-slate-600 hover:scale-[1.01]"
+                                                                ? "bg-white/80 border-[#6C8BFF]/50 shadow-2xl scale-[1.02] -translate-y-1"
+                                                                : "bg-white/40 border-white/40 hover:border-white/80 text-[#3A3F6B] hover:scale-[1.01] hover:bg-white/50"
                                                         )}
                                                     >
                                                         {isSelected && (
-                                                            <div className="absolute top-0 right-0 p-6 opacity-20">
-                                                                <CheckCircle2 className="h-12 w-12" />
+                                                            <div className="absolute top-0 right-0 p-8 text-[#6C8BFF] opacity-10">
+                                                                <CheckCircle2 className="h-24 w-24" />
                                                             </div>
                                                         )}
                                                         <span className={cn(
-                                                            "flex-shrink-0 w-12 h-12 rounded-2xl border-4 flex items-center justify-center text-xl font-black transition-colors",
-                                                            isSelected ? "bg-white text-black border-white" : "border-black/5 group-hover:border-black/10 group-hover:bg-black/5"
+                                                            "flex-shrink-0 w-14 h-14 rounded-2xl border-2 flex items-center justify-center text-xl font-black transition-all duration-500",
+                                                            isSelected ? "bg-[#6C8BFF] text-white border-[#6C8BFF] shadow-lg shadow-[#6C8BFF]/20 rotate-3" : "border-white/80 bg-white/80 text-[#7A80B8] group-hover:border-[#6C8BFF]/40 group-hover:text-[#6C8BFF]"
                                                         )}>
                                                             {String.fromCharCode(65 + idx)}
                                                         </span>
-                                                        <span className="text-xl md:text-2xl font-bold tracking-tight">{option}</span>
+                                                        <span className={cn("text-2xl md:text-3xl font-bold tracking-tight transition-all duration-500", isSelected ? "text-[#1E2455]" : "text-[#3A3F6B]/70 group-hover:text-[#1E2455]")}>{option}</span>
                                                     </button>
                                                 );
                                             })
                                         ) : (
-                                            <div className="space-y-6">
-                                                <div className="p-8 bg-purple-50 rounded-[32px] border-2 border-purple-100 flex gap-4">
-                                                    <MessageSquare className="h-6 w-6 text-purple-600 flex-shrink-0 mt-1" />
+                                            <div className="space-y-8">
+                                                <div className="p-10 bg-white/60 rounded-[40px] border border-white/60 flex gap-6 shadow-sm">
+                                                    <MessageSquare className="h-8 w-8 text-[#6C8BFF] flex-shrink-0 mt-1" />
                                                     <div className="space-y-2">
-                                                        <h4 className="font-black text-purple-900 uppercase text-xs tracking-widest">Self-Evaluation / Note</h4>
-                                                        <p className="text-purple-700 font-medium">This is an open-ended question. Reflect on your answer then proceed.</p>
+                                                        <h4 className="font-black text-[#1E2455] uppercase text-[11px] tracking-[0.4em]">QUALITATIVE REFLECTION</h4>
+                                                        <p className="text-[#3A3F6B] font-bold italic text-lg leading-relaxed opacity-70">"This unit requires intensive self-curated analysis. Reify your findings below."</p>
                                                     </div>
                                                 </div>
                                                 <Textarea
-                                                    placeholder="Type your response here for self-reflection..."
-                                                    className="min-h-[200px] rounded-[32px] border-4 border-slate-50 p-8 text-xl font-medium focus:border-black transition-all"
+                                                    placeholder="Synthesize your comprehensive response here..."
+                                                    className="min-h-[300px] rounded-[40px] border border-white/60 bg-white/40 p-10 text-xl font-bold italic text-[#1E2455] focus:bg-white/80 transition-all shadow-inner placeholder-[#7A80B8]/40"
                                                     value={currentAnswer || ""}
                                                     onChange={(e) => handleOptionSelect(e.target.value)}
                                                 />
@@ -633,37 +636,37 @@ const StudentCompetitiveSession = ({ quiz, studentName, onExit }: StudentCompeti
                     </main>
 
                     {/* FOOTER */}
-                    <footer className="p-8 md:px-16 border-t-2 border-slate-50 bg-white">
-                        <div className="max-w-4xl mx-auto flex items-center justify-between gap-6">
+                    <footer className="p-10 md:px-20 border-t border-white/40 bg-white/40 backdrop-blur-3xl">
+                        <div className="max-w-4xl mx-auto flex items-center justify-between gap-10">
                             <Button
                                 variant="outline"
                                 onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
                                 disabled={currentIndex === 0}
-                                className="h-16 px-8 bg-white border-4 border-black/5 rounded-3xl font-black uppercase tracking-widest text-[11px] hover:bg-slate-50 hover:border-black active:translate-y-1 transition-all flex items-center gap-3 disabled:opacity-0"
+                                className="h-20 px-10 bg-white/60 border border-white/60 rounded-3xl font-black uppercase tracking-[0.3em] text-[11px] hover:bg-white/80 hover:border-[#6C8BFF]/40 text-[#7A80B8] hover:text-[#1E2455] active:translate-y-1 transition-all flex items-center gap-4 disabled:opacity-0 shadow-sm"
                             >
-                                <ChevronLeft className="h-5 w-5" /> Previous
+                                <ChevronLeft className="h-6 w-6" /> RETROGRADE
                             </Button>
 
                             <div className="flex-1 flex justify-center">
                                 {currentIndex === questions.length - 1 ? (
                                     <Button
                                         onClick={() => handleFinish()}
-                                        className="h-20 px-16 bg-green-600 hover:bg-green-700 text-white font-black rounded-[32px] text-xl shadow-xl shadow-green-100 transition-all active:scale-95 flex items-center gap-3 active:translate-y-1"
+                                        className="h-24 px-20 bg-gradient-to-r from-[#4EE3B2] to-[#3AC79C] hover:scale-105 text-white font-black rounded-[40px] text-2xl shadow-2xl shadow-[#4EE3B2]/20 transition-all active:scale-95 flex items-center gap-4 active:translate-y-1"
                                     >
-                                        <Send className="h-6 w-6" /> Submit Exam
+                                        <Send className="h-7 w-7" /> FINAL SUBMISSION
                                     </Button>
                                 ) : (
                                     <Button
                                         onClick={() => setCurrentIndex(prev => prev + 1)}
-                                        className="h-20 px-16 bg-black hover:bg-slate-800 text-white font-black rounded-[32px] text-xl shadow-2xl transition-all active:scale-95 flex items-center gap-3 active:translate-y-1"
+                                        className="h-24 px-20 bg-gradient-to-r from-[#1E2455] to-[#3A3F6B] text-white font-black rounded-[40px] text-2xl shadow-2xl shadow-black/20 transition-all active:scale-105 flex items-center gap-4 active:translate-y-1"
                                     >
-                                        Next Question <ChevronRight className="h-6 w-6" />
+                                        NEXT UNIT <ChevronRight className="h-7 w-7" />
                                     </Button>
                                 )}
                             </div>
 
-                            <div className="w-[120px] text-right hidden md:block">
-                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Saving...</span>
+                            <div className="w-[150px] text-right hidden lg:block">
+                                <span className="text-[11px] font-black text-[#6C8BFF] uppercase tracking-[0.4em] animate-pulse">SYNCING...</span>
                             </div>
                         </div>
                     </footer>

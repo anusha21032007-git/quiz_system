@@ -13,7 +13,8 @@ import {
   Trophy,
   LogOut,
   GraduationCap,
-  BookOpen
+  BookOpen,
+  UserCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -35,31 +36,38 @@ const TeacherSidebar = ({ activeView, isMobile }: TeacherSidebarProps) => {
   ];
 
   const renderNav = () => (
-    <div className="flex flex-col h-full bg-gradient-to-b from-[#8EA2FF] to-[#B39DDB] text-white">
-      <div className="p-8 flex items-center gap-3">
-        <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/30 shadow-sm">
-          <GraduationCap className="h-6 w-6 text-white" />
+    <div className="flex flex-col h-full bg-gradient-to-b from-[#8EA2FF] to-[#B39DDB] text-white p-6 gap-3">
+      <div className="p-8 border-b border-white/20 mb-6 mt-2 group">
+        <div className="flex items-center gap-5 mb-10 transition-transform group-hover:translate-x-1 duration-500">
+          <div className="w-[60px] h-[60px] bg-white/30 backdrop-blur-xl rounded-[22px] flex items-center justify-center border border-white/40 shadow-2xl rotate-3 group-hover:rotate-6 transition-all">
+            <GraduationCap className="h-9 w-9 text-white group-hover:scale-110 transition-transform" />
+          </div>
+          <span className="text-3xl font-black text-white tracking-tighter leading-none font-poppins drop-shadow-lg">TEACHER<br />CONSOLE</span>
         </div>
-        <span className="text-xl font-black text-white tracking-tighter leading-tight font-poppins">QUIZ MASTER</span>
+        <Link to="/">
+          <Button variant="ghost" size="sm" className="w-full justify-start text-white/70 hover:text-white hover:bg-white/10 rounded-2xl font-black uppercase tracking-widest text-[9px] h-10 px-4 transition-all active:scale-95">
+            <LogOut className="h-4 w-4 mr-2 -rotate-180" /> EXIT TO HOME
+          </Button>
+        </Link>
       </div>
 
-      <div className="px-4 py-6">
-        <p className="px-4 text-[10px] font-bold text-white/70 uppercase tracking-widest mb-6">Management Portal</p>
-        <nav className="space-y-2">
+      <div className="flex-1 px-2 py-4">
+        <p className="px-6 text-[10px] font-black text-white/60 uppercase tracking-[0.4em] mb-8">MANAGEMENT UNIT</p>
+        <nav className="space-y-3">
           {navItems.map((item) => {
             const isActive = activeView === item.id || (item.id === 'quizzes' && activeView === 'create-quiz');
             return (
-              <Link key={item.id} to={item.path} className="block px-2">
+              <Link key={item.id} to={item.path} className="block px-3">
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start gap-3 h-12 px-4 transition-all duration-300 rounded-[16px] font-bold",
+                    "w-full justify-start gap-5 h-14 px-6 transition-all duration-500 rounded-3xl font-black uppercase tracking-widest text-[10px]",
                     isActive
-                      ? "bg-white/30 text-white shadow-glass border border-white/40"
-                      : "text-white/80 hover:bg-white/20 hover:text-white"
+                      ? "bg-white/40 text-white shadow-2xl border border-white/60 scale-[1.02] -translate-y-0.5"
+                      : "text-white/70 hover:bg-white/10 hover:text-white hover:translate-x-1"
                   )}
                 >
-                  <item.icon className={cn("h-5 w-5", isActive ? "text-white" : "text-white/70")} />
+                  <item.icon className={cn("h-5 w-5 transition-transform duration-500", isActive ? "text-white scale-110" : "text-white/60 group-hover:scale-110")} />
                   {item.label}
                 </Button>
               </Link>
@@ -68,18 +76,26 @@ const TeacherSidebar = ({ activeView, isMobile }: TeacherSidebarProps) => {
         </nav>
       </div>
 
-      <div className="mt-auto p-6">
-        <div className="bg-white/20 backdrop-blur-lg rounded-[24px] p-5 border border-white/30 mb-4 shadow-sm">
-          <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1">Academic Profile</p>
-          <p className="text-xs font-black text-white truncate">{teacherData?.full_name || user?.email}</p>
+      <div className="mt-auto p-4 space-y-4">
+        <div className="bg-white/20 backdrop-blur-xl rounded-[32px] p-6 border border-white/30 shadow-2xl group transition-all hover:bg-white/30">
+          <p className="text-[10px] font-black text-white/50 uppercase tracking-[0.4em] mb-3">FACULTY RECORD</p>
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center border border-white/30">
+              <UserCircle className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-black text-white truncate group-hover:translate-x-0.5 transition-transform">{teacherData?.full_name || user?.email?.split('@')[0]}</p>
+              <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">{teacherData?.department || 'Academic Dept.'}</p>
+            </div>
+          </div>
         </div>
 
         <button
-          className="w-full flex items-center gap-3 h-12 px-6 text-white/80 hover:bg-white/20 hover:text-white rounded-[16px] transition-all duration-300 font-bold"
+          className="w-full flex items-center gap-4 h-16 px-10 text-white/60 hover:bg-white/10 hover:text-white rounded-[28px] transition-all duration-500 font-black uppercase tracking-[0.3em] text-[10px] active:scale-95 group"
           onClick={signOut}
         >
-          <LogOut className="h-5 w-5" />
-          <span className="font-bold">Log out</span>
+          <LogOut className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
+          <span>TERMINATE SESSION</span>
         </button>
       </div>
     </div>

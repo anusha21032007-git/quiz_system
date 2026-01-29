@@ -25,31 +25,31 @@ const QuizHeader = ({ quizTitle, currentQuestionIndex, totalQuestions, timeLeft,
   };
 
   return (
-    <header className="w-full bg-card/80 backdrop-blur-xl p-6 border-b border-slate-800 sticky top-0 z-50">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <header className="w-full bg-white/30 backdrop-blur-2xl p-8 border-b border-white/40 sticky top-0 z-50 shadow-xl">
+      <div className="max-w-4xl mx-auto space-y-8">
         <div className="flex items-center justify-between w-full">
-          <BackButton onClick={onBack} className="text-slate-400 hover:text-primary transition-colors" />
-          <div className="flex items-center gap-6">
-            <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
-              Phase {currentQuestionIndex + 1} <span className="text-slate-800 mx-1">/</span> {totalQuestions}
+          <BackButton onClick={onBack} className="text-[#7A80B8] hover:text-[#1E2455] transition-colors" />
+          <div className="flex items-center gap-8">
+            <div className="text-[10px] font-black uppercase tracking-[0.4em] text-[#7A80B8] opacity-60">
+              PHASE {currentQuestionIndex + 1} <span className="text-[#6C8BFF] mx-1">/</span> {totalQuestions}
             </div>
             <div className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-xl border font-mono font-bold shadow-inner transition-all",
+              "flex items-center gap-3 px-6 py-3 rounded-2xl border font-black shadow-xl transition-all backdrop-blur-md",
               timeLeft <= 60
-                ? 'text-danger border-danger/20 bg-danger/5 shadow-danger/5 animate-pulse'
-                : 'text-primary border-primary/20 bg-primary/5 shadow-primary/5'
+                ? 'text-[#FF6B8A] border-[#FF6B8A]/30 bg-white/60 animate-pulse'
+                : 'text-[#6C8BFF] border-white/60 bg-white/60'
             )}>
-              <Clock className="h-4 w-4" />
-              <span className="text-lg tracking-tighter">{formatTime(timeLeft)}</span>
+              <Clock className="h-5 w-5" />
+              <span className="text-xl tracking-tighter">{formatTime(timeLeft)}</span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-8">
-          <h1 className="text-xl font-black text-slate-100 tracking-tighter uppercase truncate max-w-md">{quizTitle}</h1>
-          <div className="flex-1 max-w-[300px] h-2 bg-slate-900 rounded-full border border-slate-800 overflow-hidden shadow-inner">
+        <div className="flex items-center justify-between gap-12">
+          <h1 className="text-2xl font-black text-[#1E2455] tracking-tighter uppercase truncate max-w-md font-poppins">{quizTitle}</h1>
+          <div className="flex-1 max-w-[400px] h-3 bg-white/40 rounded-full border border-white/60 overflow-hidden shadow-inner">
             <div
-              className="h-full bg-primary transition-all duration-500 ease-out shadow-[0_0_15px_rgba(99,102,241,0.5)]"
+              className="h-full bg-gradient-to-r from-[#6C8BFF] to-[#E38AD6] transition-all duration-1000 ease-out shadow-lg"
               style={{ width: `${progress}%` }}
             />
           </div>

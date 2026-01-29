@@ -34,10 +34,10 @@ const StudentProfileHeader = ({ studentName, registerNumber }: StudentProfileHea
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <div className="flex items-center gap-4 p-2.5 bg-white/40 backdrop-blur-md rounded-[20px] border border-white/50 cursor-pointer hover:bg-white/60 transition-all group shadow-sm hover:shadow-md">
-          <div className="text-right hidden sm:block">
+        <div className="flex items-center gap-5 p-3 bg-white/50 backdrop-blur-md rounded-full border border-white/60 cursor-pointer hover:bg-white/70 transition-all group shadow-xl hover:translate-y-[-2px] active:scale-95">
+          <div className="text-right hidden sm:block pl-2">
             <h3 className="text-sm font-black truncate text-[#1E2455] uppercase tracking-tighter font-poppins">{studentName || 'Student'}</h3>
-            <p className="text-[10px] text-[#7A80B8] font-black tracking-[0.1em]">REG: {registerNumber || 'N/A'}</p>
+            <p className="text-[10px] text-[#7A80B8] font-black tracking-[0.2em]">REG: {registerNumber || 'N/A'}</p>
           </div>
           <Avatar className="h-11 w-11 border-2 border-white/60 group-hover:scale-105 transition-all shadow-md">
             <AvatarFallback className="bg-gradient-to-br from-[#6C8BFF] to-[#E38AD6] text-white font-black text-sm uppercase">
@@ -46,7 +46,7 @@ const StudentProfileHeader = ({ studentName, registerNumber }: StudentProfileHea
           </Avatar>
         </div>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0 glass-card border-white/50 overflow-hidden shadow-2xl z-50 mt-4" align="end" sideOffset={12}>
+      <PopoverContent className="w-80 p-0 glass-card border-white/60 overflow-hidden shadow-2xl z-50 mt-4 rounded-[32px]" align="end" sideOffset={12}>
         <div className="bg-gradient-to-r from-[#6C8BFF] to-[#E38AD6] p-8 text-center flex flex-col items-center">
           <Avatar className="h-20 w-20 border-4 border-white/30 shadow-xl mb-4">
             <AvatarFallback className="bg-white/20 backdrop-blur-xl text-white font-black text-3xl">

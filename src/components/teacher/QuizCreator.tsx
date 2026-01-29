@@ -656,11 +656,11 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
                     <Brain className="h-8 w-8 text-[#6C8BFF]" />
                   </div>
                   <CardTitle className="text-4xl lg:text-5xl font-black text-[#1E2455] uppercase tracking-tighter">
-                    {step === 1 ? 'Neural Synthesis' : 'Sequence Refinement'}
+                    {step === 1 ? 'AI Quiz Generation' : 'Question Editor'}
                   </CardTitle>
                 </div>
                 <p className="text-[10px] lg:text-xs font-black text-[#7A80B8] uppercase tracking-[0.5em] pl-16">
-                  {step === 1 ? 'Configuring AI-Generated Academic Material' : 'Management of Algorithmic Query Clusters'}
+                  {step === 1 ? 'Configuring AI-Generated Academic Material' : 'Management of Generated Query Clusters'}
                 </p>
               </div>
             </div>
@@ -677,7 +677,7 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
           <div className="grid lg:grid-cols-2 gap-12">
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <Label htmlFor="quizTitle" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.5em] pl-1">Synthesis Designation</Label>
+                <Label htmlFor="quizTitle" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.5em] pl-1">Quiz Designation</Label>
                 {step === 2 && (
                   <span className="text-[9px] font-black text-[#6C8BFF] uppercase tracking-widest italic bg-[#6C8BFF]/10 px-3 py-1 rounded-lg">Immutable in Phase 2</span>
                 )}
@@ -740,7 +740,7 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
                 </div>
                 <div>
                   <h4 className="text-2xl font-black text-[#1E2455] uppercase tracking-tighter mb-2">Temporal Orchestration</h4>
-                  <p className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.3em] italic">Optional / Future Synthesis Scheduling</p>
+                  <p className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.3em] italic">Optional / Future Quiz Scheduling</p>
                 </div>
               </div>
               <Button
@@ -758,7 +758,7 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
             {showSchedule && (
               <div className="grid gap-10 md:grid-cols-3 animate-in slide-in-from-top-6 duration-700 pt-6">
                 <div className="space-y-4">
-                  <Label htmlFor="scheduledDate" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">Synthesis Date</Label>
+                  <Label htmlFor="scheduledDate" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">Quiz Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -827,7 +827,7 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
               </div>
               <div>
                 <h4 className="text-2xl font-black text-[#1E2455] uppercase tracking-tighter mb-1">Assessment Metrics</h4>
-                <p className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.3em] italic">Synthesis Validation Parameters</p>
+                <p className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.3em] italic">Quiz Validation Parameters</p>
               </div>
             </div>
 
@@ -899,7 +899,7 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
                   className="glass-input h-20 text-4xl font-black text-[#6C8BFF] text-center focus:bg-white"
                   placeholder="50"
                 />
-                <p className="text-[9px] font-black text-[#7A80B8] uppercase tracking-widest text-center px-4">Total neural constructs available for randomization.</p>
+                <p className="text-[9px] font-black text-[#7A80B8] uppercase tracking-widest text-center px-4">Total question pool available for randomization.</p>
               </div>
             </div>
 
@@ -937,7 +937,7 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
               </div>
               <div>
                 <h4 className="text-2xl font-black text-[#1E2455] uppercase tracking-tighter mb-1">Operational Parameters</h4>
-                <p className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.3em] italic">Fine-tuning the Synthesis Logic</p>
+                <p className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.3em] italic">Fine-tuning the Generation Logic</p>
               </div>
             </div>
 
@@ -1020,17 +1020,17 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
                     <Wand2 className="h-8 w-8 text-[#6C8BFF]" />
                   </div>
                   <div>
-                    <h4 className="text-2xl font-black text-[#1E2455] uppercase tracking-tighter mb-1">Algorithmic Refinement</h4>
-                    <p className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.3em] italic">AI-Driven Academic Synthesis</p>
+                    <h4 className="text-2xl font-black text-[#1E2455] uppercase tracking-tighter mb-1">AI Configuration</h4>
+                    <p className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.3em] italic">AI-Driven Academic Generation</p>
                   </div>
                 </div>
 
                 <div className="grid lg:grid-cols-3 gap-10">
                   <div className="space-y-4">
-                    <Label htmlFor="aiDifficulty" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">Cognitive Tension</Label>
+                    <Label htmlFor="aiDifficulty" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">Difficulty Level</Label>
                     <Select onValueChange={(value: 'Easy' | 'Medium' | 'Hard') => setAiDifficulty(value)} value={aiDifficulty}>
                       <SelectTrigger className="glass-input h-16 text-lg font-black text-[#1E2455] border-white/60 focus:bg-white">
-                        <SelectValue placeholder="Tension Level" />
+                        <SelectValue placeholder="Select Difficulty" />
                       </SelectTrigger>
                       <SelectContent className="glass-card bg-white/60 border-white/60 shadow-2xl rounded-[24px]">
                         {['Easy', 'Medium', 'Hard'].map(d => (
@@ -1041,7 +1041,7 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
                   </div>
 
                   <div className="space-y-4">
-                    <Label htmlFor="aiMarks" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">Valuation Scale</Label>
+                    <Label htmlFor="aiMarks" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">Marks per Question</Label>
                     <Input
                       id="aiMarks"
                       type="number"
@@ -1053,7 +1053,7 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
                   </div>
 
                   <div className="space-y-4">
-                    <Label htmlFor="aiTime" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">Temporal Window (Seconds)</Label>
+                    <Label htmlFor="aiTime" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">Time per Question (Seconds)</Label>
                     <Input
                       id="aiTime"
                       type="number"
@@ -1074,14 +1074,14 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
                     {isGeneratingAI ? (
                       <div className="flex items-center gap-6">
                         <div className="h-6 w-6 border-4 border-white/30 border-t-white rounded-full animate-spin" />
-                        NEURAL SYNTHESIS IN PROGRESS...
+                        AI GENERATION IN PROGRESS...
                       </div>
                     ) : (
                       <div className="flex items-center gap-6">
                         <div className="p-2 bg-white/20 rounded-xl group-hover:scale-110 group-hover:rotate-12 transition-all">
                           <Brain className="h-6 w-6 text-white" />
                         </div>
-                        INITIALIZE {aiPoolSize || quizData.totalQuestions} NEURAL CONSTRUCTS
+                        GENERATE {aiPoolSize || quizData.totalQuestions} QUESTIONS
                       </div>
                     )}
                   </Button>
@@ -1095,7 +1095,7 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
                         });
                       }}
                     >
-                      <Info className="h-4 w-4 mr-3" /> Synthesis Protocols
+                      <Info className="h-4 w-4 mr-3" /> Generation Protocols
                     </Button>
                   </div>
                 </div>
@@ -1108,7 +1108,7 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
                       <Brain className="h-12 w-12 text-[#6C8BFF]" />
                     </div>
                     <p className="text-xl font-bold text-[#7A80B8] italic">
-                      {isGeneratingAI ? "NEURAL SYNTHESIS IN PROGRESS..." : "Algorithmic pool is currently void. Initialize constructs to begin."}
+                      {isGeneratingAI ? "AI GENERATION IN PROGRESS..." : "Question pool is currently empty. Generate questions to begin."}
                     </p>
                   </div>
                 ) : (
@@ -1120,8 +1120,8 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
                           {currentQuestionIndex + 1}
                         </div>
                         <div className="space-y-1">
-                          <h4 className="text-xl font-black text-[#1E2455] uppercase tracking-tighter">Neural Construct {currentQuestionIndex + 1}</h4>
-                          <p className="text-[10px] font-black text-[#7A80B8] uppercase tracking-widest italic opacity-60">Synchronizing {quizData.questions.length} Total Constructs</p>
+                          <h4 className="text-xl font-black text-[#1E2455] uppercase tracking-tighter">Question {currentQuestionIndex + 1}</h4>
+                          <p className="text-[10px] font-black text-[#7A80B8] uppercase tracking-widest italic opacity-60">Editing {quizData.questions.length} Total Questions</p>
                         </div>
                       </div>
                       <div className="flex gap-4">
@@ -1138,7 +1138,7 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
                           disabled={currentQuestionIndex === quizData.questions.length - 1}
                           className="h-14 px-10 glass-card border-[#6C8BFF]/40 hover:border-[#6C8BFF]/60 hover:bg-[#6C8BFF]/5 text-[#6C8BFF] font-black uppercase tracking-[0.3em] text-[10px] rounded-2xl flex items-center gap-4 group transition-all duration-500 disabled:opacity-30"
                         >
-                          Sequence Proceed
+                          Next Question
                         </Button>
                       </div>
                     </div>
@@ -1161,11 +1161,11 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
 
                         <div className="space-y-12">
                           <div className="space-y-6">
-                            <Label className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.5em] pl-2 block">Construct Inquiry</Label>
+                            <Label className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.5em] pl-2 block">Question Text</Label>
                             <Textarea
                               value={quizData.questions[currentQuestionIndex].questionText}
                               onChange={(e) => handleUpdateDraftQuestion(currentQuestionIndex, 'questionText', e.target.value)}
-                              placeholder="Refine neural query..."
+                              placeholder="Refine question text..."
                               className="glass-input min-h-[140px] text-xl font-bold text-[#1E2455] p-8 leading-relaxed focus:bg-white"
                             />
                           </div>
@@ -1192,9 +1192,9 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
                           <div className="space-y-8 p-10 rounded-[40px] bg-[#4EE3B2]/5 border border-[#4EE3B2]/20">
                             <div className="flex items-center justify-between">
                               <Label className="text-[10px] font-black text-[#4EE3B2] uppercase tracking-[0.4em] pl-2 flex items-center gap-4">
-                                <CheckCircle2 className="h-5 w-5" /> Validated Response
+                                <CheckCircle2 className="h-5 w-5" /> Correct Answer
                               </Label>
-                              <span className="text-[9px] font-black text-[#1E2455]/40 uppercase tracking-widest italic">Phase 2 Lock Active</span>
+                              <span className="text-[9px] font-black text-[#1E2455]/40 uppercase tracking-widest italic">Verification Active</span>
                             </div>
                             <RadioGroup
                               onValueChange={(value) => handleUpdateCorrectAnswerIndex(currentQuestionIndex, value)}
@@ -1222,7 +1222,7 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
 
                           <div className="grid grid-cols-2 gap-10">
                             <div className="space-y-4">
-                              <Label htmlFor={`q-marks-${currentQuestionIndex}`} className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">Construct Valuation</Label>
+                              <Label htmlFor={`q-marks-${currentQuestionIndex}`} className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">Marks for this Question</Label>
                               <Input
                                 id={`q-marks-${currentQuestionIndex}`}
                                 type="number"
@@ -1240,7 +1240,7 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
                             </div>
                             {enableTimePerQuestion && (
                               <div className="space-y-4">
-                                <Label htmlFor={`q-time-${currentQuestionIndex}`} className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">Temporal Allocation (Mins)</Label>
+                                <Label htmlFor={`q-time-${currentQuestionIndex}`} className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">Time for this Question (Mins)</Label>
                                 <Input
                                   id={`q-time-${currentQuestionIndex}`}
                                   type="number"
@@ -1263,12 +1263,12 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
         </CardContent>
 
         <CardFooter className="p-10 md:p-16 border-t border-white/40 bg-white/10 flex flex-col sm:flex-row justify-end gap-6">
-          {step === 1 ? (
+          {step === 1 ?
             <Button onClick={handleProceed} className="pastel-button-primary h-20 px-16 rounded-[32px] text-[12px] tracking-[0.4em] group shadow-xl">
-              INITIALIZE SYNTHESIS PHASE 02
+              PROCEED TO QUESTION EDITOR
               <ArrowLeft className="h-6 w-6 ml-6 rotate-180 group-hover:translate-x-2 transition-transform" />
             </Button>
-          ) : (
+            :
             <>
               <Button
                 variant="ghost"
@@ -1282,7 +1282,7 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
                 onClick={handlePreviewQuiz}
                 className="h-20 px-12 rounded-[32px] border-white/60 bg-white/40 text-[#7A80B8] hover:text-[#1E2455] hover:bg-white/60 font-black uppercase tracking-[0.3em] text-[11px] shadow-sm transition-all flex items-center gap-6"
               >
-                <Eye className="h-6 w-6" /> PREVIEW SYNTHESIS
+                <Eye className="h-6 w-6" /> PREVIEW QUIZ
               </Button>
               <Button
                 onClick={handleCreateQuiz}
@@ -1291,17 +1291,17 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
                 {showSchedule ? (
                   <>
                     <Calendar className="h-6 w-6 group-hover:scale-110 transition-transform" />
-                    ORCHESTRATE SCHEDULED COMMIT
+                    SCHEDULE QUIZ
                   </>
                 ) : (
                   <>
                     <CheckCircle2 className="h-6 w-6 group-hover:scale-110 transition-transform" />
-                    COMMIT SYNTHESIS NOW
+                    CREATE QUIZ NOW
                   </>
                 )}
               </Button>
             </>
-          )}
+          }
         </CardFooter>
       </Card >
 
@@ -1315,11 +1315,11 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
                 <Wand2 className="h-8 w-8 text-[#6C8BFF]" />
               </div>
               <DialogTitle className="text-4xl font-black text-[#1E2455] uppercase tracking-tighter">
-                Synthesis Commitment
+                Finalize Quiz
               </DialogTitle>
             </div>
             <DialogDescription className="text-lg font-bold text-[#3A3F6B] italic opacity-60 tracking-tight pl-14">
-              Finalize algorithmic parameters before archival commitment.
+              Finalize quiz parameters before creation.
             </DialogDescription>
           </DialogHeader>
 
@@ -1350,7 +1350,7 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
             </div>
 
             <div className="space-y-4">
-              <Label htmlFor="modalPassMark" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">Proficiency Threshold (%)</Label>
+              <Label htmlFor="modalPassMark" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">Passing Threshold (%)</Label>
               <Input
                 id="modalPassMark"
                 type="number"
@@ -1381,7 +1381,7 @@ const QuizCreator = ({ onBack }: { onBack?: () => void }) => {
               onClick={handleFinalSubmit}
               className="pastel-button-primary h-16 px-12 text-[10px] tracking-[0.3em] rounded-2xl flex-1 group shadow-xl"
             >
-              SAVE & FINALIZE SYNTHESIS
+              SAVE & FINALIZE QUIZ
               <Send className="h-5 w-5 ml-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
             </Button>
           </DialogFooter>

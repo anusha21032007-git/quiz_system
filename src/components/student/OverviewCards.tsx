@@ -14,44 +14,54 @@ interface OverviewCardsProps {
 const OverviewCards = ({ totalQuizzesAttempted, quizzesPassed, averageScore, currentRank }: OverviewCardsProps) => {
   const cards = [
     {
-      title: "Quizzes Attempted",
+      title: "Assessments Attempted",
       value: totalQuizzesAttempted,
       icon: ListChecks,
-      description: "Total quizzes taken so far.",
+      description: "Total simulations logged.",
+      color: "#6C8BFF"
     },
     {
-      title: "Quizzes Passed",
-      value: quizzesPassed,
+      title: "Success Rate (%)",
+      value: `${quizzesPassed} Validated`,
       icon: CheckCircle,
-      description: "Quizzes with score > 50%.",
+      description: "Simulations above threshold.",
+      color: "#4EE3B2"
     },
     {
-      title: "Average Score (%)",
-      value: `${averageScore.toFixed(1)}%`,
+      title: "Average Score",
+      value: `${averageScore.toFixed(0)}%`,
       icon: TrendingUp,
-      description: "Your overall performance.",
+      description: "Total performance index.",
+      color: "#E38AD6"
     },
     {
-      title: "Current Rank",
+      title: "Global Standing",
       value: currentRank,
       icon: Award,
-      description: "Your position in results.",
+      description: "Validated peer percentile.",
+      color: "#FFB86C"
     },
   ];
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4 animate-in fade-in slide-in-from-bottom-6 duration-700">
       {cards.map((card, index) => (
-        <Card key={index} className="bg-card border-slate-800 shadow-xl shadow-primary/5 hover:border-slate-700 hover:bg-slate-900/40 transition-all group rounded-[24px] overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 p-6">
-            <CardTitle className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] group-hover:text-primary transition-colors">{card.title}</CardTitle>
-            <div className="w-10 h-10 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-center shadow-inner group-hover:border-primary/30 group-hover:bg-primary/5 transition-all">
-              <card.icon className="h-5 w-5 text-slate-500 group-hover:text-primary transition-all" />
+        <Card key={index} className="glass-card hover:translate-y-[-8px] group border-white/60 shadow-xl hover:shadow-glass-hover transition-all duration-700 relative overflow-hidden">
+          {/* Subtle Accent Glow */}
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#6C8BFF]/5 rounded-full blur-2xl group-hover:bg-[#6C8BFF]/10 transition-all duration-700" />
+
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-8">
+            <CardTitle className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] group-hover:text-[#1E2455] transition-colors leading-none">{card.title}</CardTitle>
+            <div className="w-14 h-14 bg-white/40 border border-white/60 rounded-[22px] flex items-center justify-center shadow-sm group-hover:scale-110 group-hover:rotate-6 transition-all duration-700 group-hover:bg-white/60 group-hover:shadow-md">
+              <card.icon className="h-7 w-7 text-[#6C8BFF] group-hover:scale-110 transition-transform" />
             </div>
           </CardHeader>
-          <CardContent className="px-6 pb-6 pt-0">
-            <div className="text-3xl font-black text-slate-50 tracking-tighter group-hover:scale-105 transition-transform origin-left">{card.value}</div>
-            <p className="text-[10px] text-slate-500 font-bold italic tracking-tight mt-2 opacity-70 group-hover:opacity-100 transition-all">{card.description}</p>
+          <CardContent className="px-8 pb-10 pt-0 relative z-10">
+            <div className="text-5xl font-black text-[#1E2455] tracking-tighter group-hover:scale-[1.02] transition-transform origin-left font-poppins">{card.value}</div>
+            <div className="flex items-center gap-3 mt-4">
+              <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: card.color }} />
+              <p className="text-[11px] text-[#3A3F6B] font-bold italic tracking-tight opacity-60 group-hover:opacity-100 transition-all">{card.description}</p>
+            </div>
           </CardContent>
         </Card>
       ))}

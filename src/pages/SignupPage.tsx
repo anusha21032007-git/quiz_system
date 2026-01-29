@@ -42,66 +42,68 @@ const SignupPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-transparent p-6 font-poppins">
-            <div className="absolute top-8 left-8">
+        <div className="min-h-screen flex items-center justify-center mesh-background p-6 overflow-hidden relative selection:bg-[#6C8BFF]/20 selection:text-[#1E2455] font-poppins">
+            {/* Decorative peripheral glows */}
+            <div className="hero-glow bg-[#6C8BFF] -top-20 -left-20 animate-pulse" />
+            <div className="hero-glow bg-[#E38AD6] -bottom-20 -right-20 animate-pulse" style={{ animationDelay: '2s' }} />
+
+            <div className="absolute top-10 left-10 z-20">
                 <Link to="/">
-                    <Button variant="ghost" className="gap-2 text-[#7A80B8] hover:text-[#6C8BFF] font-black hover:bg-white/20 rounded-xl transition-all uppercase tracking-widest text-[10px]">
+                    <Button variant="ghost" className="gap-3 text-[#1E2455] hover:text-[#6C8BFF] font-black uppercase text-[11px] tracking-[0.2em] rounded-full bg-white/40 border border-white/60 backdrop-blur-xl hover:bg-white/60 transition-all shadow-md">
                         <ArrowLeft className="h-4 w-4" /> Back to Home
                     </Button>
                 </Link>
             </div>
 
-            <Card className="glass-card w-full max-w-md border-white/40 overflow-hidden shadow-2xl">
-                <CardHeader className="pt-12 pb-8 text-center space-y-3">
-                    <div className="mx-auto w-16 h-16 bg-gradient-to-br from-[#6C8BFF] to-[#E38AD6] rounded-2xl flex items-center justify-center mb-4 border border-white/30 shadow-md transform -rotate-3 hover:rotate-0 transition-transform duration-500">
-                        <GraduationCap className="h-9 w-9 text-white" />
+            <Card className="glass-card w-full max-w-lg overflow-hidden border-white/80 shadow-[0_40px_100px_rgba(0,0,0,0.1)] relative z-10 animate-in fade-in slide-in-from-bottom-12 duration-1000">
+                <CardHeader className="pt-16 pb-10 text-center space-y-4">
+                    <div className="mx-auto w-24 h-24 bg-gradient-to-br from-[#6C8BFF] to-[#E38AD6] rounded-[32px] flex items-center justify-center mb-6 shadow-2xl border border-white/40 animate-float">
+                        <GraduationCap className="h-12 w-12 text-white" />
                     </div>
-                    <CardTitle className="text-4xl font-black text-[#1E2455] tracking-tighter uppercase leading-tight">Join Faculty</CardTitle>
-                    <CardDescription className="text-[#3A3F6B] font-bold opacity-70 tracking-tight text-sm">
-                        Initialize your administrative identity within QUIZ MASTER.
-                    </CardDescription>
+                    <CardTitle className="text-5xl font-black text-[#1E2455] tracking-tighter uppercase leading-none font-poppins">Faculty Registration</CardTitle>
+                    <CardDescription className="text-[#3A3F6B] font-bold italic opacity-60 text-lg tracking-tight">Join the elite academic architecture</CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSignup}>
-                    <CardContent className="space-y-6 px-10 pb-8">
-                        <div className="space-y-2.5">
-                            <Label htmlFor="name" className="text-[#1E2455] font-black uppercase text-[10px] tracking-widest pl-1">Legal Designation</Label>
+                    <CardContent className="space-y-8 px-12 pb-8">
+                        <div className="space-y-3">
+                            <Label htmlFor="name" className="text-[#1E2455] font-black text-[11px] uppercase tracking-[0.3em] ml-2 opacity-60">Legal Designation</Label>
                             <div className="relative group">
-                                <User className="absolute left-4 top-3.5 h-4 w-4 text-[#7A80B8] group-focus-within:text-[#6C8BFF] transition-colors" />
+                                <User className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-[#7A80B8] group-focus-within:text-[#6C8BFF] transition-colors" />
                                 <Input
                                     id="name"
                                     type="text"
-                                    placeholder="Prof. John Doe"
-                                    className="glass-input pl-12 h-12 text-[#1E2455] font-bold"
+                                    placeholder="e.g. Prof. John Doe"
+                                    className="glass-input pl-14 h-16 text-[#1E2455] placeholder-[#7A80B8]/40 border-white/60 focus:border-[#6C8BFF]/50 text-base"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     required
                                 />
                             </div>
                         </div>
-                        <div className="space-y-2.5">
-                            <Label htmlFor="email" className="text-[#1E2455] font-black uppercase text-[10px] tracking-widest pl-1">Institutional Email</Label>
+                        <div className="space-y-3">
+                            <Label htmlFor="email" className="text-[#1E2455] font-black text-[11px] uppercase tracking-[0.3em] ml-2 opacity-60">Institutional Email</Label>
                             <div className="relative group">
-                                <Mail className="absolute left-4 top-3.5 h-4 w-4 text-[#7A80B8] group-focus-within:text-[#6C8BFF] transition-colors" />
+                                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-[#7A80B8] group-focus-within:text-[#6C8BFF] transition-colors" />
                                 <Input
                                     id="email"
                                     type="email"
                                     placeholder="faculty@institution.edu"
-                                    className="glass-input pl-12 h-12 text-[#1E2455] font-bold"
+                                    className="glass-input pl-14 h-16 text-[#1E2455] placeholder-[#7A80B8]/40 border-white/60 focus:border-[#6C8BFF]/50 text-base"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
                                 />
                             </div>
                         </div>
-                        <div className="space-y-2.5">
-                            <Label htmlFor="password" className="text-[#1E2455] font-black uppercase text-[10px] tracking-widest pl-1">Access Protocol</Label>
+                        <div className="space-y-3">
+                            <Label htmlFor="password" className="text-[#1E2455] font-black text-[11px] uppercase tracking-[0.3em] ml-2 opacity-60">Security Protocol</Label>
                             <div className="relative group">
-                                <Lock className="absolute left-4 top-3.5 h-4 w-4 text-[#7A80B8] group-focus-within:text-[#6C8BFF] transition-colors" />
+                                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-[#7A80B8] group-focus-within:text-[#6C8BFF] transition-colors" />
                                 <Input
                                     id="password"
                                     type="password"
                                     placeholder="••••••••"
-                                    className="glass-input pl-12 h-12 text-[#1E2455] font-bold"
+                                    className="glass-input pl-14 h-16 text-[#1E2455] placeholder-[#7A80B8]/40 border-white/60 focus:border-[#6C8BFF]/50 text-base"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
@@ -109,13 +111,23 @@ const SignupPage = () => {
                             </div>
                         </div>
                     </CardContent>
-                    <CardFooter className="flex flex-col gap-8 px-10 pb-12">
-                        <Button type="submit" className="pastel-button-primary w-full h-14 text-xs tracking-widest" disabled={loading}>
-                            {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null} INITIALIZE ACCOUNT
+                    <CardFooter className="flex flex-col gap-10 px-12 pb-16">
+                        <Button type="submit" className="pastel-button-primary w-full h-16 text-[12px] uppercase tracking-[0.4em] shadow-xl hover:shadow-primary/40 font-black" disabled={loading}>
+                            {loading ? <Loader2 className="h-6 w-6 animate-spin mr-3" /> : null} Initialize Faculty Profile
                         </Button>
-                        <p className="text-[11px] text-center text-[#7A80B8] font-black uppercase tracking-widest">
-                            Already registered? <Link to="/login" className="text-[#6C8BFF] hover:underline font-black">Sign In Protocol</Link>
-                        </p>
+                        <div className="text-center space-y-4">
+                            <p className="text-sm text-[#7A80B8] font-black uppercase tracking-[0.2em] text-[10px] opacity-70">
+                                Already registered in the ecosystem?
+                            </p>
+                            <Link to="/login">
+                                <button
+                                    type="button"
+                                    className="px-8 py-3 rounded-full bg-[#6C8BFF]/5 border border-[#6C8BFF]/20 text-[#6C8BFF] font-black uppercase tracking-[0.2em] text-[10px] hover:bg-[#6C8BFF]/10 transition-all shadow-sm"
+                                >
+                                    Return to Login
+                                </button>
+                            </Link>
+                        </div>
                     </CardFooter>
                 </form>
             </Card>

@@ -121,21 +121,21 @@ const CoursesList = () => {
             <div className="glass-card p-10 relative overflow-hidden group border-white/60">
                 <div className="absolute top-0 right-0 w-80 h-80 bg-[#6C8BFF]/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-[#6C8BFF]/10 transition-all duration-1000" />
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 relative z-10">
-                    <div className="flex items-center gap-8">
-                        <div className="w-24 h-24 bg-[#6C8BFF]/10 border border-[#6C8BFF]/20 rounded-[32px] flex items-center justify-center shadow-xl group-hover:scale-105 transition-all duration-700 p-6">
+                    <div className="flex items-center gap-10">
+                        <div className="w-28 h-28 bg-white/50 border border-white/60 rounded-[40px] flex items-center justify-center shadow-xl group-hover:scale-105 transition-all duration-700 p-7">
                             <GraduationCap className="h-full w-full text-[#6C8BFF]" />
                         </div>
                         <div>
-                            <h2 className="text-4xl lg:text-5xl font-black text-[#1E2455] tracking-tighter uppercase leading-none mb-3">
+                            <h2 className="text-4xl lg:text-6xl font-black text-[#1E2455] tracking-tighter uppercase leading-none mb-4">
                                 Curriculum Repository
                             </h2>
-                            <p className="text-[#3A3F6B] font-bold italic opacity-70 tracking-tight text-base">Register and manage academic disciplines within the simulation environment.</p>
+                            <p className="text-[#3A3F6B] font-bold italic opacity-70 tracking-tight text-xl max-w-2xl">Register and manage academic disciplines within the simulation environment.</p>
                         </div>
                     </div>
 
                     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                         <DialogTrigger asChild>
-                            <Button className="pastel-button-primary h-18 px-12 text-[11px] tracking-[0.2em] group">
+                            <Button className="pastel-button-primary h-18 px-12 text-[12px] tracking-[0.3em] group">
                                 <Plus className="h-6 w-6 group-hover:rotate-90 transition-transform duration-500" />
                                 <span className="pt-0.5">INDEX DISCIPLINE</span>
                             </Button>

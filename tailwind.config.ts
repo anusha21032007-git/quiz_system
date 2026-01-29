@@ -117,10 +117,15 @@ const config: Config = {
             height: "0",
           },
         },
+        "gradient-mask": {
+          "0%": { backgroundPosition: "0% 50%" },
+          "100%": { backgroundPosition: "200% 50%" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "gradient-mask": "gradient-mask 3s linear infinite",
       },
     },
   },

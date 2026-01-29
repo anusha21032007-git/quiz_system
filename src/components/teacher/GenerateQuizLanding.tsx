@@ -124,7 +124,7 @@ const GenerateQuizLanding = () => {
     const CreationModes = [
         {
             id: 'manual',
-            title: 'Manual Synthesis',
+            title: 'Manual Creation',
             description: 'Craft every question with precision using our advanced editor.',
             icon: PlusCircle,
             color: '#6C8BFF',
@@ -133,7 +133,7 @@ const GenerateQuizLanding = () => {
         },
         {
             id: 'automated',
-            title: 'Neural Generation',
+            title: 'AI Generation',
             description: 'Leverage hyper-intelligent AI to generate comprehensive assessments.',
             icon: Brain,
             color: '#E38AD6',
@@ -199,12 +199,12 @@ const GenerateQuizLanding = () => {
                 <div className="absolute top-0 right-0 w-96 h-96 bg-[#6C8BFF]/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-[#6C8BFF]/10 transition-all duration-1000" />
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-10 relative z-10">
                     <div className="flex items-center gap-10">
-                        <div className="w-28 h-28 bg-[#6C8BFF]/10 border border-[#6C8BFF]/20 rounded-[40px] flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-1000 p-7">
+                        <div className="w-28 h-28 bg-white/50 border border-white/60 rounded-[40px] flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-1000 p-7">
                             <Wand2 className="h-full w-full text-[#6C8BFF]" />
                         </div>
                         <div>
                             <h2 className="text-5xl lg:text-7xl font-black text-[#1E2455] tracking-tighter uppercase leading-none mb-4">
-                                Neural Synthesis Hub
+                                Generate Quiz Hub
                             </h2>
                             <p className="text-[#3A3F6B] font-bold italic opacity-70 tracking-tight text-xl max-w-2xl">Initialize new simulation environments using our multi-modal generation engine.</p>
                         </div>
@@ -220,15 +220,15 @@ const GenerateQuizLanding = () => {
                         onClick={() => setView(mode.id)}
                         className="group relative cursor-pointer"
                     >
-                        <div className="glass-card h-full p-10 border-white/40 hover:border-white/70 hover:bg-white/40 hover:shadow-glass-hover hover:-translate-y-2 transition-all duration-700 flex flex-col items-center text-center">
-                            <div className={cn("w-24 h-24 mb-8 rounded-[32px] flex items-center justify-center transition-all duration-1000 group-hover:scale-110 group-hover:rotate-12 p-6 shadow-sm", mode.glow)}>
+                        <div className="glass-card h-full p-12 border-white/40 hover:border-white/70 hover:bg-white/40 hover:shadow-2xl hover:-translate-y-3 transition-all duration-700 flex flex-col items-center text-center">
+                            <div className={cn("w-28 h-28 mb-10 rounded-[40px] flex items-center justify-center transition-all duration-1000 group-hover:scale-110 group-hover:rotate-12 p-8 shadow-xl bg-white/60 border border-white/40", mode.glow)}>
                                 <mode.icon className="h-full w-full" style={{ color: mode.color }} />
                             </div>
-                            <h3 className="text-3xl font-black text-[#1E2455] uppercase tracking-tighter mb-4 group-hover:text-[#6C8BFF] transition-colors">{mode.title}</h3>
-                            <p className="text-[#7A80B8] font-bold italic opacity-70 mb-10 leading-relaxed">{mode.description}</p>
+                            <h3 className="text-4xl font-black text-[#1E2455] uppercase tracking-tighter mb-5 group-hover:text-[#6C8BFF] transition-colors">{mode.title}</h3>
+                            <p className="text-[#7A80B8] font-bold italic opacity-70 mb-12 leading-relaxed text-lg">{mode.description}</p>
 
                             <Button
-                                className="w-full h-16 rounded-[24px] bg-white/40 border-white text-[10px] font-black uppercase tracking-[0.3em] text-[#7A80B8] group-hover:bg-gradient-to-br group-hover:from-[#6C8BFF] group-hover:to-[#E38AD6] group-hover:text-white group-hover:border-transparent transition-all duration-700 shadow-sm"
+                                className="w-full h-16 rounded-full bg-white/40 border-white/60 text-[11px] font-black uppercase tracking-[0.3em] text-[#7A80B8] group-hover:bg-gradient-to-br group-hover:from-[#6C8BFF] group-hover:to-[#E38AD6] group-hover:text-white group-hover:border-transparent transition-all duration-700 shadow-xl"
                                 variant="outline"
                             >
                                 INITIALIZE MODE
@@ -275,15 +275,15 @@ const GenerateQuizLanding = () => {
                                         onClick={() => handleResumePoll(poll)}
                                         className="h-14 px-10 text-[10px] tracking-[0.2em] pastel-button-primary"
                                     >
-                                        RESUME SYNTHESIS
+                                        RESUME CREATION
                                     </Button>
                                     <Button
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => handleDeletePoll(poll.pollId)}
-                                        className="h-14 w-14 rounded-2xl text-[#7A80B8] hover:text-[#FF6B8A] hover:bg-[#FF6B8A]/5 border border-white hover:border-[#FF6B8A]/20 transition-all duration-500 shadow-sm"
+                                        className="h-16 w-16 rounded-[22px] text-[#7A80B8] hover:text-[#FF6B8A] hover:bg-[#FF6B8A]/10 border border-white/60 hover:border-[#FF6B8A]/30 transition-all duration-500 shadow-xl"
                                     >
-                                        <Trash2 className="h-6 w-6" />
+                                        <Trash2 className="h-7 w-7" />
                                     </Button>
                                 </div>
                             </div>
@@ -300,7 +300,7 @@ const GenerateQuizLanding = () => {
                     className="h-20 px-16 border-white/60 hover:bg-[#6C8BFF]/5 text-[#7A80B8] font-black uppercase tracking-[0.3em] text-[11px] rounded-[32px] border transition-all duration-700 flex items-center gap-5 group"
                 >
                     <ArrowLeft className="h-6 w-6 group-hover:-translate-x-2 transition-transform duration-500" />
-                    Return to Repository Archive
+                    Return to Repository
                 </Button>
             </div>
         </div>

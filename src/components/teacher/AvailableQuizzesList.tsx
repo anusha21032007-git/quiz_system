@@ -103,13 +103,13 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
         <div className="absolute top-0 right-0 w-80 h-80 bg-[#6C8BFF]/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-[#6C8BFF]/10 transition-all duration-1000" />
         <div className="flex flex-col md:flex-row items-center justify-between relative z-10 gap-8">
           <div>
-            <h2 className="text-4xl font-black text-[#1E2455] tracking-tighter uppercase leading-none flex items-center gap-5">
-              <div className="p-3 bg-[#6C8BFF]/10 rounded-2xl shadow-sm border border-[#6C8BFF]/20">
-                <Trophy className="h-8 w-8 text-[#6C8BFF]" />
+            <h2 className="text-4xl font-black text-[#1E2455] tracking-tighter uppercase leading-none flex items-center gap-6">
+              <div className="p-4 bg-white/50 rounded-[22px] shadow-xl border border-white/60">
+                <Trophy className="h-9 w-9 text-[#6C8BFF]" />
               </div>
               Published Assessments
             </h2>
-            <p className="text-[#3A3F6B] mt-4 font-bold italic opacity-70">Manage and review live academic simulations across all departments.</p>
+            <p className="text-[#3A3F6B] mt-5 font-bold italic opacity-70 text-lg">Manage and review live academic simulations across all departments.</p>
           </div>
 
           <div className="flex items-center gap-6">
@@ -121,9 +121,9 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="pastel-button-primary h-16 px-10 text-[11px] tracking-[0.2em] group/btn">
-                  <Plus className="h-5 w-5 group-hover/btn:rotate-90 transition-transform duration-500" />
-                  GENERATE MODULE
+                <Button className="pastel-button-primary h-18 px-12 text-[12px] tracking-[0.3em] group/btn">
+                  <Plus className="h-6 w-6 group-hover/btn:rotate-90 transition-transform duration-500" />
+                  GENERATE QUIZ
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-80 p-3 glass-card bg-white/40 backdrop-blur-xl border-white/60 shadow-2xl animate-in zoom-in-95 duration-300 side-bottom-4">
@@ -144,7 +144,7 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
                     <Edit className="h-6 w-6 text-[#6C8BFF]" />
                   </div>
                   <div className="flex flex-col">
-                    <span className="font-black text-[11px] text-[#1E2455] uppercase tracking-wider leading-none mb-1.5">Manual Synthesis</span>
+                    <span className="font-black text-[11px] text-[#1E2455] uppercase tracking-wider leading-none mb-1.5">Manual Creation</span>
                     <span className="text-[9px] text-[#7A80B8] font-bold italic opacity-70">High-precision curation</span>
                   </div>
                 </DropdownMenuItem>
@@ -163,7 +163,7 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
                     <Sparkles className="h-6 w-6 text-[#E38AD6]" />
                   </div>
                   <div className="flex flex-col">
-                    <span className="font-black text-[11px] text-[#1E2455] uppercase tracking-wider leading-none mb-1.5">Neural Generation</span>
+                    <span className="font-black text-[11px] text-[#1E2455] uppercase tracking-wider leading-none mb-1.5">AI Generation</span>
                     <span className="text-[9px] text-[#7A80B8] font-bold italic opacity-70">AI-optimized banks</span>
                   </div>
                 </DropdownMenuItem>
@@ -297,7 +297,7 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
                     onClick={() => handleEditAsNew(quiz)}
                     className="h-14 px-8 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-[#7A80B8] hover:text-[#6C8BFF] hover:bg-[#6C8BFF]/5 border border-transparent hover:border-[#6C8BFF]/20 transition-all shadow-sm"
                   >
-                    <Edit className="h-4.5 w-4.5 mr-3" /> SYNTHESIZE COPY
+                    <Edit className="h-4.5 w-4.5 mr-3" /> CREATE COPY
                   </Button>
                 )}
 
@@ -307,7 +307,7 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
                       variant="ghost"
                       size="sm"
                       asChild
-                      className="h-14 px-10 rounded-2xl bg-[#1E2455] text-white hover:bg-[#1E2455]/90 transition-all font-black text-[10px] uppercase tracking-[0.3em] shadow-xl hover:shadow-[#1E2455]/20 flex items-center justify-center gap-3"
+                      className="h-16 px-10 rounded-full bg-[#1E2455] text-white hover:bg-[#1E2455]/90 transition-all font-black text-[11px] uppercase tracking-[0.3em] shadow-xl hover:shadow-[#1E2455]/40 flex items-center justify-center gap-4"
                     >
                       <Link to={`/quiz-preview/${quiz.id}`}>
                         PREVIEW SIMULATION
@@ -317,9 +317,9 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDelete(quiz.id, quiz.title)}
-                      className="h-14 w-14 rounded-2xl bg-[#FF6B8A]/5 text-[#FF6B8A]/60 hover:bg-[#FF6B8A]/10 hover:text-[#FF6B8A] transition-all border border-[#FF6B8A]/10 shadow-sm flex items-center justify-center p-0"
+                      className="h-16 w-16 rounded-[22px] bg-[#FF6B8A]/10 text-[#FF6B8A] hover:bg-[#FF6B8A]/20 transition-all border border-[#FF6B8A]/20 shadow-xl flex items-center justify-center p-0 active:scale-95"
                     >
-                      <Trash className="h-5 w-5" />
+                      <Trash className="h-6 w-6" />
                     </Button>
                   </>
                 )}

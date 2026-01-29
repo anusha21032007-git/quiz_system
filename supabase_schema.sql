@@ -73,6 +73,17 @@ CREATE TABLE IF NOT EXISTS public.quiz_attempts (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW()) NOT NULL
 );
 
+-- 6. Student Requests Table
+CREATE TABLE IF NOT EXISTS public.student_requests (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  year TEXT NOT NULL,
+  department TEXT NOT NULL,
+  message TEXT,
+  status TEXT CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW()) NOT NULL
+);
+
 -- Enable Extensions
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -156,4 +167,10 @@ CREATE POLICY "Teachers can view requests" ON public.student_requests FOR SELECT
 );
 CREATE POLICY "Teachers can update requests" ON public.student_requests FOR UPDATE USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND (role = 'teacher' OR role = 'admin'))
+);
+
+-- Student Requests: Any user (including anonymous) can create a request, teachers can manage them
+CREATE POLICY "Anyone can create student requests" ON public.student_requests FOR INSERT WITH CHECK (true);
+CREATE POLICY "Teachers can manage student requests" ON public.student_requests FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'teacher')
 );

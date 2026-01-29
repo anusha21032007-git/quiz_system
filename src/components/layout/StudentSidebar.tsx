@@ -47,18 +47,17 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile }: StudentSidebarP
   ];
 
   const renderNav = () => (
-    <nav className="flex flex-col h-full bg-gradient-to-b from-[#8EA2FF] to-[#B39DDB] text-white p-4 gap-2">
-      <div className="p-4 border-b border-white/20 mb-2">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/30 shadow-sm">
-            <GraduationCap className="h-6 w-6 text-white" />
+    <nav className="flex flex-col h-full bg-gradient-to-b from-[#8EA2FF] to-[#B39DDB] text-white p-6 gap-3">
+      <div className="p-8 border-b border-white/20 mb-6 mt-2 group">
+        <div className="flex items-center gap-5 mb-10 transition-transform group-hover:translate-x-1 duration-500">
+          <div className="w-[60px] h-[60px] bg-white/30 backdrop-blur-xl rounded-[22px] flex items-center justify-center border border-white/40 shadow-2xl rotate-3 group-hover:rotate-6 transition-all">
+            <GraduationCap className="h-9 w-9 text-white group-hover:scale-110 transition-transform" />
           </div>
-          <span className="text-xl font-black text-white tracking-tighter leading-tight font-poppins">STUDENT HUB</span>
+          <span className="text-3xl font-black text-white tracking-tighter leading-none font-poppins drop-shadow-lg">STUDENT<br />CONSOLE</span>
         </div>
         <Link to="/">
-          <Button variant="ghost" size="sm" className="w-full justify-start text-white/70 hover:text-white hover:bg-white/10 rounded-xl font-bold">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Home
+          <Button variant="ghost" size="sm" className="w-full justify-start text-white/70 hover:text-white hover:bg-white/10 rounded-2xl font-black uppercase tracking-widest text-[9px] h-10 px-4 transition-all active:scale-95">
+            <ArrowLeft className="h-4 w-4 mr-2" /> EXIT TO HOME
           </Button>
         </Link>
       </div>
@@ -69,9 +68,9 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile }: StudentSidebarP
             key={item.id}
             variant="ghost"
             className={cn(
-              "justify-start gap-4 h-12 w-full transition-all duration-300 rounded-[16px] font-bold",
+              "justify-start gap-4 h-14 w-full transition-all duration-300 rounded-full font-bold",
               activeView === item.id
-                ? "bg-white/30 text-white shadow-glass border border-white/40"
+                ? "bg-white/40 text-white shadow-xl border border-white/50"
                 : "text-white/80 hover:bg-white/20 hover:text-white"
             )}
             onClick={() => setActiveView(item.id)}
@@ -79,7 +78,7 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile }: StudentSidebarP
             <item.icon className={cn("h-5 w-5", activeView === item.id ? "text-white" : "text-white/70")} />
             <span className="flex-grow text-left">{item.label}</span>
             {item.id === 'quizzes' && hasNewQuizzes && (
-              <span className="flex h-2 w-2 rounded-full bg-red-400 animate-pulse ring-2 ring-white/50" />
+              <span className="flex h-3 w-3 rounded-full bg-red-400 animate-pulse ring-2 ring-white/50" />
             )}
           </Button>
         ))}
@@ -109,7 +108,7 @@ const StudentSidebar = ({ activeView, setActiveView, isMobile }: StudentSidebarP
       <div className="mt-auto pt-4 border-t border-white/20 mt-4">
         <Button
           variant="ghost"
-          className="justify-start gap-3 w-full h-12 text-white/80 hover:bg-white/20 hover:text-white rounded-[16px] font-bold"
+          className="justify-start gap-4 w-full h-14 text-white/80 hover:bg-white/20 hover:text-white rounded-full font-bold transition-all border border-transparent hover:border-white/20 active:scale-95"
           onClick={signOut}
         >
           <LogOut className="h-5 w-5" />

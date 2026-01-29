@@ -68,7 +68,7 @@ const HistoryList = () => {
         };
         localStorage.setItem('activeCreationSession', JSON.stringify(sessionData));
 
-        const params = new URLSearchParams();
+        const params = new URLSearchParams(searchParams);
         params.set('view', 'create-quiz');
         params.set('step', 'manual');
         params.set('qStep', '2');
@@ -77,112 +77,131 @@ const HistoryList = () => {
     };
 
     return (
-        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20 font-poppins relative">
+            {/* Background Decorations */}
+            <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-[#6C8BFF]/5 rounded-full blur-[120px] -z-10 animate-pulse" />
+
             {/* Page Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-8">
-                <div>
-                    <h2 className="text-3xl font-black text-slate-50 tracking-tight flex items-center gap-3 uppercase">
-                        <HistoryIcon className="h-8 w-8 text-primary" />
-                        LMS History
-                    </h2>
-                    <p className="text-slate-400 mt-1 font-medium italic">"Trace assessment records, published quizzes, and active drafts."</p>
+            <div className="glass-card p-10 relative overflow-hidden group border-white/60">
+                <div className="absolute top-0 right-0 w-80 h-80 bg-[#6C8BFF]/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-[#6C8BFF]/10 transition-all duration-1000" />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 relative z-10">
+                    <div className="flex items-center gap-10">
+                        <div className="w-24 h-24 bg-white/50 border border-white/60 rounded-[32px] flex items-center justify-center shadow-xl group-hover:scale-105 transition-all duration-700 p-6">
+                            <HistoryIcon className="h-full w-full text-[#6C8BFF]" />
+                        </div>
+                        <div>
+                            <h2 className="text-4xl lg:text-5xl font-black text-[#1E2455] tracking-tighter uppercase leading-none mb-3">
+                                LMS Activity Index
+                            </h2>
+                            <p className="text-[#3A3F6B] font-bold italic opacity-70 tracking-tight text-lg">Trace assessment records, published quizzes, and active simulation drafts.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             {/* Published Assessments Log */}
-            <div className="space-y-6">
-                <h3 className="text-xl font-black text-slate-100 flex items-center gap-2 px-2 uppercase tracking-tight">
-                    <Trophy className="h-5 w-5 text-success" />
-                    Published Assessment Log
-                </h3>
-                <div className="flex flex-col gap-3">
+            <div className="space-y-8">
+                <div className="flex items-center gap-5 px-4">
+                    <Trophy className="h-7 w-7 text-[#4EE3B2]" />
+                    <h3 className="text-sm font-black text-[#1E2455] uppercase tracking-[0.4em]">Published Assessment Log</h3>
+                </div>
+                <div className="flex flex-col gap-5">
                     {actionHistory.length > 0 ? (
                         actionHistory.map((item, idx) => (
-                            <div key={idx} className="group bg-card p-5 rounded-2xl border border-slate-800 shadow-sm flex items-center justify-between transition-all hover:border-primary/30">
-                                <div className="flex items-center gap-6">
+                            <div key={idx} className="group glass-card p-8 border-white/40 hover:border-white/70 hover:bg-white/40 hover:shadow-glass-hover hover:-translate-y-1 transition-all duration-700 flex items-center justify-between relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-white/5 to-transparent translate-x-full group-hover:translate-x-0 transition-transform duration-1000" />
+                                <div className="flex items-center gap-8 relative z-10">
                                     <div className={cn(
-                                        "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border",
-                                        item.action === 'Published' ? "bg-success/10 text-success border-success/20" : "bg-danger/10 text-danger border-danger/20"
+                                        "w-16 h-16 rounded-[22px] flex items-center justify-center shrink-0 border shadow-sm transition-all duration-500 group-hover:scale-110",
+                                        item.action === 'Published' ? "bg-[#4EE3B2]/10 text-[#4EE3B2] border-[#4EE3B2]/20" : "bg-[#FF6B8A]/10 text-[#FF6B8A] border-[#FF6B8A]/20"
                                     )}>
-                                        {item.action === 'Published' ? <CheckCircle2 className="h-6 w-6" /> : <Trash2 className="h-6 w-6" />}
+                                        {item.action === 'Published' ? <CheckCircle2 className="h-8 w-8" /> : <Trash2 className="h-8 w-8" />}
                                     </div>
                                     <div>
-                                        <div className="flex items-center gap-3 mb-0.5">
-                                            <h4 className="text-lg font-bold text-slate-50">{item.paperName || 'Assessment'}</h4>
+                                        <div className="flex items-center gap-5 mb-2.5">
+                                            <h4 className="text-2xl font-black text-[#1E2455] tracking-tight uppercase">{item.paperName || 'Assessment'}</h4>
                                             <span className={cn(
-                                                "px-3 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border",
-                                                item.action === 'Published' ? "bg-success/10 text-success border-success/20" : "bg-danger/10 text-danger border-danger/20"
+                                                "px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm",
+                                                item.action === 'Published' ? "bg-[#4EE3B2]/10 text-[#4EE3B2] border-[#4EE3B2]/20 shadow-[#4EE3B2]/5" : "bg-[#FF6B8A]/10 text-[#FF6B8A] border-[#FF6B8A]/20 shadow-[#FF6B8A]/5"
                                             )}>{item.action}</span>
                                         </div>
-                                        <div className="flex items-center gap-4 text-xs font-bold text-slate-500">
-                                            <span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-primary" /> {new Date(item.timestamp).toLocaleString()}</span>
-                                            <span className="w-1.5 h-1.5 bg-slate-800 rounded-full" />
-                                            <span>{item.totalQuestions} Questions</span>
+                                        <div className="flex flex-wrap items-center gap-5 text-[10px] font-black text-[#7A80B8] uppercase tracking-widest">
+                                            <span className="flex items-center gap-2.5 bg-white/40 px-3 py-1.5 rounded-lg border border-white/60 shadow-sm">
+                                                <Calendar className="h-3.5 w-3.5 text-[#6C8BFF]" />
+                                                {new Date(item.timestamp).toLocaleString()}
+                                            </span>
+                                            <span className="w-1.5 h-1.5 bg-[#7A80B8]/20 rounded-full" />
+                                            <span className="italic opacity-80">{item.totalQuestions} Questions Synthesized</span>
                                         </div>
                                     </div>
                                 </div>
-                                <ChevronRight className="h-5 w-5 text-slate-800 group-hover:text-primary transition-colors" />
+                                <div className="w-14 h-14 rounded-2xl bg-white/40 border border-white flex items-center justify-center text-[#7A80B8] group-hover:text-[#6C8BFF] group-hover:scale-110 transition-all shadow-sm">
+                                    <ChevronRight className="h-7 w-7" />
+                                </div>
                             </div>
                         ))
                     ) : (
-                        <div className="text-center py-12 bg-slate-900/10 rounded-2xl border border-dashed border-slate-800 text-slate-500 font-bold uppercase tracking-widest text-[10px]">
-                            No published quiz records yet.
+                        <div className="py-24 glass-card border-white/40 border-dashed text-center">
+                            <p className="text-[#7A80B8] font-black text-[10px] uppercase tracking-[0.4em] opacity-60">No published records indexed in the temporal stream.</p>
                         </div>
                     )}
                 </div>
             </div>
 
             {/* Active Drafts Section */}
-            <div className="space-y-6">
-                <h3 className="text-xl font-black text-slate-100 flex items-center gap-2 px-2 uppercase tracking-tight">
-                    <FileText className="h-5 w-5 text-warning" />
-                    Active Drafts & Polls
-                </h3>
-                <div className="flex flex-col gap-3">
+            <div className="space-y-8">
+                <div className="flex items-center gap-5 px-4">
+                    <FileText className="h-7 w-7 text-[#FFB86C]" />
+                    <h3 className="text-sm font-black text-[#1E2455] uppercase tracking-[0.4em]">Active Drafts & Polls</h3>
+                </div>
+                <div className="flex flex-col gap-5">
                     {polls.length > 0 ? (
-                        polls.map((poll, idx) => {
+                        polls.map((poll) => {
                             const isScheduled = poll.status === 'scheduled';
                             const isLiveOrExpired = isScheduled && (poll.scheduledAt || 0) <= Date.now();
                             const canEdit = !isLiveOrExpired && poll.status !== 'completed';
 
                             return (
-                                <div key={poll.pollId} className="group bg-card p-4 rounded-2xl border border-slate-800 shadow-sm hover:shadow-lg transition-all flex items-center justify-between hover:border-warning/30">
-                                    <div className="flex items-center gap-6">
-                                        <div className="w-12 h-12 bg-warning/10 border border-warning/20 rounded-xl flex items-center justify-center shrink-0">
-                                            <Clock className="h-6 w-6 text-warning" />
+                                <div key={poll.pollId} className="group glass-card p-8 border-white/40 hover:border-white/70 hover:bg-white/40 hover:shadow-glass-hover transition-all duration-700 flex flex-wrap items-center justify-between relative overflow-hidden gap-8">
+                                    <div className="flex items-center gap-8 relative z-10">
+                                        <div className="w-16 h-16 bg-[#FFB86C]/10 border border-[#FFB86C]/20 rounded-[22px] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500 shadow-sm">
+                                            <Clock className="h-8 w-8 text-[#FFB86C]" />
                                         </div>
                                         <div>
-                                            <h4 className="text-base font-bold text-slate-50">{poll.questionSetName || 'Untitled Draft'}</h4>
-                                            <div className="flex items-center gap-3 text-xs font-bold text-slate-500 mt-0.5">
-                                                <span>{poll.numberOfQuestions} Questions</span>
-                                                <span className="w-1.5 h-1.5 bg-slate-800 rounded-full" />
-                                                <span className="text-warning uppercase text-[10px] tracking-widest">{poll.status}</span>
+                                            <h4 className="text-2xl font-black text-[#1E2455] uppercase tracking-tighter leading-none mb-3">{poll.questionSetName || 'Untitled Sequence'}</h4>
+                                            <div className="flex items-center gap-5 text-[10px] font-black text-[#7A80B8] uppercase tracking-widest">
+                                                <span className="bg-white/40 px-3 py-1.5 rounded-lg border border-white/60 shadow-sm">{poll.numberOfQuestions} Global Queries</span>
+                                                <span className="w-1.5 h-1.5 bg-[#7A80B8]/20 rounded-full" />
+                                                <span className="text-[#FFB86C] italic opacity-80 decoration-dotted underline underline-offset-4">{poll.status}</span>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-5 relative z-10">
                                         <Button
                                             variant="ghost"
                                             onClick={() => handleDeletePoll(poll.pollId)}
-                                            className="h-9 px-3 text-slate-500 hover:text-danger hover:bg-danger/5 font-bold text-[10px] uppercase tracking-widest rounded-xl transition-colors"
+                                            className="h-14 px-8 text-[#7A80B8] hover:text-[#FF6B8A] hover:bg-[#FF6B8A]/10 font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl transition-all border border-transparent hover:border-[#FF6B8A]/20"
                                             disabled={isLiveOrExpired}
                                         >
-                                            Discard
+                                            DISCARD
                                         </Button>
                                         <Button
                                             onClick={() => handleResumePoll(poll)}
-                                            className={cn("h-9 px-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all", canEdit ? "bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/15" : "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700")}
+                                            className={cn(
+                                                "h-14 px-10 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all shadow-xl",
+                                                canEdit ? "pastel-button-primary" : "bg-white/20 text-[#7A80B8]/40 border border-white/30 cursor-not-allowed"
+                                            )}
                                             disabled={!canEdit}
                                         >
-                                            {isScheduled ? 'View Details' : 'Resume'}
+                                            {isScheduled ? 'VIEW SPECS' : 'RESUME SYNC'}
                                         </Button>
                                     </div>
                                 </div>
                             );
                         })
                     ) : (
-                        <div className="text-center py-12 bg-slate-900/10 rounded-2xl border border-dashed border-slate-800 text-slate-500 font-bold uppercase tracking-widest text-[10px]">
-                            No active drafts found.
+                        <div className="py-24 glass-card border-white/40 border-dashed text-center">
+                            <p className="text-[#7A80B8] font-black text-[10px] uppercase tracking-[0.4em] opacity-60">No active fragments located in the draft repository.</p>
                         </div>
                     )}
                 </div>

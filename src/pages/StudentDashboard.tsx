@@ -72,7 +72,7 @@ const StudentDashboard = () => {
           <div className="absolute inset-0 bg-white/5 backdrop-blur-[2px] -z-10" />
 
           {!isMobile && (
-            <header className="flex justify-between items-center px-12 py-6 border-b border-white/30 bg-white/20 backdrop-blur-md shadow-glass flex-shrink-0 z-30">
+            <header className="flex justify-between items-center px-12 h-28 border-b border-white/30 bg-white/20 backdrop-blur-2xl shadow-xl flex-shrink-0 z-30">
               <div className="space-y-1">
                 <BackButton onClick={handleBack} className="text-[#7A80B8] hover:text-[#1E2455] transition-colors" />
                 <h1 className="text-4xl font-black text-[#1E2455] tracking-tighter uppercase leading-tight mt-2">Student Dashboard</h1>

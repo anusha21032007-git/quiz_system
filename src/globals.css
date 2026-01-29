@@ -71,17 +71,22 @@
     background: radial-gradient(circle at top left, #A7B7FF, #C6B4F7, #F2B7E8);
     background-attachment: fixed;
     min-height: 100vh;
-    @apply text-foreground font-['Poppins',sans-serif] selection:bg-primary/30;
+    @apply text-foreground font-poppins selection:bg-primary/30;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply text-[#1E2455] font-bold tracking-tight;
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-white/65 backdrop-blur-[12px] border border-white/35 rounded-[20px] shadow-[0_12px_30px_rgba(0,0,0,0.08)];
+    @apply bg-white/65 backdrop-blur-[12px] border border-white/35 rounded-[20px] shadow-glass;
   }
 
   .glass-input {
@@ -95,4 +100,49 @@
   .pastel-button-secondary {
     @apply bg-white/60 backdrop-blur-[8px] border border-[#6C8BFF]/30 text-[#6C8BFF] rounded-full font-bold hover:bg-white/80 transition-all;
   }
+
+  .mesh-background {
+    background: radial-gradient(at 0% 0%, hsla(227, 100%, 71%, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(308, 62%, 72%, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(160, 75%, 60%, 0.1) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(227, 100%, 71%, 0.1) 0px, transparent 50%);
+    background-size: 200% 200%;
+    animation: gradient-pulse 15s ease infinite;
+  }
+
+  .hero-glow {
+    @apply absolute w-[500px] h-[500px] rounded-full blur-[120px] opacity-20 mix-blend-screen pointer-events-none;
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+
+  50% {
+    transform: translateY(-20px) rotate(2deg);
+  }
+}
+
+@keyframes gradient-pulse {
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float 8s ease-in-out infinite 2s;
 }

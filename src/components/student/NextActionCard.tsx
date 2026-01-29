@@ -128,23 +128,23 @@ const NextActionCard = ({ studentName, averageScore, quizzes: propQuizzes }: Nex
   }, [quizzes, quizAttempts, studentName, averageScore]);
 
   return (
-    <Card className={cn("bg-card border-2 shadow-2xl relative overflow-hidden group rounded-[32px]", recommendation.color, recommendation.bg)}>
-      <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl transition-all" />
+    <Card className={cn("glass-card border-white/50 shadow-2xl relative overflow-hidden group hover:translate-y-[-5px] bg-white/40", recommendation.color === "border-primary/30" ? "border-[#6C8BFF]/40" : recommendation.color === "border-success/30" ? "border-[#4EE3B2]/40" : recommendation.color === "border-danger/30" ? "border-[#FF6B8A]/40" : "border-white/40")}>
+      <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl transition-all group-hover:bg-white/20" />
 
-      <CardHeader className="p-8 pb-4 relative z-10">
-        <CardTitle className="flex items-center gap-4 text-2xl font-black uppercase tracking-tight text-slate-50 relative">
-          <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center border shadow-xl", recommendation.color, recommendation.bg)}>
-            <recommendation.icon className={cn("h-6 w-6", recommendation.accent)} />
+      <CardHeader className="p-10 pb-6 relative z-10">
+        <CardTitle className="flex items-center gap-6 text-3xl font-black uppercase tracking-tighter text-[#1E2455] relative">
+          <div className={cn("w-16 h-16 rounded-[22px] flex items-center justify-center border shadow-xl bg-white/60", recommendation.accent === "text-primary" ? "text-[#6C8BFF] border-[#6C8BFF]/30" : recommendation.accent === "text-success" ? "text-[#4EE3B2] border-[#4EE3B2]/30" : recommendation.accent === "text-danger" ? "text-[#FF6B8A] border-[#FF6B8A]/30" : "text-[#7A80B8] border-white/60")}>
+            <recommendation.icon className="h-8 w-8" />
           </div>
           <span className="flex-grow">{recommendation.title}</span>
           {hasNewQuizzes && (
-            <span className="absolute -top-1 -right-2 flex h-4 w-4 rounded-full bg-danger shadow-lg ring-4 ring-slate-950 animate-bounce" />
+            <span className="absolute -top-1 -right-2 flex h-5 w-5 rounded-full bg-[#FF6B8A] shadow-lg ring-4 ring-white animate-bounce" />
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-8 pt-0 space-y-6 relative z-10">
-        <p className="text-xl font-bold text-slate-400 italic tracking-tight">{recommendation.message}</p>
-        <div className="pt-2">
+      <CardContent className="p-10 pt-0 space-y-8 relative z-10">
+        <p className="text-2xl font-black text-[#3A3F6B] opacity-70 italic tracking-tight leading-snug">{recommendation.message}</p>
+        <div className="pt-4">
           {recommendation.action}
         </div>
       </CardContent>
