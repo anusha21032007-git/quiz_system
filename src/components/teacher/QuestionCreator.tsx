@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { PlusCircle, Trash2, History, X, Settings2, Save, Send, CheckCircle2, Clock, Edit, GraduationCap, ArrowLeft, Calendar } from 'lucide-react';
+import { PlusCircle, Trash2, History, X, Settings2, Save, Send, CheckCircle2, Clock, Edit, GraduationCap, ArrowLeft, Calendar, Wand2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -599,414 +599,406 @@ const QuestionCreator = ({ onBack }: { onBack: () => void }) => {
   };
 
   return (
-    <div className="space-y-6">
-      {isSetupVisible ? (
-        <div className="bg-card rounded-xl shadow-lg shadow-blue-900/10 border border-border p-8 space-y-8 animate-in slide-in-from-top-4 duration-300 max-w-5xl mx-auto">
-          <div className="flex items-center gap-3 border-b border-border pb-4">
-            <Button variant="ghost" size="icon" onClick={onBack} className="mr-2">
-              <ArrowLeft className="h-6 w-6 text-muted-foreground" />
-            </Button>
-            <Settings2 className="h-6 w-6 text-primary" />
-            <h3 className="text-2xl font-bold text-foreground">Question Setup</h3>
-          </div>
+    <div className="space-y-8 font-inter pb-20 relative min-h-screen bg-slate-50/50">
 
-          <div className="grid gap-8">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <Label htmlFor="courseName" className="text-lg font-bold text-muted-foreground">Course Name</Label>
+      {/* Step 0: Quiz Configuration */}
+      {!isSetupVisible && (
+        <div className="max-w-3xl mx-auto pt-10 px-6 animate-in slide-in-from-top-4 duration-500">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="border-b border-slate-100 px-8 py-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-50 rounded-lg border border-blue-100">
+                  <Settings2 className="h-5 w-5 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-800">Quiz Configuration</h3>
+              </div>
+            </div>
+
+            <div className="p-8 space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="courseName" className="text-sm font-medium text-slate-700">Course</Label>
                 <Select value={courseName} onValueChange={setCourseName}>
                   <SelectTrigger
                     className={cn(
-                      "h-14 text-xl bg-background/50 focus:bg-accent/10 transition-all shadow-sm rounded-xl border-border focus:border-primary",
-                      showErrors && !courseName ? "border-destructive ring-destructive/20" : ""
+                      "h-10 text-sm font-normal border-slate-200 bg-white hover:bg-slate-50 transition-colors focus:ring-2 focus:ring-blue-100 focus:border-blue-400 rounded-md",
+                      !courseName && "text-slate-400"
                     )}
                   >
-                    <SelectValue placeholder="Select a course..." />
+                    <SelectValue placeholder="Select course..." />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border-border bg-popover text-popover-foreground shadow-xl">
+                  <SelectContent className="bg-white border-slate-200 shadow-md rounded-md">
                     {availableCourses.length > 0 ? (
                       availableCourses.map((course) => (
-                        <SelectItem key={course} value={course} className="text-lg py-3 rounded-lg focus:bg-accent focus:text-accent-foreground cursor-pointer">
+                        <SelectItem key={course} value={course} className="text-sm py-2">
                           {course}
                         </SelectItem>
                       ))
                     ) : (
-                      <div className="p-4 text-center">
-                        <p className="text-sm font-medium text-slate-500">No courses added yet.</p>
-                      </div>
+                      <div className="p-3 text-center text-sm text-slate-500 italic">No courses found.</div>
                     )}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-3">
-                <Label htmlFor="examName" className="text-lg font-bold text-muted-foreground">Exam Name</Label>
+              <div className="space-y-2">
+                <Label htmlFor="examName" className="text-sm font-medium text-slate-700">Quiz Title</Label>
                 <Input
                   id="examName"
-                  placeholder="e.g. Final Exam"
+                  placeholder="e.g. Mid-Term Assessment"
                   value={questionSetName}
                   onChange={(e) => setQuestionSetName(e.target.value)}
-                  className={`h-14 text-xl bg-background/50 focus:bg-accent/10 transition-all shadow-sm ${showErrors && (!questionSetName || !questionSetName.trim()) ? 'border-destructive ring-destructive/20' : 'border-border focus:border-primary'}`}
+                  className="h-10 text-sm font-normal border-slate-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 rounded-md placeholder:text-slate-400"
                 />
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="numQuestions" className="text-sm font-medium text-slate-700">Questions</Label>
+                  <Input
+                    id="numQuestions"
+                    type="number"
+                    min="1"
+                    value={numQuestions}
+                    onChange={(e) => setNumQuestions(e.target.value === '' ? '' : parseInt(e.target.value))}
+                    className="h-10 text-sm font-normal border-slate-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 rounded-md text-center"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="numOptions" className="text-sm font-medium text-slate-700">Options</Label>
+                  <Input
+                    id="numOptions"
+                    type="number"
+                    min="2"
+                    max="6"
+                    value={numOptions}
+                    onChange={(e) => setNumOptions(e.target.value === '' ? '' : parseInt(e.target.value))}
+                    className="h-10 text-sm font-normal border-slate-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 rounded-md text-center"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="passMark" className="text-sm font-medium text-slate-700">Pass Mark (%)</Label>
+                  <Input
+                    id="passMark"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={passMarkPercentage}
+                    onChange={(e) => setPassMarkPercentage(e.target.value === '' ? '' : parseInt(e.target.value))}
+                    className="h-10 text-sm font-normal border-slate-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 rounded-md text-center"
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="space-y-3">
-                <Label htmlFor="numQuestions" className="text-lg font-bold text-muted-foreground">Questions</Label>
-                <Input
-                  id="numQuestions"
-                  type="number"
-                  value={numQuestions}
-                  onChange={(e) => setNumQuestions(e.target.value === '' ? '' : parseInt(e.target.value))}
-                  className="h-14 text-xl bg-background/50 focus:bg-accent/10 transition-all shadow-sm border-border focus:border-primary"
-                />
-              </div>
-              <div className="space-y-3">
-                <Label htmlFor="numOptions" className="text-lg font-bold text-muted-foreground">Options</Label>
-                <Input
-                  id="numOptions"
-                  type="number"
-                  value={numOptions}
-                  onChange={(e) => setNumOptions(e.target.value === '' ? '' : parseInt(e.target.value))}
-                  className="h-14 text-xl bg-background/50 focus:bg-accent/10 transition-all shadow-sm border-border focus:border-primary"
-                />
-              </div>
-              <div className="space-y-3">
-                <Label htmlFor="passMark" className="text-lg font-bold text-muted-foreground">Pass %</Label>
-                <Input
-                  id="passMark"
-                  type="number"
-                  value={passMarkPercentage}
-                  onChange={(e) => setPassMarkPercentage(e.target.value === '' ? '' : parseInt(e.target.value))}
-                  className="h-14 text-xl bg-background/50 focus:bg-accent/10 transition-all shadow-sm border-border focus:border-primary"
-                />
-              </div>
+            <div className="bg-slate-50 px-8 py-4 border-t border-slate-100 flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => navigate('/teacher')} className="h-9 px-4 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-white rounded-md">Cancel</Button>
+              <Button onClick={handleProceed} className="h-9 px-6 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white shadow-sm rounded-md transition-all">
+                Continue
+              </Button>
             </div>
-          </div>
-
-          <div className="flex justify-end pt-6 border-t border-border gap-4">
-            <Button variant="ghost" onClick={() => navigate('/teacher')} className="px-6 h-12 font-bold text-muted-foreground hover:text-foreground">Cancel</Button>
-            <Button onClick={handleProceed} className="bg-primary hover:bg-primary/90 text-primary-foreground px-10 h-14 rounded-xl font-black text-lg shadow-lg shadow-primary/25">Proceed to Draft</Button>
           </div>
         </div>
-      ) : step === 1 ? (
-        <Card className="shadow-lg border-border bg-card">
-          <CardHeader className="border-b border-border bg-card/50 rounded-t-lg">
-            <CardTitle className="flex items-center gap-2 text-2xl font-bold text-foreground">
-              <Button variant="ghost" size="icon" onClick={onBack} className="mr-2 -ml-2">
-                <ArrowLeft className="h-6 w-6 text-muted-foreground" />
-              </Button>
-              <PlusCircle className="h-6 w-6 text-primary" />
-              Question Creator
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 space-y-8">
-            <Button onClick={handleStartNew} className="w-full bg-success hover:bg-success/90 text-white h-16 rounded-xl shadow-md flex items-center justify-center gap-3 text-xl font-bold">
-              <PlusCircle className="h-6 w-6" /> + New Question
-            </Button>
+      )}
 
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold flex items-center gap-2 text-muted-foreground"><History className="h-5 w-5" /> Question History</h3>
-              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                {polls.filter(p => p.status !== 'completed').map(poll => (
-                  <div key={poll.pollId} className="group flex items-center p-4 bg-muted/10 rounded-xl border border-transparent hover:border-primary/50 hover:bg-muted/20 transition-all text-sm">
-                    <div className="w-1/3 flex items-center gap-3">
-                      <div className={`h-1.5 w-1.5 rounded-full ${poll.status === 'pending' ? 'bg-violet-400' : poll.status === 'scheduled' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-                      <span className="font-bold text-gray-800 truncate">{poll.questionSetName || `ID: ${poll.pollId.slice(-6)}`}</span>
-                    </div>
-                    <div className="w-1/3 text-center font-bold text-gray-600">{poll.numberOfQuestions} Questions</div>
-                    <div className="w-1/3 flex justify-end items-center gap-4">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditPoll(poll)}
-                        disabled={poll.status === 'scheduled' && (poll.scheduledAt || 0) <= Date.now()}
-                        className={cn("h-8 px-2 font-bold",
-                          (poll.status === 'scheduled' && (poll.scheduledAt || 0) <= Date.now())
-                            ? "text-gray-300 cursor-not-allowed"
-                            : poll.status === 'completed' ? "text-emerald-600 hover:text-emerald-700" : "text-blue-600"
-                        )}
-                      >
-                        {poll.status === 'completed' ? 'Reuse' : 'Edit'}
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeletePoll(poll.pollId)} className="h-7 px-2 text-red-600">Delete</Button>
-                      <span className={cn(
-                        "text-[11px] font-black uppercase tracking-wider",
-                        poll.status === 'completed' ? "text-emerald-500" : "text-violet-600"
-                      )}>{poll.status}</span>
-                    </div>
+      {/* Step 1: Quiz Dashboard (Drafts) */}
+      {isSetupVisible && step === 1 && (
+        <div className="max-w-4xl mx-auto pt-10 px-6 animate-in fade-in zoom-in-95 duration-500">
+          <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+            <div className="border-b border-slate-100 px-8 py-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Button variant="ghost" size="icon" onClick={onBack} className="h-9 w-9 -ml-2 mr-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100">
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                  <div className="p-2 bg-blue-50 rounded-lg border border-blue-100">
+                    <PlusCircle className="h-5 w-5 text-blue-600" />
                   </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="shadow-lg border-border bg-card overflow-hidden">
-          <CardHeader className="border-b border-border bg-card/50 rounded-t-lg">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-2xl font-bold text-foreground">
-                <Button variant="ghost" size="icon" onClick={onBack} className="mr-2 -ml-2">
-                  <ArrowLeft className="h-6 w-6 text-muted-foreground" />
-                </Button>
-                <PlusCircle className="h-6 w-6 text-primary" />
-                Drafting: {questionSetName || 'Untitled Quiz'}
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4 bg-primary/10 p-4 rounded-xl border border-primary/20">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg shadow-md shadow-primary/25">
-                  {currentQuestionIndex + 1}
-                </div>
-                <div>
-                  <h4 className="font-bold text-foreground">Question {currentQuestionIndex + 1} of {draftQuestions.length}</h4>
-                  <p className="text-xs text-muted-foreground font-medium">Fill in the details for this question.</p>
+                  <h3 className="text-lg font-semibold text-slate-800">Quiz Dashboard</h3>
                 </div>
               </div>
-
             </div>
 
-            <div className="space-y-12 max-h-[60vh] overflow-y-auto pr-4 p-1">
-              {draftQuestions[currentQuestionIndex] && (
-                <Card className="relative overflow-hidden border-2 border-border hover:border-primary/50 transition-colors shadow-sm animate-in fade-in slide-in-from-right-4 duration-300 bg-card" key={currentQuestionIndex}>
-                  <CardContent className="p-6 space-y-6">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-muted-foreground">Question Text</Label>
-                      <Textarea
-                        value={draftQuestions[currentQuestionIndex].questionText}
-                        onChange={(e) => handleUpdateQuestion(currentQuestionIndex, 'questionText', e.target.value)}
-                        className="min-h-[100px] bg-background/50 border-input text-lg focus:ring-primary/20"
-                        placeholder="Type your question here..."
-                      />
+            <div className="p-8 space-y-8">
+              <Button onClick={handleStartNew} className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-sm transition-all flex items-center justify-center gap-2 group">
+                <PlusCircle className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                Create New Quiz
+              </Button>
+
+              <div className="space-y-4">
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2 px-1">
+                  <History className="h-3 w-3 text-slate-400" />
+                  Recent Drafts
+                </h3>
+                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+                  {polls.filter(p => p.status !== 'completed').map(poll => (
+                    <div key={poll.pollId} className="group flex items-center justify-between p-4 bg-white border border-slate-200 hover:border-blue-300 rounded-lg shadow-sm transition-all hover:bg-blue-50/50">
+                      <div className="w-1/3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">Draft ID</span>
+                          <span className="text-[10px] font-mono text-slate-400">#{poll.pollId.slice(0, 8)}</span>
+                        </div>
+                        <span className="font-medium text-slate-800 text-sm truncate group-hover:text-blue-600 transition-colors">{poll.questionSetName || `Untitled Draft`}</span>
+                      </div>
+                      <div className="w-1/3 text-center">
+                        <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200">
+                          {poll.numberOfQuestions} Questions
+                        </span>
+                      </div>
+                      <div className="w-1/3 flex justify-end items-center gap-2">
+                        <Button size="sm" variant="outline" onClick={() => handleEditPoll(poll)} className="h-8 text-xs font-medium border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all">
+                          Resume
+                        </Button>
+                        <Button size="icon" variant="ghost" onClick={() => handleDeletePoll(poll.pollId)} className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-all">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label className="text-sm font-bold text-muted-foreground">Marks</Label>
+                  ))}
+                  {polls.filter(p => p.status !== 'completed').length === 0 && (
+                    <div className="py-12 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                      <History className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+                      <h3 className="text-sm font-medium text-slate-700 mb-1">No Drafts</h3>
+                      <p className="text-slate-500 text-xs">You don't have any saved quiz drafts.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Step 2: Question Editor */}
+      {isSetupVisible && step === 2 && (
+        <div className="max-w-6xl mx-auto pt-10 px-6 animate-in fade-in slide-in-from-right-8 duration-500">
+          <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+
+            {/* Sidebar / Question Index */}
+            <div className="w-full md:w-64 bg-slate-50 border-r border-slate-200 p-6 flex flex-col">
+              <div className="mb-6">
+                <Button variant="ghost" size="sm" onClick={() => setStep(1)} className="text-slate-500 hover:text-slate-800 -ml-2 mb-4">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back
+                </Button>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Questions</h4>
+                  <span className="text-[10px] font-mono text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100">{currentQuestionIndex + 1} / {draftQuestions.length}</span>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200">
+                <div className="grid grid-cols-4 gap-2">
+                  {draftQuestions.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentQuestionIndex(i)}
+                      className={cn(
+                        "h-10 rounded-md text-sm font-medium transition-all border",
+                        currentQuestionIndex === i
+                          ? "bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-100 ring-offset-1"
+                          : "bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-600"
+                      )}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-6 mt-6 border-t border-slate-200 space-y-3">
+                <Button onClick={handleSaveDraft} variant="outline" className="w-full justify-start text-xs border-slate-200 text-slate-600 hover:text-blue-600 hover:bg-blue-50">
+                  <Save className="h-3.5 w-3.5 mr-2" />
+                  Save Draft
+                </Button>
+                <Button onClick={handleSaveAndExit} variant="outline" className="w-full justify-start text-xs border-slate-200 text-slate-600 hover:text-slate-900">
+                  <LogOut className="h-3.5 w-3.5 mr-2" />
+                  Save & Exit
+                </Button>
+              </div>
+            </div>
+
+            {/* Main Editor Area */}
+            <div className="flex-1 p-8 md:p-10 bg-white relative">
+              {draftQuestions[currentQuestionIndex] && (
+                <div className="max-w-3xl mx-auto space-y-8">
+
+                  {/* Question Text */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium text-slate-700">Question Text</Label>
+                      {draftQuestions[currentQuestionIndex].questionText && (
+                        <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" /> Saved
+                        </span>
+                      )}
+                    </div>
+                    <Textarea
+                      value={draftQuestions[currentQuestionIndex].questionText}
+                      onChange={(e) => handleUpdateQuestion(currentQuestionIndex, 'questionText', e.target.value)}
+                      className="min-h-[120px] text-base resize-y border-slate-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 rounded-lg p-4"
+                      placeholder="Type your question here..."
+                    />
+                  </div>
+
+                  {/* Settings Grid */}
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-slate-700">Marks</Label>
+                      <div className="relative">
                         <Input
                           type="number"
                           value={draftQuestions[currentQuestionIndex].marks}
                           onChange={(e) => handleUpdateQuestion(currentQuestionIndex, 'marks', e.target.value)}
-                          className="font-bold text-primary h-11 bg-background/50 border-input"
+                          className="pl-9 border-slate-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-center font-medium"
                         />
+                        <LayoutList className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-bold text-muted-foreground">Time (mins)</Label>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-slate-700">Time Limit (Min)</Label>
+                      <div className="relative">
                         <Input
                           type="number"
                           step="any"
                           value={draftQuestions[currentQuestionIndex].timeLimitMinutes}
                           onChange={(e) => handleUpdateQuestion(currentQuestionIndex, 'timeLimitMinutes', e.target.value)}
-                          className="font-bold text-primary h-11 bg-background/50 border-input"
+                          className="pl-9 border-slate-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-center font-medium"
                         />
+                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       </div>
                     </div>
-                    <div className="space-y-4">
-                      <Label className="text-sm font-bold text-muted-foreground">Options & Correct Answer</Label>
-                      <div className="bg-muted/30 p-4 rounded-xl border border-border">
-                        <RadioGroup
-                          value={draftQuestions[currentQuestionIndex].correctAnswer}
-                          onValueChange={(val) => handleUpdateQuestion(currentQuestionIndex, 'correctAnswer', val)}
-                          className="grid gap-3"
-                        >
-                          {draftQuestions[currentQuestionIndex].options.map((opt, oIndex) => (
-                            <div key={oIndex} className="flex gap-3 items-center group">
-                              <RadioGroupItem
+                  </div>
+
+                  {/* Options */}
+                  <div className="space-y-3 pt-2">
+                    <Label className="text-sm font-medium text-slate-700">Options & Correct Answer</Label>
+                    <div className="bg-slate-50/50 rounded-xl border border-slate-200 p-6 space-y-4">
+                      <RadioGroup
+                        value={draftQuestions[currentQuestionIndex].correctAnswer}
+                        onValueChange={(val) => handleUpdateQuestion(currentQuestionIndex, 'correctAnswer', val)}
+                        className="space-y-3"
+                      >
+                        {draftQuestions[currentQuestionIndex].options.map((opt, oIndex) => (
+                          <div key={oIndex} className="flex gap-3 items-center group/opt">
+                            <RadioGroupItem
+                              value={opt}
+                              id={`q-${currentQuestionIndex}-opt-${oIndex}`}
+                              className="border-slate-300 text-blue-600 focus:ring-blue-500"
+                              disabled={!opt.trim()}
+                            />
+                            <div className="flex-1 relative">
+                              <Input
+                                placeholder={`Option ${oIndex + 1}`}
                                 value={opt}
-                                id={`q-${currentQuestionIndex}-opt-${oIndex}`}
-                                className="border-2 border-slate-300 text-blue-600"
-                                disabled={!opt.trim()}
-                              />
-                              <div className="flex-1 relative">
-                                <Input
-                                  placeholder={`Option ${oIndex + 1}`}
-                                  value={opt}
-                                  onChange={(e) => handleOptionChange(currentQuestionIndex, oIndex, e.target.value)}
-                                  className="flex-1 bg-white border-slate-200 focus:border-blue-500 h-11"
-                                />
-                                {opt.trim() === draftQuestions[currentQuestionIndex].correctAnswer && opt.trim() !== '' && (
-                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full tracking-wider">
-                                    Correct Answer
-                                  </span>
+                                onChange={(e) => handleOptionChange(currentQuestionIndex, oIndex, e.target.value)}
+                                className={cn(
+                                  "h-10 text-sm border-slate-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all",
+                                  opt.trim() === draftQuestions[currentQuestionIndex].correctAnswer && opt.trim() !== '' ? "bg-emerald-50 border-emerald-200 text-emerald-900" : "bg-white"
                                 )}
-                              </div>
+                              />
                             </div>
-                          ))}
-                        </RadioGroup>
-                      </div>
-                      <p className="text-xs text-slate-400 italic">
-                        * Select the radio button next to an option to mark it as the correct answer.
+                          </div>
+                        ))}
+                      </RadioGroup>
+                      <p className="text-xs text-slate-400 italic flex items-center gap-1.5">
+                        <Info className="h-3.5 w-3.5" />
+                        Select the radio button to mark the correct answer.
                       </p>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
+                  </div>
 
-              <div className="flex justify-between items-center pt-4 pb-2 px-1">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
-                  disabled={currentQuestionIndex === 0}
-                  className="h-10 px-6 font-bold border-gray-300 hover:bg-gray-50"
-                  type="button"
-                >
-                  Previous Question
-                </Button>
-                <Button
-                  onClick={() => setCurrentQuestionIndex(prev => Math.min(draftQuestions.length - 1, prev + 1))}
-                  disabled={currentQuestionIndex === draftQuestions.length - 1}
-                  className="h-10 px-8 bg-blue-600 text-white hover:bg-blue-700 font-bold shadow-md rounded-lg"
-                  type="button"
-                >
-                  Next Question
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-6 p-6 bg-muted/20 border-t border-border rounded-b-lg">
-            <div className="w-full flex items-center justify-between p-4 bg-card rounded-xl border border-border shadow-sm">
-              <div className="flex items-center gap-3">
-                <Calendar className="h-5 w-5 text-primary" />
-                <span className="font-bold text-foreground">Scheduling Options (Optional)</span>
-              </div>
-              <Button variant={showSchedule ? "default" : "outline"} size="sm" onClick={() => setShowSchedule(!showSchedule)}>
-                {showSchedule ? "Hide Schedule" : "Set Schedule"}
-              </Button>
-            </div>
+                  {/* Navigation Footer */}
+                  <div className="flex items-center justify-between pt-6 border-t border-slate-100">
+                    <Button
+                      variant="ghost"
+                      onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                      disabled={currentQuestionIndex === 0}
+                      className="text-slate-500 hover:text-slate-800"
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Previous
+                    </Button>
 
-            {showSchedule && (
-              <div className="w-full p-4 bg-primary/10 rounded-xl border border-primary/20 space-y-4 animate-in slide-in-from-top-2 duration-200">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-bold text-muted-foreground flex items-center gap-2"><Calendar className="h-4 w-4" /> Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full justify-start text-left font-normal h-10 border-input bg-background px-3",
-                            !scheduledDate && "text-muted-foreground"
-                          )}
-                        >
-                          <Calendar className="mr-2 h-4 w-4" />
-                          {scheduledDate ? format(new Date(scheduledDate), "PPP") : <span>Pick a date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <ShadcnCalendar
-                          mode="single"
-                          selected={scheduledDate ? new Date(scheduledDate) : undefined}
-                          onSelect={(date) => {
-                            if (date) {
-                              setScheduledDate(format(date, "yyyy-MM-dd"));
-                            }
-                          }}
-                          initialFocus
-                          disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    {currentQuestionIndex === draftQuestions.length - 1 ? (
+                      <Button onClick={handleDirectCreateQuiz} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm px-8">
+                        Finish & Create
+                        <CheckCircle2 className="h-4 w-4 ml-2" />
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => setCurrentQuestionIndex(prev => Math.min(draftQuestions.length - 1, prev + 1))}
+                        className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-blue-600 shadow-sm"
+                      >
+                        Next
+                        <ArrowLeft className="h-4 w-4 ml-2 rotate-180" />
+                      </Button>
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-bold text-muted-foreground flex items-center gap-2"><Clock className="h-4 w-4" /> Start Time</Label>
-                    <div className="relative">
-                      <Input
-                        type="time"
-                        value={scheduledTime}
-                        onChange={(e) => setScheduledTime(e.target.value)}
-                        className="h-10 border-input bg-background pr-10 appearance-none"
-                      />
-                      <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-bold text-muted-foreground flex items-center gap-2"><Clock className="h-4 w-4" /> End Time</Label>
-                    <div className="relative">
-                      <Input
-                        type="time"
-                        value={scheduledEndTime}
-                        onChange={(e) => setScheduledEndTime(e.target.value)}
-                        className="h-10 border-input bg-background pr-10 appearance-none"
-                      />
-                      <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                    </div>
-                  </div>
+
                 </div>
-                <Button onClick={handleAddToPool} variant="outline" className="w-full border-primary/50 text-primary font-bold h-10 flex items-center justify-center gap-2 hover:bg-primary/10">
-                  <Calendar className="h-4 w-4" /> Schedule Quiz
-                </Button>
-              </div>
-            )}
-
-            <div className="flex gap-4 w-full">
-              <Button variant="outline" onClick={() => setStep(1)} className="px-8 h-12 font-bold hover:bg-muted/50">Back</Button>
-              <Button variant="outline" onClick={handleSaveAndExit} className="flex-1 h-12 font-bold border-primary/50 text-primary hover:bg-primary/10">Save Draft</Button>
-              <Button onClick={handleDirectCreateQuiz} className="flex-1 h-12 font-black bg-success hover:bg-success/90 text-white rounded-2xl shadow-lg shadow-success/20">
-                <CheckCircle2 className="h-5 w-5 mr-2" /> Create Quiz Now
-              </Button>
-            </div>
-          </CardFooter>
-        </Card>
-      )}
-
-      <Dialog open={showSetupModal} onOpenChange={setShowSetupModal}>
-        <DialogContent className="sm:max-w-[500px] rounded-2xl border-primary/20 shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold flex items-center gap-2 text-primary">
-              <Settings2 className="h-6 w-6" /> Final Quiz Setup
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground text-lg">
-              Please provide the mandatory details before finalizing your quiz.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-6 py-6">
-            <div className="space-y-2">
-              <Label htmlFor="modalCourseName" className="text-sm font-bold text-muted-foreground">Course Name</Label>
-              <Select value={courseName || ""} onValueChange={setCourseName}>
-                <SelectTrigger id="modalCourseName" className="h-12 text-lg rounded-xl border-border focus:ring-primary/20">
-                  <SelectValue placeholder="Select a course..." />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-border shadow-xl">
-                  {availableCourses.map((course) => (
-                    <SelectItem key={course} value={course} className="text-lg py-2 cursor-pointer">
-                      {course}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="modalExamName" className="text-sm font-bold text-muted-foreground">Exam Paper Name</Label>
-              <Input
-                id="modalExamName"
-                placeholder="e.g. Unit 1 Quiz"
-                value={questionSetName}
-                onChange={(e) => setQuestionSetName(e.target.value)}
-                className="h-12 text-lg rounded-xl border-border focus:ring-primary/20"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="modalPassMark" className="text-sm font-bold text-muted-foreground">Pass Percentage (%)</Label>
-              <Input
-                id="modalPassMark"
-                type="number"
-                min="0"
-                max="100"
-                placeholder="e.g. 50"
-                value={passMarkPercentage}
-                onChange={(e) => setPassMarkPercentage(e.target.value === '' ? '' : parseInt(e.target.value))}
-                className="h-12 text-lg rounded-xl border-border focus:ring-primary/20"
-              />
+              )}
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSetupModal(false)} className="h-12 px-6 font-bold rounded-xl">
-              Cancel
+        </div>
+      )}
+
+      {/* Final Setup Modal */}
+      <Dialog open={showSetupModal} onOpenChange={setShowSetupModal}>
+        <DialogContent className="sm:max-w-lg bg-white border border-slate-200 shadow-xl rounded-xl p-0 overflow-hidden">
+          <DialogHeader className="px-6 py-6 border-b border-slate-100 bg-slate-50/50">
+            <DialogTitle className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-blue-600" />
+              Confirm Creation
+            </DialogTitle>
+            <DialogDescription className="text-sm text-slate-500">
+              Review your quiz details before final submission.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-6 space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-slate-700">Course</Label>
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-md text-sm text-slate-700 font-medium">
+                {courseName || "Not Selected"}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-slate-700">Quiz Title</Label>
+              <Input
+                value={questionSetName}
+                onChange={(e) => setQuestionSetName(e.target.value)}
+                className="h-10 text-sm border-slate-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-slate-700">Pass Mark (%)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={passMarkPercentage}
+                  onChange={(e) => setPassMarkPercentage(e.target.value === '' ? '' : parseInt(e.target.value))}
+                  className="h-10 text-sm border-slate-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-slate-700">Questions</Label>
+                <div className="h-10 flex items-center px-3 bg-slate-50 border border-slate-200 rounded-md text-sm text-slate-700">
+                  {draftQuestions.length}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3">
+            <Button variant="outline" onClick={() => setShowSetupModal(false)} className="flex-1 border-slate-200 hover:bg-white hover:text-slate-800">
+              Back
             </Button>
-            <Button onClick={handleFinalSubmit} className="h-12 px-10 font-black bg-primary text-primary-foreground rounded-xl shadow-lg shadow-primary/20">
-              Save & Finalize
+            <Button onClick={handleFinalSubmit} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+              Confirm & Create
             </Button>
           </DialogFooter>
         </DialogContent>

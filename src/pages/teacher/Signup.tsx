@@ -36,7 +36,7 @@ const TeacherSignup = () => {
       setLoading(false);
     } else {
       toast.success('Registration successful! Please check your email.');
-      navigate('/teacher/login');
+      navigate('/login');
     }
   };
 
@@ -111,7 +111,7 @@ const TeacherSignup = () => {
               {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null} Create Account
             </Button>
             <p className="text-sm text-center text-slate-500 font-bold uppercase tracking-widest text-[10px]">
-              Already have an account? <Link to="/teacher/login" className="text-primary font-black hover:underline ml-1">Login</Link>
+              Already have an account? <Link to="/login" className="text-primary font-black hover:underline ml-1">Login</Link>
             </p>
           </CardFooter>
         </form>

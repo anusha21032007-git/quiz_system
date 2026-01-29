@@ -13,6 +13,7 @@ import {
 import { useSubmitAttempt, useAllAttempts, SupabaseQuizAttempt } from '@/integrations/supabase/attempts';
 import { supabase } from '@/integrations/supabase/client';
 import { aiService, AIQuestionResponse } from '@/services/aiService';
+import { useAuth } from '@/context/AuthContext';
 
 // --- Type Definitions ---
 
@@ -134,11 +135,15 @@ const mapSupabaseQuizToLocal = (sQuiz: SupabaseQuiz): Quiz => ({
 
 export const QuizProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient();
-  const { data: supabaseQuizzes = [], isLoading: isQuizzesLoading } = useQuizzes();
+  const { user, role } = useAuth();
+  const teacherId = role === 'teacher' ? user?.id : undefined;
+  const storageId = user?.id || 'global';
+
+  const { data: supabaseQuizzes = [], isLoading: isQuizzesLoading } = useQuizzes(teacherId);
   const createQuizMutation = useCreateQuiz();
 
-  // Cloud Sync: Fetch all attempts
-  const { data: supabaseAttempts = [] } = useAllAttempts();
+  // Cloud Sync: Fetch attempts (filtered by teacher ownership if teacher)
+  const { data: supabaseAttempts = [] } = useAllAttempts(teacherId);
   const submitAttemptMutation = useSubmitAttempt();
 
   const [localData, setLocalData] = useState<{
@@ -149,22 +154,35 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     users: ManagedUser[];
   }>(() => {
     try {
-      const stored = localStorage.getItem('ALL_QUIZZES');
+      const stored = localStorage.getItem(`ALL_QUIZZES_${storageId}`);
+      const storedCourses = localStorage.getItem(`COURSES_DATA_${storageId}`);
+
+      let initialCourses: string[] = [];
+      let parsedLegacy: any = {};
+
       if (stored) {
-        const parsed = JSON.parse(stored);
-        const sanitizedQuizzes = (parsed.quizzes || []).map((q: any) => ({
-          ...q,
-          questions: q.questions || []
-        }));
-        return {
-          quizzes: sanitizedQuizzes,
-          questions: parsed.questions || [],
-          attempts: parsed.attempts || [], // Keep loading local attempts for now as fallback
-          courses: parsed.courses || [],
-          users: parsed.users || [],
-        };
+        parsedLegacy = JSON.parse(stored);
       }
-      return { quizzes: [], questions: [], attempts: [], courses: [], users: [] };
+
+      if (storedCourses) {
+        initialCourses = JSON.parse(storedCourses);
+      } else {
+        // Fallback to legacy
+        initialCourses = parsedLegacy.courses || [];
+      }
+
+      const sanitizedQuizzes = (parsedLegacy.quizzes || []).map((q: any) => ({
+        ...q,
+        questions: q.questions || []
+      }));
+
+      return {
+        quizzes: sanitizedQuizzes,
+        questions: parsedLegacy.questions || [],
+        attempts: parsedLegacy.attempts || [],
+        courses: initialCourses,
+        users: parsedLegacy.users || [],
+      };
     } catch (error) {
       console.error("Failed to load global quiz data", error);
       return { quizzes: [], questions: [], attempts: [], courses: [], users: [] };
@@ -251,13 +269,13 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
   const quizzes = useMemo(() => [...supabaseQuizzes.map(mapSupabaseQuizToLocal), ...localQuizzes], [supabaseQuizzes, localQuizzes]);
 
   const [hasNewQuizzes, setHasNewQuizzes] = useState<boolean>(() => {
-    return localStorage.getItem('NEW_QUIZ_AVAILABLE') === 'true';
+    return localStorage.getItem(`NEW_QUIZ_AVAILABLE_${storageId}`) === 'true';
   });
 
   const markQuizzesAsSeen = useCallback(() => {
     setHasNewQuizzes(false);
-    localStorage.setItem('NEW_QUIZ_AVAILABLE', 'false');
-  }, []);
+    localStorage.setItem(`NEW_QUIZ_AVAILABLE_${storageId}`, 'false');
+  }, [storageId]);
 
   const availableCourses = manualCourses;
 
@@ -266,14 +284,19 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
       quizzes: localQuizzes,
       questions: localQuestionPool,
       attempts: localQuizAttempts,
-      courses: manualCourses,
+      courses: manualCourses, // Keeping for backward compatibility/redundancy
       users: managedUsers,
     };
-    localStorage.setItem('ALL_QUIZZES', JSON.stringify(dataToSave));
-  }, [localQuizzes, localQuestionPool, localQuizAttempts, manualCourses, managedUsers]);
+    localStorage.setItem(`ALL_QUIZZES_${storageId}`, JSON.stringify(dataToSave));
+  }, [localQuizzes, localQuestionPool, localQuizAttempts, manualCourses, managedUsers, storageId]);
+
+  // Dedicated persistence for courses
+  useEffect(() => {
+    localStorage.setItem(`COURSES_DATA_${storageId}`, JSON.stringify(manualCourses));
+  }, [manualCourses, storageId]);
 
   const logToHistory = (quiz: Quiz, action: 'Published' | 'Deleted') => {
-    const historyJson = localStorage.getItem('questionActionHistory');
+    const historyJson = localStorage.getItem(`questionActionHistory_${storageId}`);
     const history = historyJson ? JSON.parse(historyJson) : [];
     const newEntry = {
       questionSetId: quiz.quizId,
@@ -282,7 +305,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
       action: action,
       timestamp: Date.now()
     };
-    localStorage.setItem('questionActionHistory', JSON.stringify([newEntry, ...history]));
+    localStorage.setItem(`questionActionHistory_${storageId}`, JSON.stringify([newEntry, ...history]));
   };
 
   const addQuestion = (question: Omit<Question, 'id'>) => {
@@ -349,11 +372,11 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     addCourse(quiz.courseName);
     logToHistory(newLocalQuiz, 'Published');
 
-    localStorage.setItem('NEW_QUIZ_AVAILABLE', 'true');
+    localStorage.setItem(`NEW_QUIZ_AVAILABLE_${storageId}`, 'true');
     setHasNewQuizzes(true);
 
     window.dispatchEvent(new StorageEvent('storage', {
-      key: 'NEW_QUIZ_AVAILABLE',
+      key: `NEW_QUIZ_AVAILABLE_${storageId}`,
       newValue: 'true'
     }));
 
@@ -455,7 +478,7 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
     if (localQuestions.length > 0) return localQuestions;
 
     try {
-      const stored = localStorage.getItem('ALL_QUIZZES');
+      const stored = localStorage.getItem(`ALL_QUIZZES_${storageId}`);
       if (stored) {
         const parsed = JSON.parse(stored);
         const questions = parsed.questions || [];

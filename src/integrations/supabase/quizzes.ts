@@ -39,17 +39,24 @@ export interface SupabaseQuiz {
 
 // --- Fetching Hooks ---
 
-// Fetch all quizzes (used by Student Dashboard)
-export const useQuizzes = () => {
+// Fetch all quizzes (used by Student Dashboard or Teacher Dashboard)
+export const useQuizzes = (teacherId?: string) => {
   return useQuery<SupabaseQuiz[], Error>({
-    queryKey: ["quizzes"],
+    queryKey: ["quizzes", teacherId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("quizzes")
         .select("*")
-        .eq("status", "published") // FILTER: Only fetch published quizzes
         .order("scheduled_date", { ascending: true })
         .order("start_time", { ascending: true });
+
+      if (teacherId) {
+        query = query.eq("teacher_id", teacherId);
+      } else {
+        query = query.eq("status", "published"); // Default for students: only published
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error("Error fetching quizzes:", error);

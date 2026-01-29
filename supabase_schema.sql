@@ -3,7 +3,7 @@
 -- 1. Profiles Table
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL PRIMARY KEY,
-  role TEXT CHECK (role IN ('teacher', 'student')) DEFAULT 'student',
+  role TEXT CHECK (role IN ('teacher', 'student', 'admin')) DEFAULT 'student',
   full_name TEXT,
   department TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW()) NOT NULL
@@ -93,22 +93,25 @@ GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon;
 
 -- RLS Policies
 
--- Profiles: Users can read their own profile, teachers can read all profiles
+-- Profiles: Users can read their own profile, teachers can read all profiles, admins can manage all
 CREATE POLICY "Users can read own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Teachers can read all profiles" ON public.profiles FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'teacher')
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND (role = 'teacher' OR role = 'admin'))
 );
 CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Admins can manage all profiles" ON public.profiles FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
 
--- Students: Teachers can manage students, students can read their own record
-CREATE POLICY "Teachers can manage students" ON public.students FOR ALL USING (
-  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'teacher')
+-- Students: Only the teacher who enrolled the student or the student themselves can read/manage
+CREATE POLICY "Teachers can manage own students" ON public.students FOR ALL USING (
+  auth.uid() = teacher_id
 );
 CREATE POLICY "Students can read own record" ON public.students FOR SELECT USING (
   auth.uid() = auth_user_id
 );
 
--- Quizzes: Everyone can read published quizzes, teachers can manage their own
+-- Quizzes: Everyone can read published quizzes, but teachers only manage their OWN
 CREATE POLICY "Everyone can read published quizzes" ON public.quizzes FOR SELECT USING (status = 'published');
 CREATE POLICY "Teachers can manage own quizzes" ON public.quizzes FOR ALL USING (
   auth.uid() = teacher_id
@@ -122,10 +125,35 @@ CREATE POLICY "Teachers can manage own questions" ON public.questions FOR ALL US
   auth.uid() = teacher_id
 );
 
--- Quiz Attempts: Students can manage their own attempts, teachers can read all
+-- Quiz Attempts: Students manage own attempts, teachers only read attempts for THEIR quizzes
 CREATE POLICY "Students can manage own attempts" ON public.quiz_attempts FOR ALL USING (
   auth.uid() = student_id
 );
-CREATE POLICY "Teachers can read all attempts" ON public.quiz_attempts FOR SELECT USING (
-  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'teacher')
+CREATE POLICY "Teachers can read attempts for own quizzes" ON public.quiz_attempts FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.quizzes WHERE id = quiz_id AND teacher_id = auth.uid())
+);
+
+-- 6. Student Requests Table (for enrollment/access requests)
+CREATE TABLE IF NOT EXISTS public.student_requests (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  year TEXT,
+  department TEXT,
+  status TEXT CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW()) NOT NULL
+);
+
+-- RLS for Student Requests
+ALTER TABLE public.student_requests ENABLE ROW LEVEL SECURITY;
+
+-- Policies for Student Requests
+-- Allow public insert (for students requesting access)
+CREATE POLICY "Public can create requests" ON public.student_requests FOR INSERT WITH CHECK (true);
+
+-- Teachers/Admins can view and manage requests
+CREATE POLICY "Teachers can view requests" ON public.student_requests FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND (role = 'teacher' OR role = 'admin'))
+);
+CREATE POLICY "Teachers can update requests" ON public.student_requests FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND (role = 'teacher' OR role = 'admin'))
 );

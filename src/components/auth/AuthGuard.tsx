@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react';
 
 interface AuthGuardProps {
   children: React.ReactNode;
-  allowedRole?: 'teacher' | 'student';
+  allowedRole?: 'teacher' | 'student' | 'admin';
 }
 
 const AuthGuard = ({ children, allowedRole }: AuthGuardProps) => {
@@ -17,9 +17,12 @@ const AuthGuard = ({ children, allowedRole }: AuthGuardProps) => {
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        navigate(allowedRole === 'teacher' ? '/teacher/login' : '/student/login');
+        navigate('/login');
       } else if (allowedRole && role !== allowedRole) {
-        navigate(role === 'teacher' ? '/teacher' : '/student');
+        // Redirection based on actual role if trying to access unauthorized area
+        if (role === 'teacher') navigate('/teacher/dashboard');
+        else if (role === 'student') navigate('/student/dashboard');
+        else navigate('/');
       }
     }
   }, [user, role, loading, navigate, allowedRole]);

@@ -4,7 +4,9 @@ import React from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { User, Mail, Phone, Calendar } from 'lucide-react';
+import { User, Mail, Phone, Calendar, LogOut } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { Button } from '@/components/ui/button';
 
 interface StudentProfileHeaderProps {
   studentName: string;
@@ -27,65 +29,76 @@ const MOCK_STUDENT_DETAILS = {
 };
 
 const StudentProfileHeader = ({ studentName, registerNumber }: StudentProfileHeaderProps) => {
+  const { signOut } = useAuth();
+
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <div className="flex items-center gap-4 p-2.5 bg-slate-900/40 backdrop-blur-md rounded-2xl border border-slate-800 cursor-pointer hover:bg-slate-900/60 transition-all group shadow-inner">
+        <div className="flex items-center gap-4 p-2.5 bg-white/40 backdrop-blur-md rounded-[20px] border border-white/50 cursor-pointer hover:bg-white/60 transition-all group shadow-sm hover:shadow-md">
           <div className="text-right hidden sm:block">
-            <h3 className="text-sm font-black truncate text-slate-100 uppercase tracking-widest">{studentName || 'Student'}</h3>
-            <p className="text-[10px] text-slate-500 font-bold tracking-[0.1em]">REG: {registerNumber || 'N/A'}</p>
+            <h3 className="text-sm font-black truncate text-[#1E2455] uppercase tracking-tighter font-poppins">{studentName || 'Student'}</h3>
+            <p className="text-[10px] text-[#7A80B8] font-black tracking-[0.1em]">REG: {registerNumber || 'N/A'}</p>
           </div>
-          <Avatar className="h-10 w-10 border-2 border-primary/50 group-hover:border-primary transition-all shadow-lg shadow-primary/20 ring-2 ring-slate-950">
-            <AvatarFallback className="bg-primary text-white font-black text-sm uppercase">
+          <Avatar className="h-11 w-11 border-2 border-white/60 group-hover:scale-105 transition-all shadow-md">
+            <AvatarFallback className="bg-gradient-to-br from-[#6C8BFF] to-[#E38AD6] text-white font-black text-sm uppercase">
               {getInitials(studentName)}
             </AvatarFallback>
           </Avatar>
         </div>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-6 bg-card border border-slate-800 shadow-2xl rounded-[24px] relative z-50">
-        <div className="flex items-center space-x-4 border-b border-slate-800 pb-5">
-          <Avatar className="h-14 w-14 border-2 border-primary/30 ring-4 ring-slate-900/50">
-            <AvatarFallback className="bg-primary text-white font-black text-xl">
+      <PopoverContent className="w-80 p-0 glass-card border-white/50 overflow-hidden shadow-2xl z-50 mt-4" align="end" sideOffset={12}>
+        <div className="bg-gradient-to-r from-[#6C8BFF] to-[#E38AD6] p-8 text-center flex flex-col items-center">
+          <Avatar className="h-20 w-20 border-4 border-white/30 shadow-xl mb-4">
+            <AvatarFallback className="bg-white/20 backdrop-blur-xl text-white font-black text-3xl">
               {getInitials(studentName)}
             </AvatarFallback>
           </Avatar>
-          <div>
-            <h4 className="font-black text-lg text-slate-50 uppercase tracking-tighter leading-none mb-1">{studentName}</h4>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Register: {registerNumber}</p>
-          </div>
+          <h4 className="font-black text-xl text-white uppercase tracking-tighter leading-tight font-poppins">{studentName}</h4>
+          <p className="text-[10px] text-white/70 font-black uppercase tracking-widest mt-1">Register: {registerNumber}</p>
         </div>
 
-        <div className="space-y-4 pt-4 text-[11px] font-bold uppercase tracking-widest">
-          <div className="flex items-center gap-3 text-slate-400">
-            <div className="w-7 h-7 bg-slate-900 border border-slate-800 rounded-lg flex items-center justify-center">
-              <Mail className="h-3.5 w-3.5 text-primary" />
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-1 gap-4 text-[10px] font-black uppercase tracking-widest pl-1">
+            <div className="flex items-center gap-4 text-[#3A3F6B]">
+              <div className="w-9 h-9 bg-[#6C8BFF]/10 rounded-xl flex items-center justify-center border border-[#6C8BFF]/20 shadow-sm">
+                <Mail className="h-4 w-4 text-[#6C8BFF]" />
+              </div>
+              <span className="truncate">{MOCK_STUDENT_DETAILS.email}</span>
             </div>
-            <span>{MOCK_STUDENT_DETAILS.email}</span>
-          </div>
-          <div className="flex items-center gap-3 text-slate-400">
-            <div className="w-7 h-7 bg-slate-900 border border-slate-800 rounded-lg flex items-center justify-center">
-              <Phone className="h-3.5 w-3.5 text-primary" />
+            <div className="flex items-center gap-4 text-[#3A3F6B]">
+              <div className="w-9 h-9 bg-[#FFB86C]/10 rounded-xl flex items-center justify-center border border-[#FFB86C]/20 shadow-sm">
+                <Phone className="h-4 w-4 text-[#FFB86C]" />
+              </div>
+              <span>{MOCK_STUDENT_DETAILS.phone}</span>
             </div>
-            <span>{MOCK_STUDENT_DETAILS.phone}</span>
-          </div>
-          <div className="flex items-center gap-3 text-slate-400">
-            <div className="w-7 h-7 bg-slate-900 border border-slate-800 rounded-lg flex items-center justify-center">
-              <User className="h-3.5 w-3.5 text-primary" />
+            <div className="flex items-center gap-4 text-[#3A3F6B]">
+              <div className="w-9 h-9 bg-[#4EE3B2]/10 rounded-xl flex items-center justify-center border border-[#4EE3B2]/20 shadow-sm">
+                <User className="h-4 w-4 text-[#4EE3B2]" />
+              </div>
+              <span>{MOCK_STUDENT_DETAILS.department}</span>
             </div>
-            <span>{MOCK_STUDENT_DETAILS.department}</span>
-          </div>
-          <div className="flex items-center gap-3 text-slate-400">
-            <div className="w-7 h-7 bg-slate-900 border border-slate-800 rounded-lg flex items-center justify-center">
-              <Calendar className="h-3.5 w-3.5 text-primary" />
+            <div className="flex items-center gap-4 text-[#3A3F6B]">
+              <div className="w-9 h-9 bg-[#6C8BFF]/10 rounded-xl flex items-center justify-center border border-[#6C8BFF]/20 shadow-sm">
+                <Calendar className="h-4 w-4 text-[#6C8BFF]" />
+              </div>
+              <span>{MOCK_STUDENT_DETAILS.year}</span>
             </div>
-            <span>Year: {MOCK_STUDENT_DETAILS.year}</span>
           </div>
-        </div>
 
-        <div className="pt-6 border-t border-slate-800 mt-4">
-          <p className="text-[9px] text-slate-600 italic font-medium">
-            *Simulation environment access managed by Faculty.
-          </p>
+
+          <div className="pt-6 border-t border-[#7A80B8]/10 mt-2 flex flex-col gap-4">
+            <Button
+              variant="ghost"
+              onClick={() => signOut()}
+              className="w-full h-12 rounded-xl text-[#FF6B8A] hover:text-[#FF6B8A] hover:bg-[#FF6B8A]/10 font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 border border-transparent hover:border-[#FF6B8A]/20"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </Button>
+            <p className="text-[9px] text-[#7A80B8] italic font-bold opacity-60 text-center">
+              *Academic Profile managed by Faculty.
+            </p>
+          </div>
         </div>
       </PopoverContent>
     </Popover>

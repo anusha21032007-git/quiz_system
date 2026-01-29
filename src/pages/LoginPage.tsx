@@ -1,86 +1,173 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { GraduationCap, ArrowLeft, Loader2, Mail, Lock } from "lucide-react";
+import { GraduationCap, ArrowLeft, Loader2, Mail, Lock, User } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/AuthContext";
+import { cn } from "@/lib/utils";
 
 const LoginPage = () => {
-    const [email, setEmail] = useState("");
+    const [loginMode, setLoginMode] = useState<'student' | 'teacher'>('student');
+    const [identifier, setIdentifier] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const { user, role, loading: authLoading } = useAuth();
+
+    // No auto-redirect here to ensure the login page is ALWAYS visible when visited.
+    // This allows users to explicitly see the portal and switch accounts if needed.
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        // Handle student register number strategy if needed
+        let loginEmail = identifier.trim();
+        if (loginMode === 'student' && !loginEmail.includes('@')) {
+            loginEmail = `${loginEmail}@student.eduflow.com`;
+        }
+
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: loginEmail,
+            password: password
+        });
 
         if (error) {
             toast.error(error.message);
             setLoading(false);
-        } else {
-            // Check session to determine where to go or just go to a default
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                // Determine role from metadata or profile table if needed
-                // For now, let's just go to teacher which is common for email login
-                navigate("/teacher");
+        } else if (data.user) {
+            // Fetch profile manually to redirect immediately
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', data.user.id)
+                .single();
+
+            if (profile) {
+                if (profile.role === 'teacher') navigate("/teacher/dashboard");
+                else if (profile.role === 'student') {
+                    // Check if student is active
+                    const { data: student } = await supabase
+                        .from('students')
+                        .select('is_active')
+                        .eq('auth_user_id', data.user.id)
+                        .single();
+
+                    if (student && !student.is_active) {
+                        await supabase.auth.signOut();
+                        toast.error('Your account is inactive. Please contact your department.');
+                        setLoading(false);
+                        return;
+                    }
+                    navigate("/student/dashboard");
+                }
+            } else {
+                toast.error("Profile not found. Please contact support.");
+                setLoading(false);
             }
         }
     };
 
+    if (authLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-transparent">
+                <Loader2 className="h-12 w-12 animate-spin text-[#6C8BFF]" />
+            </div>
+        );
+    }
+
     return (
-        <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <div className="min-h-screen flex items-center justify-center bg-transparent p-6 font-poppins relative overflow-hidden">
+            {/* Background Decoration */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10">
+                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#6C8BFF]/10 rounded-full blur-[140px] opacity-20" />
+                <div className="absolute bottom-[10%] right-[-5%] w-[40%] h-[40%] bg-[#E38AD6]/10 rounded-full blur-[120px] opacity-20" />
+            </div>
+
             <div className="absolute top-8 left-8">
                 <Link to="/">
-                    <Button variant="ghost" className="gap-2 text-slate-400 hover:text-primary font-bold hover:bg-slate-800">
+                    <Button variant="ghost" className="gap-2 text-[#7A80B8] hover:text-[#6C8BFF] font-black hover:bg-white/20 rounded-xl transition-all uppercase tracking-widest text-[10px]">
                         <ArrowLeft className="h-4 w-4" /> Back to Home
                     </Button>
                 </Link>
             </div>
 
-            <Card className="w-full max-w-md border border-slate-800 bg-card shadow-2xl rounded-[32px] overflow-hidden">
-                <CardHeader className="pt-10 pb-6 text-center space-y-2">
-                    <div className="mx-auto w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 border border-primary/20 shadow-lg shadow-primary/5">
-                        <GraduationCap className="h-8 w-8 text-primary" />
+            <Card className="glass-card w-full max-w-lg border-white/40 overflow-hidden shadow-2xl rounded-[40px] animate-in zoom-in-95 duration-500">
+                <CardHeader className="pt-12 pb-6 text-center space-y-4">
+                    <div className="mx-auto w-20 h-20 bg-gradient-to-br from-[#6C8BFF] to-[#E38AD6] rounded-[28px] flex items-center justify-center mb-2 border border-white/30 shadow-lg transform rotate-3 hover:rotate-0 transition-transform duration-700">
+                        <GraduationCap className="h-10 w-10 text-white" />
                     </div>
-                    <CardTitle className="text-3xl font-black text-slate-50 tracking-tight">Sign In</CardTitle>
-                    <CardDescription className="text-slate-400 font-medium tracking-tight">
-                        Enter your credentials to access QUIZ MANAGEMENT SYSTEM
-                    </CardDescription>
+                    <div>
+                        <CardTitle className="text-4xl font-black text-[#1E2455] tracking-tighter uppercase leading-tight">Login</CardTitle>
+                        <CardDescription className="text-[#3A3F6B] font-bold opacity-70 tracking-tight text-md mt-2">
+                            Select your role to continue.
+                        </CardDescription>
+                    </div>
                 </CardHeader>
+
+                <div className="px-10 pb-8 mt-2">
+                    <div className="flex p-1.5 bg-white/40 backdrop-blur-md rounded-2xl border border-white/60 shadow-inner">
+                        <button
+                            type="button"
+                            onClick={() => setLoginMode('student')}
+                            className={cn(
+                                "flex-1 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500",
+                                loginMode === 'student'
+                                    ? "bg-white text-[#6C8BFF] shadow-lg scale-[1.02]"
+                                    : "text-[#7A80B8] hover:text-[#1E2455]"
+                            )}
+                        >
+                            STUDENT
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setLoginMode('teacher')}
+                            className={cn(
+                                "flex-1 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500",
+                                loginMode === 'teacher'
+                                    ? "bg-white text-[#E38AD6] shadow-lg scale-[1.02]"
+                                    : "text-[#7A80B8] hover:text-[#1E2455]"
+                            )}
+                        >
+                            FACULTY
+                        </button>
+                    </div>
+                </div>
+
                 <form onSubmit={handleLogin}>
-                    <CardContent className="space-y-4 px-8 pb-8">
-                        <div className="space-y-2">
-                            <Label htmlFor="email" className="text-slate-300 font-bold">Email</Label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                    <CardContent className="space-y-6 px-10 pb-8 animate-in fade-in slide-in-from-top-4 duration-500" key={loginMode}>
+
+
+                        <div className="space-y-3">
+                            <Label htmlFor="identifier" className="text-[#1E2455] font-black uppercase text-[10px] tracking-widest pl-1">
+                                {loginMode === 'student' ? 'Register Number' : 'Email Address'}
+                            </Label>
+                            <div className="relative group">
+                                <Mail className="absolute left-5 top-5 h-5 w-5 text-[#7A80B8] group-focus-within:text-[#6C8BFF] transition-colors" />
                                 <Input
-                                    id="email"
-                                    type="email"
-                                    placeholder="name@college.edu"
-                                    className="pl-10 h-11 bg-slate-900/50 border-slate-800 focus:bg-slate-900 focus:ring-primary/20 focus:border-primary text-slate-200 rounded-xl transition-all"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    id="identifier"
+                                    type="text"
+                                    placeholder={loginMode === 'student' ? "e.g. 2024CS001" : "faculty@institution.edu"}
+                                    className="glass-input pl-14 h-15 text-lg font-black text-[#1E2455] placeholder-[#7A80B8]/40"
+                                    value={identifier}
+                                    onChange={(e) => setIdentifier(e.target.value)}
                                     required
                                 />
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="password" className="text-slate-300 font-bold">Password</Label>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                        <div className="space-y-3">
+                            <Label htmlFor="password" className="text-[#1E2455] font-black uppercase text-[10px] tracking-widest pl-1">Password</Label>
+                            <div className="relative group">
+                                <Lock className="absolute left-5 top-5 h-5 w-5 text-[#7A80B8] group-focus-within:text-[#6C8BFF] transition-colors" />
                                 <Input
                                     id="password"
                                     type="password"
                                     placeholder="••••••••"
-                                    className="pl-10 h-11 bg-slate-900/50 border-slate-800 focus:bg-slate-900 focus:ring-primary/20 focus:border-primary text-slate-200 rounded-xl transition-all"
+                                    className="glass-input pl-14 h-15 text-lg font-black text-[#1E2455] placeholder-[#7A80B8]/40"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
@@ -88,13 +175,19 @@ const LoginPage = () => {
                             </div>
                         </div>
                     </CardContent>
-                    <CardFooter className="flex flex-col gap-6 px-8 pb-10">
-                        <Button type="submit" className="w-full h-12 bg-primary hover:bg-primary/90 text-white rounded-xl text-lg font-bold shadow-lg shadow-primary/20 transition-all duration-300" disabled={loading}>
-                            {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null} Sign In
+                    <CardFooter className="flex flex-col gap-8 px-10 pb-12">
+                        <Button type="submit" className={cn(
+                            "w-full h-16 text-xs font-black tracking-[0.3em] rounded-2xl shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]",
+                            loginMode === 'student' ? "pastel-button-primary" : "bg-gradient-to-r from-[#E38AD6] to-[#6C8BFF] text-white hover:opacity-90"
+                        )} disabled={loading}>
+                            {loading && <Loader2 className="h-6 w-6 animate-spin mr-3" />}
+                            {loginMode === 'student' ? 'LOGIN AS STUDENT' : 'LOGIN AS FACULTY'}
                         </Button>
-                        <p className="text-sm text-center text-slate-500 font-medium">
-                            Don't have an account? <Link to="/signup" className="text-primary font-bold hover:underline">Sign Up</Link>
-                        </p>
+                        <div className="flex flex-col gap-4 items-center">
+                            <Link to="/forgot-password" size="sm" className="text-[10px] text-[#7A80B8] hover:text-[#6C8BFF] font-black uppercase tracking-[0.3em] transition-colors">
+                                Forgot Password?
+                            </Link>
+                        </div>
                     </CardFooter>
                 </form>
             </Card>

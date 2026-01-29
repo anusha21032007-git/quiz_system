@@ -103,17 +103,22 @@ export const useQuizAttemptsForTeacher = (quizId: string) => {
     });
 };
 
-// Fetch ALL attempts (for global context/admin view)
-export const useAllAttempts = () => {
+// Fetch ALL attempts (optionally filtered by teacher ownership)
+export const useAllAttempts = (teacherId?: string) => {
     return useQuery({
-        queryKey: ['all-attempts'],
+        queryKey: ['all-attempts', teacherId],
         queryFn: async () => {
-            const { data, error } = await supabase
-                .from('quiz_attempts')
-                .select('*')
-                .order('created_at', { ascending: false });
+            // Note: RLS on Supabase will automatically filter quiz_attempts 
+            // so teachers only see attempts for their own quizzes.
+            // We only need the inner join if we explicitly want to filter by a specific teacherId (e.g. for admin-like views)
+            let query = supabase.from('quiz_attempts').select('*');
 
-            if (error) return [];
+            const { data, error } = await query.order('created_at', { ascending: false });
+
+            if (error) {
+                console.error("Error fetching filtered attempts:", error);
+                return [];
+            }
             return data as SupabaseQuizAttempt[];
         }
     });
