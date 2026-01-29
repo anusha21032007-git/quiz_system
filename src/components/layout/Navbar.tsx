@@ -33,19 +33,19 @@ const Navbar = () => {
             className={cn(
                 "fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b",
                 isScrolled
-                    ? "bg-background/80 backdrop-blur-md border-slate-800 shadow-lg py-3"
-                    : "bg-transparent border-transparent py-5"
+                    ? "bg-white/65 backdrop-blur-md border-white/30 shadow-glass py-2"
+                    : "bg-transparent border-transparent py-4"
             )}
         >
             <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
                 {/* Logo */}
                 <Link to="/" className="flex items-center gap-2 group">
-                    <div className="bg-primary rounded-xl p-2 text-white transition-transform group-hover:scale-110 shadow-lg shadow-primary/20">
+                    <div className="bg-gradient-to-br from-[#6C8BFF] to-[#E38AD6] rounded-xl p-2 text-white transition-transform group-hover:scale-110 shadow-lg shadow-primary/20">
                         <GraduationCap className="h-6 w-6" />
                     </div>
                     <div className="flex flex-col">
-                        <span className="font-extrabold text-lg text-slate-50 leading-tight uppercase tracking-tighter">QUIZ MANAGEMENT SYSTEM</span>
-                        <span className="text-[10px] text-primary font-bold tracking-widest uppercase">PREMIUM ACADEMIC PORTAL</span>
+                        <span className="font-extrabold text-lg text-[#1E2455] leading-tight uppercase tracking-tighter">QUIZ MANAGEMENT</span>
+                        <span className="text-[10px] text-primary font-bold tracking-widest uppercase">ACADEMIC PORTAL</span>
                     </div>
                 </Link>
 
@@ -57,8 +57,8 @@ const Navbar = () => {
                                 key={link.path}
                                 to={link.path}
                                 className={cn(
-                                    "text-sm font-medium transition-colors hover:text-primary",
-                                    isActive(link.path) ? "text-primary font-semibold" : "text-slate-400"
+                                    "text-sm font-semibold transition-all hover:text-primary hover:scale-105",
+                                    isActive(link.path) ? "text-primary pb-1 border-b-2 border-primary" : "text-[#7A80B8]"
                                 )}
                             >
                                 {link.label}
@@ -66,7 +66,7 @@ const Navbar = () => {
                         ))}
                     </div>
                     <Link to="/signup">
-                        <Button className="rounded-full px-6 font-semibold bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all">
+                        <Button className="pastel-button-primary px-8 h-10 shadow-glass">
                             Get Started
                         </Button>
                     </Link>

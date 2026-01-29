@@ -599,414 +599,554 @@ const QuestionCreator = ({ onBack }: { onBack: () => void }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 font-poppins pb-20 relative">
+      <div className="absolute top-[-5%] right-[-5%] w-[500px] h-[500px] bg-[#6C8BFF]/5 rounded-full blur-[100px] -z-10 animate-pulse" />
+      <div className="absolute bottom-[5%] left-[-5%] w-[400px] h-[400px] bg-[#E38AD6]/5 rounded-full blur-[80px] -z-10" />
+
       {isSetupVisible ? (
-        <div className="bg-card rounded-xl shadow-lg shadow-blue-900/10 border border-border p-8 space-y-8 animate-in slide-in-from-top-4 duration-300 max-w-5xl mx-auto">
-          <div className="flex items-center gap-3 border-b border-border pb-4">
-            <Button variant="ghost" size="icon" onClick={onBack} className="mr-2">
-              <ArrowLeft className="h-6 w-6 text-muted-foreground" />
+        <div className="glass-card p-12 space-y-10 animate-in slide-in-from-top-6 duration-700 max-w-5xl mx-auto border-white/60 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-[#6C8BFF]/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-[#6C8BFF]/10 transition-all duration-1000" />
+
+          <div className="flex items-center gap-5 border-b border-white/40 pb-8 relative z-10">
+            <Button variant="ghost" size="icon" onClick={onBack} className="mr-2 h-14 w-14 rounded-2xl hover:bg-white/40 border border-transparent hover:border-white/60 transition-all">
+              <ArrowLeft className="h-7 w-7 text-[#7A80B8]" />
             </Button>
-            <Settings2 className="h-6 w-6 text-primary" />
-            <h3 className="text-2xl font-bold text-foreground">Question Setup</h3>
+            <div className="p-3 bg-[#6C8BFF]/10 rounded-2xl">
+              <Settings2 className="h-7 w-7 text-[#6C8BFF]" />
+            </div>
+            <h3 className="text-3xl font-black text-[#1E2455] uppercase tracking-tighter">Question Setup</h3>
           </div>
 
-          <div className="grid gap-8">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <Label htmlFor="courseName" className="text-lg font-bold text-muted-foreground">Course Name</Label>
+          <div className="grid gap-10 relative z-10">
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <Label htmlFor="courseName" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">DISCIPLINARY DOMAIN</Label>
                 <Select value={courseName} onValueChange={setCourseName}>
                   <SelectTrigger
                     className={cn(
-                      "h-14 text-xl bg-background/50 focus:bg-accent/10 transition-all shadow-sm rounded-xl border-border focus:border-primary",
-                      showErrors && !courseName ? "border-destructive ring-destructive/20" : ""
+                      "glass-input h-16 text-xl font-black text-[#1E2455]",
+                      showErrors && !courseName ? "border-[#FF6B8A]/60 ring-[#FF6B8A]/10" : "border-white/60"
                     )}
                   >
                     <SelectValue placeholder="Select a course..." />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border-border bg-popover text-popover-foreground shadow-xl">
+                  <SelectContent className="glass-card bg-white/40 backdrop-blur-xl border-white/60 shadow-2xl rounded-[24px]">
                     {availableCourses.length > 0 ? (
                       availableCourses.map((course) => (
-                        <SelectItem key={course} value={course} className="text-lg py-3 rounded-lg focus:bg-accent focus:text-accent-foreground cursor-pointer">
+                        <SelectItem key={course} value={course} className="text-base py-4 px-6 rounded-xl focus:bg-[#6C8BFF]/10 focus:text-[#6C8BFF] cursor-pointer font-black uppercase tracking-tight">
                           {course}
                         </SelectItem>
                       ))
                     ) : (
-                      <div className="p-4 text-center">
-                        <p className="text-sm font-medium text-slate-500">No courses added yet.</p>
+                      <div className="p-6 text-center">
+                        <p className="text-sm font-black text-[#7A80B8] uppercase tracking-widest italic opacity-60">No academic domains indexed.</p>
                       </div>
                     )}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-3">
-                <Label htmlFor="examName" className="text-lg font-bold text-muted-foreground">Exam Name</Label>
+              <div className="space-y-4">
+                <Label htmlFor="examName" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">SIMULATION DESIGNATION</Label>
                 <Input
                   id="examName"
-                  placeholder="e.g. Final Exam"
+                  placeholder="e.g. Final Assessment"
                   value={questionSetName}
                   onChange={(e) => setQuestionSetName(e.target.value)}
-                  className={`h-14 text-xl bg-background/50 focus:bg-accent/10 transition-all shadow-sm ${showErrors && (!questionSetName || !questionSetName.trim()) ? 'border-destructive ring-destructive/20' : 'border-border focus:border-primary'}`}
+                  className={cn(
+                    "glass-input h-16 text-xl font-black text-[#1E2455] placeholder-[#7A80B8]/40",
+                    showErrors && (!questionSetName || !questionSetName.trim()) ? 'border-[#FF6B8A]/60 ring-[#FF6B8A]/10' : 'border-white/60'
+                  )}
                 />
               </div>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="space-y-3">
-                <Label htmlFor="numQuestions" className="text-lg font-bold text-muted-foreground">Questions</Label>
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="space-y-4">
+                <Label htmlFor="numQuestions" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">QUERY COUNT</Label>
                 <Input
                   id="numQuestions"
                   type="number"
                   value={numQuestions}
                   onChange={(e) => setNumQuestions(e.target.value === '' ? '' : parseInt(e.target.value))}
-                  className="h-14 text-xl bg-background/50 focus:bg-accent/10 transition-all shadow-sm border-border focus:border-primary"
+                  className="glass-input h-16 text-xl font-black text-[#1E2455]"
                 />
               </div>
-              <div className="space-y-3">
-                <Label htmlFor="numOptions" className="text-lg font-bold text-muted-foreground">Options</Label>
+              <div className="space-y-4">
+                <Label htmlFor="numOptions" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">OPTION MULTIPLICITY</Label>
                 <Input
                   id="numOptions"
                   type="number"
                   value={numOptions}
                   onChange={(e) => setNumOptions(e.target.value === '' ? '' : parseInt(e.target.value))}
-                  className="h-14 text-xl bg-background/50 focus:bg-accent/10 transition-all shadow-sm border-border focus:border-primary"
+                  className="glass-input h-16 text-xl font-black text-[#1E2455]"
                 />
               </div>
-              <div className="space-y-3">
-                <Label htmlFor="passMark" className="text-lg font-bold text-muted-foreground">Pass %</Label>
+              <div className="space-y-4">
+                <Label htmlFor="passMark" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">PROFICIENCY THRESHOLD (%)</Label>
                 <Input
                   id="passMark"
                   type="number"
                   value={passMarkPercentage}
                   onChange={(e) => setPassMarkPercentage(e.target.value === '' ? '' : parseInt(e.target.value))}
-                  className="h-14 text-xl bg-background/50 focus:bg-accent/10 transition-all shadow-sm border-border focus:border-primary"
+                  className="glass-input h-16 text-xl font-black text-[#1E2455]"
                 />
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end pt-6 border-t border-border gap-4">
-            <Button variant="ghost" onClick={() => navigate('/teacher')} className="px-6 h-12 font-bold text-muted-foreground hover:text-foreground">Cancel</Button>
-            <Button onClick={handleProceed} className="bg-primary hover:bg-primary/90 text-primary-foreground px-10 h-14 rounded-xl font-black text-lg shadow-lg shadow-primary/25">Proceed to Draft</Button>
+          <div className="flex justify-end pt-10 border-t border-white/40 gap-6 relative z-10">
+            <Button variant="ghost" onClick={() => navigate('/teacher')} className="h-16 px-10 font-black text-[#7A80B8] uppercase tracking-[0.2em] text-[10px] rounded-2xl hover:bg-[#6C8BFF]/5">Cancel</Button>
+            <Button onClick={handleProceed} className="pastel-button-primary h-16 px-12 text-[10px] tracking-[0.2em]">
+              PROCEED TO SYNTHESIS
+            </Button>
           </div>
         </div>
       ) : step === 1 ? (
-        <Card className="shadow-lg border-border bg-card">
-          <CardHeader className="border-b border-border bg-card/50 rounded-t-lg">
-            <CardTitle className="flex items-center gap-2 text-2xl font-bold text-foreground">
-              <Button variant="ghost" size="icon" onClick={onBack} className="mr-2 -ml-2">
-                <ArrowLeft className="h-6 w-6 text-muted-foreground" />
+        <div className="glass-card shadow-lg border-white/60 bg-white/40 backdrop-blur-xl rounded-[48px] overflow-hidden max-w-4xl mx-auto">
+          <div className="border-b border-white/60 bg-white/40 px-10 py-8">
+            <div className="flex items-center gap-5">
+              <Button variant="ghost" size="icon" onClick={onBack} className="mr-2 h-12 w-12 rounded-2xl hover:bg-white/60 border border-transparent hover:border-white/60 transition-all">
+                <ArrowLeft className="h-6 w-6 text-[#7A80B8]" />
               </Button>
-              <PlusCircle className="h-6 w-6 text-primary" />
-              Question Creator
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 space-y-8">
-            <Button onClick={handleStartNew} className="w-full bg-success hover:bg-success/90 text-white h-16 rounded-xl shadow-md flex items-center justify-center gap-3 text-xl font-bold">
-              <PlusCircle className="h-6 w-6" /> + New Question
+              <div className="p-3 bg-[#6C8BFF]/10 rounded-2xl">
+                <PlusCircle className="h-7 w-7 text-[#6C8BFF]" />
+              </div>
+              <h3 className="text-3xl font-black text-[#1E2455] uppercase tracking-tighter">Manual Synthesis Hub</h3>
+            </div>
+          </div>
+          <div className="p-10 space-y-10">
+            <Button onClick={handleStartNew} className="pastel-button-primary w-full h-20 rounded-[28px] text-[12px] tracking-[0.3em] group shadow-xl hover:shadow-glass-hover">
+              <div className="p-2 bg-white/20 rounded-xl mr-5 group-hover:rotate-90 transition-transform duration-500">
+                <PlusCircle className="h-7 w-7" />
+              </div>
+              INITIALIZE NEW SEQUENCE
             </Button>
 
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold flex items-center gap-2 text-muted-foreground"><History className="h-5 w-5" /> Question History</h3>
-              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+            <div className="space-y-6">
+              <h3 className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] flex items-center gap-4 px-2">
+                <History className="h-5 w-5 text-[#6C8BFF]" />
+                Temporal Fragments <span className="opacity-40 italic">/ Draft History</span>
+              </h3>
+              <div className="space-y-4 max-h-[500px] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-white/60 scrollbar-track-transparent">
                 {polls.filter(p => p.status !== 'completed').map(poll => (
-                  <div key={poll.pollId} className="group flex items-center p-4 bg-muted/10 rounded-xl border border-transparent hover:border-primary/50 hover:bg-muted/20 transition-all text-sm">
-                    <div className="w-1/3 flex items-center gap-3">
-                      <div className={`h-1.5 w-1.5 rounded-full ${poll.status === 'pending' ? 'bg-violet-400' : poll.status === 'scheduled' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-                      <span className="font-bold text-gray-800 truncate">{poll.questionSetName || `ID: ${poll.pollId.slice(-6)}`}</span>
+                  <div key={poll.pollId} className="group flex items-center p-6 glass-card border-white/40 hover:border-white/70 hover:bg-white/40 hover:shadow-glass-hover transition-all duration-700 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-white/5 to-transparent translate-x-full group-hover:translate-x-0 transition-transform duration-1000" />
+
+                    <div className="w-1/3 flex items-center gap-6 relative z-10">
+                      <div className={cn("h-3 w-3 rounded-full animate-pulse shadow-sm", poll.status === 'pending' ? 'bg-[#6C8BFF]' : poll.status === 'scheduled' ? 'bg-[#FFB86C]' : 'bg-[#4EE3B2]')} />
+                      <span className="font-black text-[#1E2455] uppercase tracking-tight truncate text-lg group-hover:text-[#6C8BFF] transition-colors">{poll.questionSetName || `ID: ${poll.pollId.slice(-6)}`}</span>
                     </div>
-                    <div className="w-1/3 text-center font-bold text-gray-600">{poll.numberOfQuestions} Questions</div>
-                    <div className="w-1/3 flex justify-end items-center gap-4">
+                    <div className="w-1/3 text-center relative z-10">
+                      <span className="text-[10px] font-black text-[#7A80B8] uppercase tracking-widest bg-white/40 px-4 py-2 rounded-xl border border-white/60 group-hover:border-[#6C8BFF]/30 transition-all">
+                        {poll.numberOfQuestions} QUERIES
+                      </span>
+                    </div>
+                    <div className="w-1/3 flex justify-end items-center gap-6 relative z-10">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleEditPoll(poll)}
                         disabled={poll.status === 'scheduled' && (poll.scheduledAt || 0) <= Date.now()}
-                        className={cn("h-8 px-2 font-bold",
+                        className={cn("h-10 px-5 font-black text-[10px] uppercase tracking-widest rounded-xl transition-all border border-transparent hover:border-white/60",
                           (poll.status === 'scheduled' && (poll.scheduledAt || 0) <= Date.now())
-                            ? "text-gray-300 cursor-not-allowed"
-                            : poll.status === 'completed' ? "text-emerald-600 hover:text-emerald-700" : "text-blue-600"
+                            ? "text-[#7A80B8]/40 cursor-not-allowed"
+                            : "text-[#6C8BFF] hover:bg-[#6C8BFF]/5"
                         )}
                       >
-                        {poll.status === 'completed' ? 'Reuse' : 'Edit'}
+                        {poll.status === 'completed' ? 'CLONE' : 'RESUME'}
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeletePoll(poll.pollId)} className="h-7 px-2 text-red-600">Delete</Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDeletePoll(poll.pollId)} className="h-10 w-10 text-[#FF6B8A] hover:bg-[#FF6B8A]/5 hover:text-[#FF6B8A] rounded-xl border border-transparent hover:border-[#FF6B8A]/20 transition-all">
+                        <Trash2 className="h-5 w-5" />
+                      </Button>
                       <span className={cn(
-                        "text-[11px] font-black uppercase tracking-wider",
-                        poll.status === 'completed' ? "text-emerald-500" : "text-violet-600"
+                        "text-[9px] font-black uppercase tracking-[0.3em] px-4 py-1.5 rounded-full shadow-sm min-w-[100px] text-center",
+                        poll.status === 'completed' ? "bg-[#4EE3B2]/10 text-[#4EE3B2] border border-[#4EE3B2]/20" : "bg-[#6C8BFF]/10 text-[#6C8BFF] border border-[#6C8BFF]/20"
                       )}>{poll.status}</span>
                     </div>
                   </div>
                 ))}
+                {polls.filter(p => p.status !== 'completed').length === 0 && (
+                  <div className="py-24 text-center glass-card border-dashed border-white/40 relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(108,139,255,0.02)_0%,transparent_70%)] opacity-50 group-hover:opacity-100 transition-opacity" />
+                    <History className="h-16 w-16 text-[#7A80B8] mx-auto mb-6 opacity-40 group-hover:scale-110 group-hover:rotate-12 transition-all duration-700" />
+                    <h3 className="text-2xl font-black text-[#1E2455] uppercase tracking-tighter mb-4">Archive Vacant</h3>
+                    <p className="text-[#3A3F6B] font-bold italic opacity-60 tracking-tight text-lg max-w-xs mx-auto">No draft fragments currently indexed in the temporal buffer.</p>
+                  </div>
+                )}
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : (
-        <Card className="shadow-lg border-border bg-card overflow-hidden">
-          <CardHeader className="border-b border-border bg-card/50 rounded-t-lg">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-2xl font-bold text-foreground">
-                <Button variant="ghost" size="icon" onClick={onBack} className="mr-2 -ml-2">
-                  <ArrowLeft className="h-6 w-6 text-muted-foreground" />
+        <div className="glass-card shadow-2xl border-white/60 bg-white/40 backdrop-blur-xl rounded-[48px] overflow-hidden animate-in fade-in zoom-in-95 duration-700 relative">
+          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[#6C8BFF]/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl animate-pulse" />
+
+          <div className="border-b border-white/60 bg-white/40 px-10 py-10 relative z-10">
+            <div className="flex items-center justify-between gap-10">
+              <div className="flex items-center gap-6">
+                <Button variant="ghost" size="icon" onClick={() => setStep(1)} className="mr-2 h-14 w-14 rounded-2xl hover:bg-white/60 border border-transparent hover:border-white/60 transition-all">
+                  <ArrowLeft className="h-7 w-7 text-[#7A80B8]" />
                 </Button>
-                <PlusCircle className="h-6 w-6 text-primary" />
-                Drafting: {questionSetName || 'Untitled Quiz'}
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4 bg-primary/10 p-4 rounded-xl border border-primary/20">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg shadow-md shadow-primary/25">
-                  {currentQuestionIndex + 1}
-                </div>
                 <div>
-                  <h4 className="font-bold text-foreground">Question {currentQuestionIndex + 1} of {draftQuestions.length}</h4>
-                  <p className="text-xs text-muted-foreground font-medium">Fill in the details for this question.</p>
+                  <h3 className="text-4xl lg:text-5xl font-black text-[#1E2455] uppercase tracking-tighter leading-none mb-3">
+                    Manual Synthesis Engine
+                  </h3>
+                  <div className="flex items-center gap-4">
+                    <span className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] opacity-60 italic">Fragment /</span>
+                    <span className="text-[10px] font-black text-[#6C8BFF] uppercase tracking-[0.4em]">{questionSetName || 'UNTITLED SEQUENCE'}</span>
+                  </div>
                 </div>
               </div>
-
+              <div className="flex items-center gap-5">
+                <Button onClick={handleSaveDraft} variant="ghost" className="h-16 px-10 flex items-center gap-4 text-[#7A80B8] hover:text-[#6C8BFF] font-black uppercase tracking-[0.2em] text-[10px] rounded-2xl border border-white hover:border-[#6C8BFF]/30 hover:bg-[#6C8BFF]/5 transition-all group">
+                  <Save className="h-6 w-6 group-hover:scale-110 transition-all" />
+                  BUFFER DRAFT
+                </Button>
+                <div className="h-16 px-8 bg-white/60 border border-white rounded-[24px] flex items-center gap-6 shadow-sm">
+                  <div className="text-[10px] font-black text-[#7A80B8] uppercase tracking-widest flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-[#6C8BFF]" />
+                    AUTO-SAVE: <span className="text-[#6C8BFF]">ACTIVE</span>
+                  </div>
+                </div>
+              </div>
             </div>
+          </div>
 
-            <div className="space-y-12 max-h-[60vh] overflow-y-auto pr-4 p-1">
-              {draftQuestions[currentQuestionIndex] && (
-                <Card className="relative overflow-hidden border-2 border-border hover:border-primary/50 transition-colors shadow-sm animate-in fade-in slide-in-from-right-4 duration-300 bg-card" key={currentQuestionIndex}>
-                  <CardContent className="p-6 space-y-6">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-muted-foreground">Question Text</Label>
-                      <Textarea
-                        value={draftQuestions[currentQuestionIndex].questionText}
-                        onChange={(e) => handleUpdateQuestion(currentQuestionIndex, 'questionText', e.target.value)}
-                        className="min-h-[100px] bg-background/50 border-input text-lg focus:ring-primary/20"
-                        placeholder="Type your question here..."
-                      />
+          <div className="p-12 relative z-10">
+            <div className="flex flex-col lg:flex-row gap-12">
+              {/* Question Selector Rail */}
+              <div className="w-full lg:w-80 shrink-0 space-y-6">
+                <div className="flex items-center justify-between px-2">
+                  <h4 className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em]">Query Index</h4>
+                  <span className="text-[10px] font-black text-[#6C8BFF] bg-[#6C8BFF]/10 px-3 py-1 rounded-lg border border-[#6C8BFF]/20 italic">{currentQuestionIndex + 1} OF {draftQuestions.length}</span>
+                </div>
+                <div className="grid grid-cols-5 lg:grid-cols-4 gap-3">
+                  {draftQuestions.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentQuestionIndex(i)}
+                      className={cn(
+                        "h-14 lg:h-16 rounded-[18px] font-black text-lg transition-all duration-500 shadow-sm border",
+                        currentQuestionIndex === i
+                          ? "bg-gradient-to-br from-[#6C8BFF] to-[#E38AD6] text-white border-transparent scale-110 shadow-lg shadow-[#6C8BFF]/25 z-10"
+                          : "bg-white/60 text-[#7A80B8] border-white/60 hover:bg-[#6C8BFF]/5 hover:text-[#6C8BFF] hover:border-[#6C8BFF]/30"
+                      )}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+                <Button variant="outline" onClick={handleSaveAndExit} className="w-full h-16 rounded-[22px] border-white/60 text-[#7A80B8] hover:text-[#1E2455] hover:bg-white/40 font-black uppercase tracking-[0.3em] text-[10px] transition-all duration-700 mt-10 shadow-sm">
+                  SAVE & EXIT ARCHIVE
+                </Button>
+              </div>
+
+              {/* Editor Space */}
+              <div className="flex-1 space-y-10 animate-in fade-in slide-in-from-right-10 duration-700" key={currentQuestionIndex}>
+                {draftQuestions[currentQuestionIndex] && (
+                  <div className="space-y-10">
+                    <div className="glass-card p-10 border-white/60 bg-white/40 shadow-xl relative overflow-hidden group">
+                      <div className="absolute top-0 left-0 w-2 h-full bg-[#6C8BFF]" />
+                      <div className="space-y-6 relative z-10">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.5em] pl-1">Primary Query Text</Label>
+                          <div className="flex items-center gap-4 text-[#7A80B8] opacity-60">
+                            <Edit className="h-4 w-4" />
+                            <span className="text-[9px] font-black uppercase tracking-widest italic pt-0.5">Edit Mode Active</span>
+                          </div>
+                        </div>
+                        <Textarea
+                          value={draftQuestions[currentQuestionIndex].questionText}
+                          onChange={(e) => handleUpdateQuestion(currentQuestionIndex, 'questionText', e.target.value)}
+                          className="min-h-[160px] glass-input text-2xl font-black text-[#1E2455] placeholder-[#7A80B8]/40 p-8 leading-relaxed focus:bg-white/80"
+                          placeholder="Type your academic inquiry here..."
+                        />
+                      </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label className="text-sm font-bold text-muted-foreground">Marks</Label>
+
+                    <div className="grid md:grid-cols-2 gap-10">
+                      <div className="glass-card p-8 border-white/60 bg-white/40 shadow-sm space-y-6 group hover:bg-white/60 transition-all duration-700">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2.5 bg-[#6C8BFF]/10 rounded-xl group-hover:bg-[#6C8BFF]/20 transition-all border border-[#6C8BFF]/10 group-hover:rotate-12">
+                            <GraduationCap className="h-6 w-6 text-[#6C8BFF]" />
+                          </div>
+                          <Label className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em]">Valuation (Marks)</Label>
+                        </div>
                         <Input
                           type="number"
                           value={draftQuestions[currentQuestionIndex].marks}
                           onChange={(e) => handleUpdateQuestion(currentQuestionIndex, 'marks', e.target.value)}
-                          className="font-bold text-primary h-11 bg-background/50 border-input"
+                          className="glass-input h-14 text-2xl font-black text-[#6C8BFF] focus:bg-white text-center"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-bold text-muted-foreground">Time (mins)</Label>
+                      <div className="glass-card p-8 border-white/60 bg-white/40 shadow-sm space-y-6 group hover:bg-white/60 transition-all duration-700">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2.5 bg-[#FFB86C]/10 rounded-xl group-hover:bg-[#FFB86C]/20 transition-all border border-[#FFB86C]/10 group-hover:rotate-[360deg] duration-1000">
+                            <Clock className="h-6 w-6 text-[#FFB86C]" />
+                          </div>
+                          <Label className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em]">Temporal Window (Mins)</Label>
+                        </div>
                         <Input
                           type="number"
                           step="any"
                           value={draftQuestions[currentQuestionIndex].timeLimitMinutes}
                           onChange={(e) => handleUpdateQuestion(currentQuestionIndex, 'timeLimitMinutes', e.target.value)}
-                          className="font-bold text-primary h-11 bg-background/50 border-input"
+                          className="glass-input h-14 text-2xl font-black text-[#FFB86C] focus:bg-white text-center"
                         />
                       </div>
                     </div>
-                    <div className="space-y-4">
-                      <Label className="text-sm font-bold text-muted-foreground">Options & Correct Answer</Label>
-                      <div className="bg-muted/30 p-4 rounded-xl border border-border">
+
+                    <div className="space-y-6">
+                      <Label className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.5em] pl-1 block">Option Multiplicity / Correct Validation</Label>
+                      <div className="glass-card p-10 border-white/60 bg-white/40 shadow-sm relative overflow-hidden group">
                         <RadioGroup
                           value={draftQuestions[currentQuestionIndex].correctAnswer}
                           onValueChange={(val) => handleUpdateQuestion(currentQuestionIndex, 'correctAnswer', val)}
-                          className="grid gap-3"
+                          className="grid gap-6"
                         >
                           {draftQuestions[currentQuestionIndex].options.map((opt, oIndex) => (
-                            <div key={oIndex} className="flex gap-3 items-center group">
+                            <div key={oIndex} className="flex gap-6 items-center group/opt">
                               <RadioGroupItem
                                 value={opt}
                                 id={`q-${currentQuestionIndex}-opt-${oIndex}`}
-                                className="border-2 border-slate-300 text-blue-600"
+                                className="h-8 w-8 border-2 border-[#7A80B8]/40 text-[#6C8BFF] focus:ring-[#6C8BFF]/20"
                                 disabled={!opt.trim()}
                               />
                               <div className="flex-1 relative">
                                 <Input
-                                  placeholder={`Option ${oIndex + 1}`}
+                                  placeholder={`Input value for Option ${oIndex + 1}...`}
                                   value={opt}
                                   onChange={(e) => handleOptionChange(currentQuestionIndex, oIndex, e.target.value)}
-                                  className="flex-1 bg-white border-slate-200 focus:border-blue-500 h-11"
+                                  className={cn(
+                                    "glass-input h-16 text-lg font-bold text-[#1E2455] px-8 transition-all hover:bg-white/60 focus:bg-white",
+                                    opt.trim() === draftQuestions[currentQuestionIndex].correctAnswer && opt.trim() !== '' ? "border-[#4EE3B2]/60 ring-[#4EE3B2]/10 bg-[#4EE3B2]/5" : "border-white/60"
+                                  )}
                                 />
                                 {opt.trim() === draftQuestions[currentQuestionIndex].correctAnswer && opt.trim() !== '' && (
-                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full tracking-wider">
-                                    Correct Answer
-                                  </span>
+                                  <div className="absolute right-5 top-1/2 -translate-y-1/2 flex items-center gap-3">
+                                    <div className="h-3 w-3 bg-[#4EE3B2] rounded-full animate-pulse shadow-sm shadow-[#4EE3B2]/50" />
+                                    <span className="text-[9px] font-black uppercase text-[#4EE3B2] tracking-[0.2em] bg-[#4EE3B2]/10 px-4 py-2 rounded-xl border border-[#4EE3B2]/20 shadow-sm">
+                                      Validated Answer
+                                    </span>
+                                  </div>
                                 )}
                               </div>
                             </div>
                           ))}
                         </RadioGroup>
                       </div>
-                      <p className="text-xs text-slate-400 italic">
-                        * Select the radio button next to an option to mark it as the correct answer.
+                      <p className="text-[10px] font-black text-[#7A80B8] opacity-60 uppercase tracking-widest flex items-center gap-3 pl-2">
+                        <CheckCircle2 className="h-4 w-4 text-[#4EE3B2]" />
+                        Toggle the radio indicator to authenticate the correct inquiry response.
                       </p>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
 
-              <div className="flex justify-between items-center pt-4 pb-2 px-1">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
-                  disabled={currentQuestionIndex === 0}
-                  className="h-10 px-6 font-bold border-gray-300 hover:bg-gray-50"
-                  type="button"
-                >
-                  Previous Question
-                </Button>
-                <Button
-                  onClick={() => setCurrentQuestionIndex(prev => Math.min(draftQuestions.length - 1, prev + 1))}
-                  disabled={currentQuestionIndex === draftQuestions.length - 1}
-                  className="h-10 px-8 bg-blue-600 text-white hover:bg-blue-700 font-bold shadow-md rounded-lg"
-                  type="button"
-                >
-                  Next Question
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-6 p-6 bg-muted/20 border-t border-border rounded-b-lg">
-            <div className="w-full flex items-center justify-between p-4 bg-card rounded-xl border border-border shadow-sm">
-              <div className="flex items-center gap-3">
-                <Calendar className="h-5 w-5 text-primary" />
-                <span className="font-bold text-foreground">Scheduling Options (Optional)</span>
-              </div>
-              <Button variant={showSchedule ? "default" : "outline"} size="sm" onClick={() => setShowSchedule(!showSchedule)}>
-                {showSchedule ? "Hide Schedule" : "Set Schedule"}
-              </Button>
-            </div>
-
-            {showSchedule && (
-              <div className="w-full p-4 bg-primary/10 rounded-xl border border-primary/20 space-y-4 animate-in slide-in-from-top-2 duration-200">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-bold text-muted-foreground flex items-center gap-2"><Calendar className="h-4 w-4" /> Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full justify-start text-left font-normal h-10 border-input bg-background px-3",
-                            !scheduledDate && "text-muted-foreground"
-                          )}
-                        >
-                          <Calendar className="mr-2 h-4 w-4" />
-                          {scheduledDate ? format(new Date(scheduledDate), "PPP") : <span>Pick a date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <ShadcnCalendar
-                          mode="single"
-                          selected={scheduledDate ? new Date(scheduledDate) : undefined}
-                          onSelect={(date) => {
-                            if (date) {
-                              setScheduledDate(format(date, "yyyy-MM-dd"));
-                            }
-                          }}
-                          initialFocus
-                          disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-bold text-muted-foreground flex items-center gap-2"><Clock className="h-4 w-4" /> Start Time</Label>
-                    <div className="relative">
-                      <Input
-                        type="time"
-                        value={scheduledTime}
-                        onChange={(e) => setScheduledTime(e.target.value)}
-                        className="h-10 border-input bg-background pr-10 appearance-none"
-                      />
-                      <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <div className="flex justify-between items-center pt-10 border-t border-white/40">
+                      <Button
+                        variant="ghost"
+                        onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                        disabled={currentQuestionIndex === 0}
+                        className="h-16 px-10 font-black text-[#7A80B8] uppercase tracking-[0.2em] text-[10px] rounded-2xl hover:bg-[#6C8BFF]/5 flex items-center gap-4 transition-all disabled:opacity-30 group"
+                        type="button"
+                      >
+                        <ArrowLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
+                        Retrogression
+                      </Button>
+                      <Button
+                        onClick={() => setCurrentQuestionIndex(prev => Math.min(draftQuestions.length - 1, prev + 1))}
+                        disabled={currentQuestionIndex === draftQuestions.length - 1}
+                        className="h-16 px-12 glass-card border-white/60 hover:border-[#6C8BFF]/60 hover:bg-[#6C8BFF]/5 text-[#6C8BFF] font-black uppercase tracking-[0.2em] text-[10px] rounded-2xl flex items-center gap-4 group transition-all duration-500 disabled:opacity-30"
+                        type="button"
+                      >
+                        Sequence Progression
+                        <div className="p-1.5 bg-[#6C8BFF]/10 rounded-lg group-hover:bg-[#6C8BFF]/20 group-hover:translate-x-1 transition-all">
+                          <ArrowLeft className="h-5 w-5 rotate-180" />
+                        </div>
+                      </Button>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-bold text-muted-foreground flex items-center gap-2"><Clock className="h-4 w-4" /> End Time</Label>
-                    <div className="relative">
-                      <Input
-                        type="time"
-                        value={scheduledEndTime}
-                        onChange={(e) => setScheduledEndTime(e.target.value)}
-                        className="h-10 border-input bg-background pr-10 appearance-none"
-                      />
-                      <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                    </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="px-12 py-12 bg-[#1E2455]/5 border-t border-white/60 relative z-10 group">
+            <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent translate-x-full group-hover:translate-x-0 transition-transform duration-1000" />
+
+            <div className="space-y-12 relative z-10">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-10 p-10 glass-card border-white shadow-xl hover:shadow-glass-hover transition-all duration-1000">
+                <div className="flex items-center gap-8">
+                  <div className="w-16 h-16 bg-[#6C8BFF]/10 border border-[#6C8BFF]/20 rounded-2xl flex items-center justify-center animate-pulse">
+                    <Calendar className="h-8 w-8 text-[#6C8BFF]" />
+                  </div>
+                  <div>
+                    <h4 className="text-2xl font-black text-[#1E2455] uppercase tracking-tighter mb-2">Temporal Orchestration</h4>
+                    <p className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.3em] italic">Optional / Future Synthesis Scheduling</p>
                   </div>
                 </div>
-                <Button onClick={handleAddToPool} variant="outline" className="w-full border-primary/50 text-primary font-bold h-10 flex items-center justify-center gap-2 hover:bg-primary/10">
-                  <Calendar className="h-4 w-4" /> Schedule Quiz
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "h-16 px-10 font-black uppercase tracking-[0.2em] text-[10px] rounded-[24px] border transition-all duration-700",
+                    showSchedule ? "bg-[#6C8BFF] text-white border-transparent shadow-lg shadow-[#6C8BFF]/30" : "bg-white/40 border-white text-[#7A80B8] hover:text-[#6C8BFF] hover:bg-[#6C8BFF]/5 hover:border-[#6C8BFF]/30"
+                  )}
+                  onClick={() => setShowSchedule(!showSchedule)}
+                >
+                  {showSchedule ? "DEACTIVATE MODULE" : "ACTIVATE SCHEDULER"}
                 </Button>
               </div>
-            )}
 
-            <div className="flex gap-4 w-full">
-              <Button variant="outline" onClick={() => setStep(1)} className="px-8 h-12 font-bold hover:bg-muted/50">Back</Button>
-              <Button variant="outline" onClick={handleSaveAndExit} className="flex-1 h-12 font-bold border-primary/50 text-primary hover:bg-primary/10">Save Draft</Button>
-              <Button onClick={handleDirectCreateQuiz} className="flex-1 h-12 font-black bg-success hover:bg-success/90 text-white rounded-2xl shadow-lg shadow-success/20">
-                <CheckCircle2 className="h-5 w-5 mr-2" /> Create Quiz Now
-              </Button>
+              {showSchedule && (
+                <div className="glass-card p-10 border-[#6C8BFF]/20 bg-white shadow-2xl space-y-10 animate-in slide-in-from-top-6 duration-700">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+                    <div className="space-y-4">
+                      <Label className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">Synthesis Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "glass-input h-16 w-full justify-start text-left font-black text-lg px-6",
+                              !scheduledDate && "text-[#7A80B8]/40"
+                            )}
+                          >
+                            <Calendar className="mr-4 h-6 w-6 text-[#6C8BFF]" />
+                            {scheduledDate ? format(new Date(scheduledDate), "PPP") : <span className="uppercase tracking-widest text-[10px]">Select Date...</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="glass-card p-0 border-white/60 shadow-2xl rounded-[32px] overflow-hidden" align="start">
+                          <ShadcnCalendar
+                            mode="single"
+                            selected={scheduledDate ? new Date(scheduledDate) : undefined}
+                            onSelect={(date) => {
+                              if (date) {
+                                setScheduledDate(format(date, "yyyy-MM-dd"));
+                              }
+                            }}
+                            initialFocus
+                            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="space-y-4">
+                      <Label className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">Initialization Time</Label>
+                      <div className="relative">
+                        <Input
+                          type="time"
+                          value={scheduledTime}
+                          onChange={(e) => setScheduledTime(e.target.value)}
+                          className="glass-input h-16 text-xl font-black text-[#1E2455] px-6 appearance-none"
+                        />
+                        <Clock className="absolute right-6 top-1/2 -translate-y-1/2 h-6 w-6 text-[#6C8BFF] pointer-events-none" />
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <Label className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">Termination Time</Label>
+                      <div className="relative">
+                        <Input
+                          type="time"
+                          value={scheduledEndTime}
+                          onChange={(e) => setScheduledEndTime(e.target.value)}
+                          className="glass-input h-16 text-xl font-black text-[#1E2455] px-6 appearance-none"
+                        />
+                        <Clock className="absolute right-6 top-1/2 -translate-y-1/2 h-6 w-6 text-[#FF6B8A] pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+                  <Button onClick={handleAddToPool} variant="outline" className="w-full h-20 rounded-[28px] border-[#6C8BFF]/40 text-[#6C8BFF] font-black uppercase tracking-[0.4em] text-[12px] flex items-center justify-center gap-6 hover:bg-[#6C8BFF]/5 hover:shadow-xl transition-all duration-700">
+                    <Calendar className="h-7 w-7" /> COMMENCE SCHEDULED SYNTHESIS
+                  </Button>
+                </div>
+              )}
+
+              <div className="flex flex-col md:flex-row gap-8 w-full pt-10">
+                <Button variant="ghost" onClick={() => setStep(1)} className="h-20 px-12 font-black text-[#7A80B8] uppercase tracking-[0.3em] text-[11px] rounded-[32px] hover:bg-[#6C8BFF]/5 border border-white/60 transition-all">Back to Hub</Button>
+                <Button variant="outline" onClick={handleSaveAndExit} className="flex-1 h-20 rounded-[32px] border-white/60 bg-white/40 text-[#7A80B8] hover:text-[#1E2455] hover:bg-white/60 font-black uppercase tracking-[0.3em] text-[11px] shadow-sm transition-all duration-700">BUFFER TO DRAFT ARCHIVE</Button>
+                <Button onClick={handleDirectCreateQuiz} className="pastel-button-primary flex-1 h-20 rounded-[32px] text-[12px] tracking-[0.3em] group shadow-xl hover:shadow-glass-hover">
+                  <div className="p-2 bg-white/20 rounded-xl mr-5 group-hover:scale-110 group-hover:rotate-12 transition-all">
+                    <CheckCircle2 className="h-7 w-7 text-white" />
+                  </div>
+                  COMMIT SYNTHESIS NOW
+                </Button>
+              </div>
             </div>
-          </CardFooter>
-        </Card>
+          </div>
+        </div>
       )}
 
+      {/* Final Setup Modal */}
       <Dialog open={showSetupModal} onOpenChange={setShowSetupModal}>
-        <DialogContent className="sm:max-w-[500px] rounded-2xl border-primary/20 shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold flex items-center gap-2 text-primary">
-              <Settings2 className="h-6 w-6" /> Final Quiz Setup
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground text-lg">
-              Please provide the mandatory details before finalizing your quiz.
+        <DialogContent className="glass-card sm:max-w-[600px] border-white/60 bg-white/40 backdrop-blur-3xl rounded-[48px] p-10 overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-[#6C8BFF]/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl -z-10" />
+
+          <DialogHeader className="space-y-6">
+            <div className="flex items-center gap-6">
+              <div className="p-4 bg-[#6C8BFF]/10 rounded-2xl border border-[#6C8BFF]/20">
+                <Wand2 className="h-8 w-8 text-[#6C8BFF]" />
+              </div>
+              <DialogTitle className="text-4xl font-black text-[#1E2455] uppercase tracking-tighter leading-none">
+                Synthesis Commitment
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-lg font-bold text-[#3A3F6B] italic opacity-60 tracking-tight leading-relaxed">
+              Verify the mandatory synthesis parameters before finalizing the simulation environment.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-6 py-6">
-            <div className="space-y-2">
-              <Label htmlFor="modalCourseName" className="text-sm font-bold text-muted-foreground">Course Name</Label>
+
+          <div className="grid gap-8 py-8">
+            <div className="space-y-3">
+              <Label htmlFor="modalCourseName" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">DISCIPLINARY DOMAIN</Label>
               <Select value={courseName || ""} onValueChange={setCourseName}>
-                <SelectTrigger id="modalCourseName" className="h-12 text-lg rounded-xl border-border focus:ring-primary/20">
+                <SelectTrigger id="modalCourseName" className="glass-input h-16 text-xl font-black text-[#1E2455] border-white/60">
                   <SelectValue placeholder="Select a course..." />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border-border shadow-xl">
+                <SelectContent className="glass-card bg-white/60 border-white/60 shadow-2xl rounded-[24px]">
                   {availableCourses.map((course) => (
-                    <SelectItem key={course} value={course} className="text-lg py-2 cursor-pointer">
+                    <SelectItem key={course} value={course} className="text-base py-4 px-6 rounded-xl font-black uppercase tracking-tight">
                       {course}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="modalExamName" className="text-sm font-bold text-muted-foreground">Exam Paper Name</Label>
-              <Input
-                id="modalExamName"
-                placeholder="e.g. Unit 1 Quiz"
-                value={questionSetName}
-                onChange={(e) => setQuestionSetName(e.target.value)}
-                className="h-12 text-lg rounded-xl border-border focus:ring-primary/20"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="modalPassMark" className="text-sm font-bold text-muted-foreground">Pass Percentage (%)</Label>
-              <Input
-                id="modalPassMark"
-                type="number"
-                min="0"
-                max="100"
-                placeholder="e.g. 50"
-                value={passMarkPercentage}
-                onChange={(e) => setPassMarkPercentage(e.target.value === '' ? '' : parseInt(e.target.value))}
-                className="h-12 text-lg rounded-xl border-border focus:ring-primary/20"
-              />
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-3">
+                <Label htmlFor="modalExamName" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">SEQUENCE DESIGNATION</Label>
+                <Input
+                  id="modalExamName"
+                  placeholder="e.g. Unit 1 Quiz"
+                  value={questionSetName}
+                  onChange={(e) => setQuestionSetName(e.target.value)}
+                  className="glass-input h-16 text-xl font-black text-[#1E2455] border-white/60"
+                />
+              </div>
+              <div className="space-y-3">
+                <Label htmlFor="modalPassMark" className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] pl-2 block">PROFICIENCY (%)</Label>
+                <Input
+                  id="modalPassMark"
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="e.g. 50"
+                  value={passMarkPercentage}
+                  onChange={(e) => setPassMarkPercentage(e.target.value === '' ? '' : parseInt(e.target.value))}
+                  className="glass-input h-16 text-xl font-black text-[#1E2455] border-white/60"
+                />
+              </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSetupModal(false)} className="h-12 px-6 font-bold rounded-xl">
-              Cancel
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-6 pt-5 border-t border-white/40">
+            <Button variant="ghost" onClick={() => setShowSetupModal(false)} className="h-16 px-10 font-black text-[#7A80B8] uppercase tracking-[0.3em] text-[10px] rounded-2xl hover:bg-[#6C8BFF]/5 border border-white/60 transition-all flex-1">
+              REVISE PARAMETERS
             </Button>
-            <Button onClick={handleFinalSubmit} className="h-12 px-10 font-black bg-primary text-primary-foreground rounded-xl shadow-lg shadow-primary/20">
-              Save & Finalize
+            <Button onClick={handleFinalSubmit} className="pastel-button-primary h-16 px-12 text-[10px] tracking-[0.3em] rounded-2xl flex-1 group shadow-xl">
+              <div className="p-1.5 bg-white/20 rounded-lg mr-4 group-hover:scale-110 transition-all">
+                <Send className="h-5 w-5 text-white" />
+              </div>
+              COMMIT ARCHIVE
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -83,53 +83,52 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
 
   if (isQuizzesLoading) {
     return (
-      <Card className="bg-card border-slate-800 shadow-2xl shadow-primary/5 animate-pulse">
+      <Card className="glass-card border-white/50 animate-pulse">
         <CardHeader className="p-8">
-          <CardTitle className="flex items-center gap-3 text-xl font-black text-slate-50 uppercase tracking-tighter">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" /> Synchronizing Archives...
+          <CardTitle className="flex items-center gap-4 text-xl font-black text-[#1E2455] uppercase tracking-tighter">
+            <Loader2 className="h-7 w-7 animate-spin text-[#6C8BFF]" /> <span className="opacity-50 font-poppins">Synchronizing Archives...</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="px-8 pb-8">
-          <p className="text-slate-500 font-bold italic tracking-tight">Fetching published assessments from the secure database.</p>
+        <CardContent className="px-8 pb-8 font-poppins">
+          <p className="text-[#7A80B8] font-bold italic tracking-tight">Fetching published assessments from the secure database.</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 font-poppins">
       {/* Header */}
-      <div className="bg-card p-10 rounded-[40px] border border-slate-800 shadow-2xl shadow-primary/5 relative overflow-hidden group">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-primary/10 transition-all" />
-        <div className="flex items-center justify-between relative z-10">
+      <div className="glass-card p-10 relative overflow-hidden group border-white/60">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-[#6C8BFF]/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-[#6C8BFF]/10 transition-all duration-1000" />
+        <div className="flex flex-col md:flex-row items-center justify-between relative z-10 gap-8">
           <div>
-            <h2 className="text-3xl font-black text-slate-50 tracking-tighter uppercase leading-none flex items-center gap-4">
-              <Trophy className="h-8 w-8 text-primary shadow-xl shadow-primary/20" />
+            <h2 className="text-4xl font-black text-[#1E2455] tracking-tighter uppercase leading-none flex items-center gap-5">
+              <div className="p-3 bg-[#6C8BFF]/10 rounded-2xl shadow-sm border border-[#6C8BFF]/20">
+                <Trophy className="h-8 w-8 text-[#6C8BFF]" />
+              </div>
               Published Assessments
             </h2>
-            <p className="text-slate-500 mt-2 font-bold italic tracking-tight">Manage and review live academic simulations across all departments.</p>
+            <p className="text-[#3A3F6B] mt-4 font-bold italic opacity-70">Manage and review live academic simulations across all departments.</p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className="px-6 py-3 bg-primary/10 border border-primary/20 rounded-2xl shadow-sm hidden md:block">
-                <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">
-                  Operational: {quizzes.length}
-                </span>
-              </div>
-
+          <div className="flex items-center gap-6">
+            <div className="px-6 py-3 bg-white/40 border border-white/60 rounded-2xl shadow-sm hidden lg:block backdrop-blur-md">
+              <span className="text-[10px] font-black text-[#6C8BFF] uppercase tracking-[0.25em]">
+                OPERATIONAL INDEX: {quizzes.length}
+              </span>
             </div>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="h-14 px-8 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-[11px] rounded-[20px] shadow-xl shadow-primary/20 group/btn transition-all flex items-center gap-3">
-                  <Plus className="h-5 w-5 group-hover/btn:rotate-90 transition-transform duration-300" />
-                  Create Quiz
+                <Button className="pastel-button-primary h-16 px-10 text-[11px] tracking-[0.2em] group/btn">
+                  <Plus className="h-5 w-5 group-hover/btn:rotate-90 transition-transform duration-500" />
+                  GENERATE MODULE
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-72 p-2 bg-slate-900 border-slate-800 text-slate-100 rounded-[28px] shadow-2xl animate-in zoom-in-95 duration-200 side-top-2">
-                <div className="px-4 py-3 mb-1">
-                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em]">Select Protocol</p>
+              <DropdownMenuContent align="end" className="w-80 p-3 glass-card bg-white/40 backdrop-blur-xl border-white/60 shadow-2xl animate-in zoom-in-95 duration-300 side-bottom-4">
+                <div className="px-5 py-4 mb-2 border-b border-white/20">
+                  <p className="text-[9px] font-black text-[#7A80B8] uppercase tracking-[0.4em]">SELECT PROTOCOL</p>
                 </div>
                 <DropdownMenuItem
                   onClick={() => {
@@ -139,14 +138,14 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
                     params.delete('step');
                     setSearchParams(params);
                   }}
-                  className="p-4 rounded-2xl focus:bg-primary/10 focus:text-primary cursor-pointer group/item transition-all mb-1"
+                  className="p-5 rounded-2xl focus:bg-[#6C8BFF]/10 focus:text-[#1E2455] cursor-pointer group/item transition-all mb-2"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center mr-4 group-focus-within/item:bg-primary/20 transition-colors">
-                    <Edit className="h-5 w-5 text-slate-400 group-hover/item:text-primary transition-colors" />
+                  <div className="w-12 h-12 rounded-xl bg-white/60 border border-white flex items-center justify-center mr-5 group-focus/item:scale-110 transition-transform shadow-sm">
+                    <Edit className="h-6 w-6 text-[#6C8BFF]" />
                   </div>
                   <div className="flex flex-col">
-                    <span className="font-black text-[11px] uppercase tracking-wider leading-none mb-1">Manual Creation</span>
-                    <span className="text-[9px] text-slate-500 font-bold italic">Detailed control of questions</span>
+                    <span className="font-black text-[11px] text-[#1E2455] uppercase tracking-wider leading-none mb-1.5">Manual Synthesis</span>
+                    <span className="text-[9px] text-[#7A80B8] font-bold italic opacity-70">High-precision curation</span>
                   </div>
                 </DropdownMenuItem>
 
@@ -158,14 +157,14 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
                     params.delete('step');
                     setSearchParams(params);
                   }}
-                  className="p-4 rounded-2xl focus:bg-primary/10 focus:text-primary cursor-pointer group/item transition-all mb-1"
+                  className="p-5 rounded-2xl focus:bg-[#E38AD6]/10 focus:text-[#1E2455] cursor-pointer group/item transition-all mb-2"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center mr-4 group-focus-within/item:bg-primary/20 transition-colors">
-                    <Sparkles className="h-5 w-5 text-slate-400 group-hover/item:text-primary transition-colors" />
+                  <div className="w-12 h-12 rounded-xl bg-white/60 border border-white flex items-center justify-center mr-5 group-focus/item:scale-110 transition-transform shadow-sm">
+                    <Sparkles className="h-6 w-6 text-[#E38AD6]" />
                   </div>
                   <div className="flex flex-col">
-                    <span className="font-black text-[11px] uppercase tracking-wider leading-none mb-1">AI Engine</span>
-                    <span className="text-[9px] text-slate-500 font-bold italic">Instant question banks</span>
+                    <span className="font-black text-[11px] text-[#1E2455] uppercase tracking-wider leading-none mb-1.5">Neural Generation</span>
+                    <span className="text-[9px] text-[#7A80B8] font-bold italic opacity-70">AI-optimized banks</span>
                   </div>
                 </DropdownMenuItem>
 
@@ -177,14 +176,14 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
                     params.delete('step');
                     setSearchParams(params);
                   }}
-                  className="p-4 rounded-2xl focus:bg-primary/10 focus:text-primary cursor-pointer group/item transition-all"
+                  className="p-5 rounded-2xl focus:bg-[#FFB86C]/10 focus:text-[#1E2455] cursor-pointer group/item transition-all"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center mr-4 group-focus-within/item:bg-primary/20 transition-colors">
-                    <FileText className="h-5 w-5 text-slate-400 group-hover/item:text-primary transition-colors" />
+                  <div className="w-12 h-12 rounded-xl bg-white/60 border border-white flex items-center justify-center mr-5 group-focus/item:scale-110 transition-transform shadow-sm">
+                    <FileText className="h-6 w-6 text-[#FFB86C]" />
                   </div>
                   <div className="flex flex-col">
-                    <span className="font-black text-[11px] uppercase tracking-wider leading-none mb-1">PDF Generator</span>
-                    <span className="text-[9px] text-slate-500 font-bold italic">Import documents to quiz</span>
+                    <span className="font-black text-[11px] text-[#1E2455] uppercase tracking-wider leading-none mb-1.5">Document Parser</span>
+                    <span className="text-[9px] text-[#7A80B8] font-bold italic opacity-70">PDF to Module conversion</span>
                   </div>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -194,62 +193,64 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
       </div>
 
       {/* List Container */}
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-5">
         {filteredQuizzes.length === 0 ? (
-          <div className="py-32 bg-card rounded-[40px] border border-slate-800 shadow-2xl shadow-primary/5 text-center relative overflow-hidden group">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.03)_0%,transparent_70%)]" />
-            <div className="w-24 h-24 bg-slate-900 border border-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner group-hover:border-primary/30 transition-all">
-              <Trophy className="h-12 w-12 text-slate-600 group-hover:text-primary/50 transition-all" />
+          <div className="py-40 glass-card rounded-[48px] border-white/50 text-center relative overflow-hidden group shadow-2xl">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(108,139,255,0.05)_0%,transparent_70%)]" />
+            <div className="w-28 h-28 bg-white/40 border border-white/60 rounded-[32px] flex items-center justify-center mx-auto mb-10 shadow-glass group-hover:scale-110 transition-transform duration-700">
+              <Trophy className="h-14 w-14 text-[#7A80B8] group-hover:text-[#6C8BFF] transition-colors" />
             </div>
-            <h3 className="text-2xl font-black text-slate-100 mb-3 uppercase tracking-tighter relative z-10">Archive Depleted</h3>
-            <p className="text-slate-500 max-w-sm mx-auto font-bold italic tracking-tight relative z-10">
-              No published assessments found. Initialize a new simulation via the creation portal.
+            <h3 className="text-3xl font-black text-[#1E2455] mb-5 uppercase tracking-tighter relative z-10">Archive Depleted</h3>
+            <p className="text-[#3A3F6B] max-w-sm mx-auto font-bold italic opacity-60 tracking-tight relative z-10 px-6">
+              No published assessments indexed. Initialize a new simulation via the creation portal.
             </p>
           </div>
         ) : (
           filteredQuizzes.map((quiz, idx) => (
-            <div key={quiz.id} className="group bg-card p-6 rounded-[24px] border border-slate-800 shadow-sm hover:border-slate-700 hover:bg-slate-900/40 transition-all flex items-center justify-between relative overflow-hidden">
-              <div className="flex items-center gap-8 flex-1 min-w-0 relative z-10">
+            <div key={quiz.id} className="group glass-card p-8 border-white/40 hover:border-white/70 hover:shadow-glass-hover hover:-translate-y-1 transition-all duration-500 flex flex-col lg:flex-row items-center justify-between relative overflow-hidden gap-10">
+              <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-white/5 to-transparent translate-x-full group-hover:translate-x-0 transition-transform duration-1000" />
+
+              <div className="flex flex-col md:flex-row items-center gap-10 flex-1 min-w-0 relative z-10 w-full">
                 {/* Sequential Number */}
-                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-slate-900 text-slate-500 font-bold text-sm border border-slate-800 group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-all shadow-inner shrink-0">
+                <div className="flex items-center justify-center w-12 h-12 rounded-[18px] bg-white/50 text-[#7A80B8] font-black text-xs border border-white shadow-inner group-hover:bg-gradient-to-br group-hover:from-[#6C8BFF] group-hover:to-[#E38AD6] group-hover:text-white group-hover:border-transparent transition-all duration-500 shrink-0 shadow-sm">
                   {idx + 1}
                 </div>
 
-                <div className="w-14 h-14 bg-primary/5 border border-primary/10 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-primary/10 transition-all">
-                  <Trophy className="h-7 w-7 text-primary" />
+                <div className="w-18 h-18 bg-white/40 border border-white/60 rounded-[28px] flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-white/60 transition-all duration-700 p-4 shadow-sm">
+                  <Trophy className="h-9 w-9 text-[#6C8BFF]" />
                 </div>
 
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-3 mb-1">
-                    <span className="text-[10px] font-mono font-black text-slate-600 uppercase tracking-widest group-hover:text-primary transition-colors">
-                      REF: {quiz.id.slice(-6).toUpperCase()}
+                <div className="min-w-0 flex-1 text-center md:text-left">
+                  <div className="flex items-center justify-center md:justify-start gap-4 mb-3">
+                    <span className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.3em] group-hover:text-[#6C8BFF] transition-colors bg-white/40 px-3 py-1 rounded-full border border-white/60">
+                      REF-{quiz.id.slice(-6).toUpperCase()}
                     </span>
                     {(() => {
                       const status = getQuizStatus(quiz);
                       switch (status) {
                         case 'Active':
                           return (
-                            <div className="px-3 py-1 bg-success/10 text-success border border-success/20 rounded-full text-[9px] font-black uppercase tracking-[0.2em] shadow-sm flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
-                              Live Now
+                            <div className="px-4 py-1.5 bg-[#4EE3B2]/10 text-[#4EE3B2] border border-[#4EE3B2]/20 rounded-full text-[9px] font-black uppercase tracking-[0.2em] shadow-sm flex items-center gap-2">
+                              <span className="w-2 h-2 bg-[#4EE3B2] rounded-full animate-pulse" />
+                              Active Simulation
                             </div>
                           );
                         case 'Scheduled':
                           return (
-                            <div className="px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full text-[9px] font-black uppercase tracking-[0.2em] shadow-sm">
-                              Scheduled
+                            <div className="px-4 py-1.5 bg-[#6C8BFF]/10 text-[#6C8BFF] border border-[#6C8BFF]/20 rounded-full text-[9px] font-black uppercase tracking-[0.2em] shadow-sm">
+                              Enqueued
                             </div>
                           );
                         case 'Expired':
                           return (
-                            <div className="px-3 py-1 bg-slate-800 text-slate-500 border border-slate-700 rounded-full text-[9px] font-black uppercase tracking-[0.2em] shadow-sm">
-                              Completed
+                            <div className="px-4 py-1.5 bg-white/40 text-[#7A80B8] border border-white/60 rounded-full text-[9px] font-black uppercase tracking-[0.2em] shadow-sm italic opacity-60">
+                              Archived
                             </div>
                           );
                         case 'Deleted':
                           return (
-                            <div className="px-3 py-1 bg-danger/10 text-danger border border-danger/20 rounded-full text-[9px] font-black uppercase tracking-[0.2em] shadow-sm">
-                              Deleted
+                            <div className="px-4 py-1.5 bg-[#FF6B8A]/10 text-[#FF6B8A] border border-[#FF6B8A]/20 rounded-full text-[9px] font-black uppercase tracking-[0.2em] shadow-sm">
+                              Purged
                             </div>
                           );
                         default:
@@ -258,39 +259,29 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
                     })()}
                   </div>
                   <h4 className={cn(
-                    "text-xl font-bold truncate tracking-tight transition-colors",
-                    quiz.status === 'DELETED' ? "text-slate-600 line-through" : "text-slate-100"
+                    "text-3xl font-black truncate tracking-tighter transition-colors font-poppins",
+                    quiz.status === 'DELETED' ? "text-[#7A80B8] line-through opacity-40 italic" : "text-[#1E2455]"
                   )}>
                     {quiz.title}
                   </h4>
-                  <div className="flex flex-wrap items-center gap-5 text-[11px] font-bold text-slate-500 mt-2 uppercase tracking-widest">
-                    <span className="flex items-center gap-2 text-primary bg-primary/5 px-3 py-1 rounded-lg border border-primary/10">
-                      <Clock className="h-3.5 w-3.5" />
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-[10px] font-black text-[#7A80B8] mt-5 uppercase tracking-[0.2em]">
+                    <span className="flex items-center gap-2.5 text-[#1E2455] bg-white/60 px-4 py-1.5 rounded-xl border border-white shadow-sm">
+                      <Clock className="h-4 w-4 text-[#6C8BFF]" />
                       {quiz.timeLimitMinutes} Simulation Minutes
                     </span>
-                    <span className="w-1 h-1 bg-slate-800 rounded-full" />
-                    <span className="text-slate-400">Library: <span className="text-slate-200">{quiz.courseName}</span></span>
+                    <span className="w-1.5 h-1.5 bg-[#7A80B8]/20 rounded-full" />
+                    <span className="italic opacity-80">Collection: <span className="text-[#1E2455] not-italic">{quiz.courseName}</span></span>
                     {quiz.status !== 'DELETED' && (
                       <>
-                        <span className="w-1 h-1 bg-slate-800 rounded-full" />
-                        <span className="text-slate-400">Date: <span className="text-slate-200">{quiz.scheduledDate}</span></span>
+                        <span className="w-1.5 h-1.5 bg-[#7A80B8]/20 rounded-full" />
+                        <span className="italic opacity-80">Date: <span className="text-[#1E2455] not-italic">{quiz.scheduledDate}</span></span>
                       </>
                     )}
                     {quiz.negativeMarking && (
                       <>
-                        <span className="w-1 h-1 bg-slate-800 rounded-full" />
-                        <span className="text-danger flex items-center gap-2">
-                          <MinusCircle className="h-3.5 w-3.5" />
-                          Risk: Negative Marking
-                        </span>
-                      </>
-                    )}
-                    {quiz.competitionMode && (
-                      <>
-                        <span className="w-1 h-1 bg-slate-800 rounded-full" />
-                        <span className="text-yellow flex items-center gap-2">
-                          <Users className="h-3.5 w-3.5" />
-                          Competitive Mode
+                        <span className="w-1.5 h-1.5 bg-[#7A80B8]/20 rounded-full" />
+                        <span className="text-[#FF6B8A] flex items-center gap-2 bg-[#FF6B8A]/5 px-3 py-1 rounded-lg border border-[#FF6B8A]/10">
+                          NEUTRALIZATION ACTIVE
                         </span>
                       </>
                     )}
@@ -298,15 +289,15 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 ml-6 relative z-10">
+              <div className="flex items-center gap-5 relative z-10 w-full lg:w-auto justify-center">
                 {getQuizStatus(quiz) === 'Scheduled' && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => handleEditAsNew(quiz)}
-                    className="h-10 px-5 rounded-xl text-slate-400 hover:text-primary hover:bg-primary/10 transition-all font-black text-[10px] uppercase tracking-widest"
+                    className="h-14 px-8 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-[#7A80B8] hover:text-[#6C8BFF] hover:bg-[#6C8BFF]/5 border border-transparent hover:border-[#6C8BFF]/20 transition-all shadow-sm"
                   >
-                    <Edit className="h-4 w-4 mr-2" /> Clone & Modify
+                    <Edit className="h-4.5 w-4.5 mr-3" /> SYNTHESIZE COPY
                   </Button>
                 )}
 
@@ -316,19 +307,19 @@ const AvailableQuizzesList = ({ quizzes }: AvailableQuizzesListProps) => {
                       variant="ghost"
                       size="sm"
                       asChild
-                      className="h-10 px-6 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 hover:bg-slate-800 hover:border-slate-700 transition-all font-black text-[10px] uppercase tracking-widest shadow-xl shadow-white/5"
+                      className="h-14 px-10 rounded-2xl bg-[#1E2455] text-white hover:bg-[#1E2455]/90 transition-all font-black text-[10px] uppercase tracking-[0.3em] shadow-xl hover:shadow-[#1E2455]/20 flex items-center justify-center gap-3"
                     >
                       <Link to={`/quiz-preview/${quiz.id}`}>
-                        Preview Simulation
+                        PREVIEW SIMULATION
                       </Link>
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDelete(quiz.id, quiz.title)}
-                      className="h-10 w-10 rounded-xl bg-danger/5 text-danger/60 hover:bg-danger/10 hover:text-danger Transition-all border border-danger/10"
+                      className="h-14 w-14 rounded-2xl bg-[#FF6B8A]/5 text-[#FF6B8A]/60 hover:bg-[#FF6B8A]/10 hover:text-[#FF6B8A] transition-all border border-[#FF6B8A]/10 shadow-sm flex items-center justify-center p-0"
                     >
-                      <Trash className="h-4 w-4" />
+                      <Trash className="h-5 w-5" />
                     </Button>
                   </>
                 )}

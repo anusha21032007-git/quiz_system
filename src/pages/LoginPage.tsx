@@ -36,51 +36,51 @@ const LoginPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <div className="min-h-screen flex items-center justify-center bg-transparent p-6 font-poppins">
             <div className="absolute top-8 left-8">
                 <Link to="/">
-                    <Button variant="ghost" className="gap-2 text-slate-400 hover:text-primary font-bold hover:bg-slate-800">
+                    <Button variant="ghost" className="gap-2 text-[#7A80B8] hover:text-[#6C8BFF] font-black hover:bg-white/20 rounded-xl transition-all uppercase tracking-widest text-[10px]">
                         <ArrowLeft className="h-4 w-4" /> Back to Home
                     </Button>
                 </Link>
             </div>
 
-            <Card className="w-full max-w-md border border-slate-800 bg-card shadow-2xl rounded-[32px] overflow-hidden">
-                <CardHeader className="pt-10 pb-6 text-center space-y-2">
-                    <div className="mx-auto w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 border border-primary/20 shadow-lg shadow-primary/5">
-                        <GraduationCap className="h-8 w-8 text-primary" />
+            <Card className="glass-card w-full max-w-md border-white/40 overflow-hidden shadow-2xl">
+                <CardHeader className="pt-12 pb-8 text-center space-y-3">
+                    <div className="mx-auto w-16 h-16 bg-gradient-to-br from-[#6C8BFF] to-[#E38AD6] rounded-2xl flex items-center justify-center mb-4 border border-white/30 shadow-md transform rotate-3 hover:rotate-0 transition-transform duration-500">
+                        <GraduationCap className="h-9 w-9 text-white" />
                     </div>
-                    <CardTitle className="text-3xl font-black text-slate-50 tracking-tight">Sign In</CardTitle>
-                    <CardDescription className="text-slate-400 font-medium tracking-tight">
-                        Enter your credentials to access QUIZ MANAGEMENT SYSTEM
+                    <CardTitle className="text-4xl font-black text-[#1E2455] tracking-tighter uppercase leading-tight">Faculty Access</CardTitle>
+                    <CardDescription className="text-[#3A3F6B] font-bold opacity-70 tracking-tight text-sm">
+                        Synchronize with the QUIZ MASTER administration protocol.
                     </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleLogin}>
-                    <CardContent className="space-y-4 px-8 pb-8">
-                        <div className="space-y-2">
-                            <Label htmlFor="email" className="text-slate-300 font-bold">Email</Label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                    <CardContent className="space-y-6 px-10 pb-8">
+                        <div className="space-y-2.5">
+                            <Label htmlFor="email" className="text-[#1E2455] font-black uppercase text-[10px] tracking-widest pl-1">Authorized Email</Label>
+                            <div className="relative group">
+                                <Mail className="absolute left-4 top-3.5 h-4 w-4 text-[#7A80B8] group-focus-within:text-[#6C8BFF] transition-colors" />
                                 <Input
                                     id="email"
                                     type="email"
-                                    placeholder="name@college.edu"
-                                    className="pl-10 h-11 bg-slate-900/50 border-slate-800 focus:bg-slate-900 focus:ring-primary/20 focus:border-primary text-slate-200 rounded-xl transition-all"
+                                    placeholder="faculty@institution.edu"
+                                    className="glass-input pl-12 h-12 text-[#1E2455] font-bold"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
                                 />
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="password" className="text-slate-300 font-bold">Password</Label>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                        <div className="space-y-2.5">
+                            <Label htmlFor="password" className="text-[#1E2455] font-black uppercase text-[10px] tracking-widest pl-1">Security Key</Label>
+                            <div className="relative group">
+                                <Lock className="absolute left-4 top-3.5 h-4 w-4 text-[#7A80B8] group-focus-within:text-[#6C8BFF] transition-colors" />
                                 <Input
                                     id="password"
                                     type="password"
                                     placeholder="••••••••"
-                                    className="pl-10 h-11 bg-slate-900/50 border-slate-800 focus:bg-slate-900 focus:ring-primary/20 focus:border-primary text-slate-200 rounded-xl transition-all"
+                                    className="glass-input pl-12 h-12 text-[#1E2455] font-bold"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
@@ -88,12 +88,12 @@ const LoginPage = () => {
                             </div>
                         </div>
                     </CardContent>
-                    <CardFooter className="flex flex-col gap-6 px-8 pb-10">
-                        <Button type="submit" className="w-full h-12 bg-primary hover:bg-primary/90 text-white rounded-xl text-lg font-bold shadow-lg shadow-primary/20 transition-all duration-300" disabled={loading}>
-                            {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null} Sign In
+                    <CardFooter className="flex flex-col gap-8 px-10 pb-12">
+                        <Button type="submit" className="pastel-button-primary w-full h-14 text-xs tracking-widest" disabled={loading}>
+                            {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null} SIGN IN PROTOCOL
                         </Button>
-                        <p className="text-sm text-center text-slate-500 font-medium">
-                            Don't have an account? <Link to="/signup" className="text-primary font-bold hover:underline">Sign Up</Link>
+                        <p className="text-[11px] text-center text-[#7A80B8] font-black uppercase tracking-widest">
+                            New administrator? <Link to="/signup" className="text-[#6C8BFF] hover:underline font-black">Generate Role</Link>
                         </p>
                     </CardFooter>
                 </form>

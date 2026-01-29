@@ -1,103 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Main app background: #050B1A */
-    --background: 222 69% 6%;
-    /* Primary text: #FFFFFF */
-    --foreground: 0 0% 100%;
+    /* Base Background (Default white-ish fallback) */
+    --background: 231 100% 98%;
+    --foreground: 234 30% 32%;
 
-    /* Sidebar / Cards / Panels: #0C1B33 */
-    --card: 217 62% 12%;
-    /* Card foreground: #94A3B8 */
-    --card-foreground: 215 20% 65%;
+    /* Glass Cards / Containers */
+    --card: 0 0% 100% / 0.65;
+    --card-foreground: 234 48% 23%;
 
-    /* Popovers: #0C1B33 */
-    --popover: 217 62% 12%;
-    --popover-foreground: 0 0% 100%;
+    --popover: 0 0% 100% / 0.8;
+    --popover-foreground: 234 48% 23%;
 
-    /* Primary Accent: #3B82F6 (Neon Blue) */
-    --primary: 217 91% 60%;
+    /* Primary Accent: #6C8BFF */
+    --primary: 227 100% 71%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary Accent: #6366F1 (Indigo) */
-    --secondary: 239 84% 67%;
+    /* Secondary Accent: #E38AD6 */
+    --secondary: 308 62% 72%;
     --secondary-foreground: 0 0% 100%;
 
-    /* Muted Text: #94A3B8 */
-    --muted: 215 20% 65%;
-    --muted-foreground: 215 20% 65%;
+    /* Muted Text: #7A80B8 */
+    --muted: 233 29% 60%;
+    --muted-foreground: 233 29% 60%;
 
-    /* Hover State / Accent: Neon Blue Glow */
-    --accent: 217 91% 60%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent Glow / Hover */
+    --accent: 227 100% 71% / 0.1;
+    --accent-foreground: 227 100% 71%;
 
-    /* Danger Actions: #EF4444 */
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    /* Status Colors */
+    --success: 160 75% 60%;
+    --warning: 31 100% 71%;
+    --destructive: 347 100% 71%;
 
-    /* Borders: #1E293B */
-    --border: 215 32% 17%;
-    --input: 217 33% 17%;
-    --ring: 217 91% 60%;
+    /* Borders & Inputs */
+    --border: 0 0% 100% / 0.35;
+    --input: 0 0% 100% / 0.4;
+    --ring: 227 100% 71%;
 
-    --radius: 0.75rem;
+    --radius: 20px;
 
-    /* Sidebar Background: #071225 */
-    --sidebar-background: 218 68% 9%;
-    /* Sidebar Foreground: #94A3B8 */
-    --sidebar-foreground: 215 20% 65%;
-    /* Sidebar Primary (Active): #3B82F6 */
-    --sidebar-primary: 217 91% 60%;
+    /* Sidebar Panel Backgrounds */
+    --sidebar-background: 0 0% 100% / 0.4;
+    --sidebar-foreground: 234 30% 32%;
+    --sidebar-primary: 227 100% 71%;
     --sidebar-primary-foreground: 0 0% 100%;
-    /* Sidebar Accent (Hover): #0C1B33 */
-    --sidebar-accent: 217 62% 12%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    /* Sidebar Border: #1E293B */
-    --sidebar-border: 215 32% 17%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-accent: 0 0% 100% / 0.2;
+    --sidebar-accent-foreground: 227 100% 71%;
+    --sidebar-border: 0 0% 100% / 0.2;
+    --sidebar-ring: 227 100% 71%;
 
-    /* Custom Status & Highlights */
-    --success: 142 71% 45%;
-    --warning: 48 96% 51%;
-    --info: 199 89% 48%;
-
-    /* Leaderboard Colors */
-    --rank-gold: 48 96% 53%;
+    /* Rank Colors */
+    --rank-gold: 48 100% 67%;
     --rank-silver: 210 24% 84%;
     --rank-bronze: 27 96% 61%;
-  }
-
-  .dark {
-    --background: 222 69% 6%;
-    --foreground: 0 0% 100%;
-    --card: 217 62% 12%;
-    --card-foreground: 215 20% 65%;
-    --popover: 217 62% 12%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 239 84% 67%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 215 20% 65%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 91% 60%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 215 32% 17%;
-    --input: 217 33% 17%;
-    --ring: 217 91% 60%;
-    --sidebar-background: 218 68% 9%;
-    --sidebar-foreground: 215 20% 65%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 62% 12%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 215 32% 17%;
-    --sidebar-ring: 217 91% 60%;
   }
 }
 
@@ -107,15 +68,31 @@
   }
 
   body {
-    @apply bg-background text-foreground transition-colors duration-300;
+    background: radial-gradient(circle at top left, #A7B7FF, #C6B4F7, #F2B7E8);
+    background-attachment: fixed;
+    min-height: 100vh;
+    @apply text-foreground font-['Poppins',sans-serif] selection:bg-primary/30;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    @apply text-card-foreground font-bold tracking-tight;
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-[#1E2455] font-bold tracking-tight;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/65 backdrop-blur-[12px] border border-white/35 rounded-[20px] shadow-[0_12px_30px_rgba(0,0,0,0.08)];
+  }
+
+  .glass-input {
+    @apply bg-white/40 backdrop-blur-[8px] border border-white/30 rounded-xl focus:ring-2 focus:ring-primary/50 outline-none transition-all;
+  }
+
+  .pastel-button-primary {
+    @apply bg-gradient-to-r from-[#6C8BFF] to-[#E38AD6] text-white rounded-full font-bold shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 active:scale-95 transition-all;
+  }
+
+  .pastel-button-secondary {
+    @apply bg-white/60 backdrop-blur-[8px] border border-[#6C8BFF]/30 text-[#6C8BFF] rounded-full font-bold hover:bg-white/80 transition-all;
   }
 }

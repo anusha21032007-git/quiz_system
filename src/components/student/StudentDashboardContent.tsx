@@ -94,21 +94,23 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
   }, [totalQuizzesAttempted]);
 
   const renderDashboard = () => (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <DashboardWelcome studentName={studentName} registerNumber={registerNumber} />
 
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div className="flex items-center justify-between px-2">
-            <h2 className="text-xl font-black text-slate-100 flex items-center gap-4 uppercase tracking-[0.2em]">
-                <BookOpen className="h-6 w-6 text-primary" />
-                Assessment Terminal
-                {hasNewQuizzes && (
-                    <span className="relative flex h-3 w-3">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-primary ring-2 ring-slate-950"></span>
-                    </span>
-                )}
-            </h2>
+          <h2 className="text-2xl font-black text-[#1E2455] flex items-center gap-4 tracking-tighter font-poppins uppercase">
+            <div className="p-2 bg-[#6C8BFF]/10 rounded-xl">
+              <BookOpen className="h-6 w-6 text-[#6C8BFF]" />
+            </div>
+            Academic Terminal
+            {hasNewQuizzes && (
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#6C8BFF] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-[#6C8BFF] ring-2 ring-white"></span>
+              </span>
+            )}
+          </h2>
         </div>
         {/* Top Row: Next Action Card (Full Width) */}
         <div className="grid gap-6 grid-cols-1">
@@ -117,12 +119,14 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
 
         {/* Display Active Quizzes List */}
         <div className="pt-8">
-          <div className="flex items-center gap-4 mb-6 px-2">
-            <ListChecks className="h-5 w-5 text-primary" />
-            <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500">
-                Simulation Queue
+          <div className="flex items-center gap-4 mb-6 px-4">
+            <div className="p-1.5 bg-[#FFB86C]/10 rounded-lg">
+              <ListChecks className="h-5 w-5 text-[#FFB86C]" />
+            </div>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#7A80B8]">
+              Simulation Queue
             </h3>
-            <div className="flex-1 h-px bg-slate-800/50" />
+            <div className="flex-1 h-px bg-[#7A80B8]/10" />
           </div>
           <QuizStatusTimeline studentName={studentName} quizzes={quizzes} />
         </div>
@@ -143,13 +147,15 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
   );
 
   const renderMyCourses = () => (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-2">
-        <h2 className="text-3xl font-black text-slate-50 flex items-center gap-4 uppercase tracking-tighter">
-            <BookOpen className="h-8 w-8 text-primary" /> 
-            Study Curriculum
+    <div className="space-y-10 animate-in fade-in duration-700">
+      <div className="flex flex-col gap-3">
+        <h2 className="text-3xl font-black text-[#1E2455] flex items-center gap-4 tracking-tighter font-poppins uppercase">
+          <div className="p-2.5 bg-[#6C8BFF]/10 rounded-2xl shadow-sm">
+            <BookOpen className="h-8 w-8 text-[#6C8BFF]" />
+          </div>
+          Academic Disciplines
         </h2>
-        <p className="text-slate-500 font-bold italic tracking-tight">Review your indexed disciplines and simulation progress.</p>
+        <p className="text-[#3A3F6B] font-bold opacity-70 ml-2">Review your indexed courses and modular simulation progress.</p>
       </div>
       <MyCourses courses={dynamicCourses} quizzes={quizzes} />
     </div>
@@ -175,31 +181,33 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
     const competitiveSessions = quizzes.filter(q => q.competitionMode);
 
     return (
-      <div className="space-y-8 animate-in fade-in duration-500">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-3xl font-black text-slate-50 flex items-center gap-4 uppercase tracking-tighter">
-            <Brain className="h-8 w-8 text-primary shadow-xl shadow-primary/20" />
-            Concept Mastery Sessions
+      <div className="space-y-10 animate-in fade-in duration-700">
+        <div className="flex flex-col gap-3">
+          <h2 className="text-3xl font-black text-[#1E2455] flex items-center gap-4 tracking-tighter font-poppins uppercase">
+            <div className="p-2.5 bg-[#E38AD6]/10 rounded-2xl shadow-sm">
+              <Brain className="h-8 w-8 text-[#E38AD6]" />
+            </div>
+            Cognitive Analysis
           </h2>
-          <p className="text-slate-500 font-bold italic tracking-tight">
-            Initiate self-paced concept evaluations to refine your theoretical understanding.
+          <p className="text-[#3A3F6B] font-bold opacity-70 ml-2">
+            Initiate high-precision assessments to validate your theoretical mastery.
           </p>
         </div>
 
         {competitiveSessions.length === 0 ? (
-          <Card className="p-20 text-center bg-card border border-slate-800 border-dashed rounded-[40px] shadow-inner">
-            <div className="flex flex-col items-center gap-6">
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-[24px] shadow-xl group hover:border-primary/30 transition-all">
-                <MessageSquare className="h-12 w-12 text-slate-700 group-hover:text-primary/50 transition-all" />
+          <Card className="glass-card p-24 text-center border-dashed border-2 border-white/40">
+            <div className="flex flex-col items-center gap-8">
+              <div className="bg-white/40 border border-white/50 p-7 rounded-[32px] shadow-sm group hover:scale-110 transition-all duration-500">
+                <MessageSquare className="h-14 w-14 text-[#7A80B8]/40 group-hover:text-[#6C8BFF]/50 transition-all" />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-black text-slate-100 uppercase tracking-tighter">No Active Protocols</h3>
-                <p className="text-slate-500 font-bold italic tracking-tight">Check the archive later for new conceptual assessments.</p>
+              <div className="space-y-3">
+                <h3 className="text-2xl font-black text-[#1E2455] tracking-tight font-poppins">NO ACTIVE PROTOCOLS</h3>
+                <p className="text-[#7A80B8] font-bold italic">Check the central archive later for new conceptual audits.</p>
               </div>
             </div>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {competitiveSessions.map((session) => {
               const isCompleted = quizAttempts.some(a => a.quizId === session.id && a.studentName === studentName);
 
@@ -222,57 +230,58 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
               const isExpired = now > endDateTime;
 
               return (
-                <Card key={session.id} className="group hover:scale-[1.02] hover:bg-slate-900/40 transition-all duration-300 border-slate-800 bg-card overflow-hidden rounded-[24px] flex flex-col shadow-2xl shadow-primary/5">
-                  <div className={cn("h-1.5 w-full", isLive ? "bg-success" : isUpcoming ? "bg-yellow" : "bg-slate-800")} />
+                <Card key={session.id} className="glass-card group hover:translate-y-[-8px] transition-all duration-500 overflow-hidden border-white/50 flex flex-col shadow-lg hover:shadow-glass-hover">
+                  <div className={cn("h-1.5 w-full", isLive ? "bg-[#4EE3B2] shadow-[0_0_10px_rgba(78,227,178,0.5)]" : isUpcoming ? "bg-[#FFB86C]" : "bg-[#7A80B8]/20")} />
                   <CardHeader className="p-8 pb-4">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="w-12 h-12 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center shadow-inner">
-                        <Briefcase className="h-6 w-6 text-primary" />
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="w-14 h-14 bg-white/40 border border-white/60 rounded-[18px] flex items-center justify-center shadow-sm group-hover:bg-[#6C8BFF]/10 group-hover:border-[#6C8BFF]/30 transition-all duration-500">
+                        <Briefcase className="h-7 w-7 text-[#6C8BFF]" />
                       </div>
                       {isCompleted ? (
-                        <Badge className="bg-success/10 text-success border-success/20 font-black text-[9px] uppercase tracking-widest px-3 py-1">
+                        <Badge className="bg-[#4EE3B2]/10 text-[#4EE3B2] border-[#4EE3B2]/20 font-black text-[9px] uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm">
                           <CheckCircle className="h-3 w-3 mr-2" /> Verified
                         </Badge>
                       ) : isLive ? (
-                        <Badge className="bg-primary hover:bg-primary/90 font-black text-[9px] uppercase tracking-widest animate-pulse px-3 py-1">CORE LINK</Badge>
+                        <Badge className="bg-gradient-to-r from-[#6C8BFF] to-[#8EA2FF] text-white font-black text-[9px] uppercase tracking-widest animate-pulse px-3 py-1.5 rounded-full shadow-md border-white/40">CORE LINK</Badge>
                       ) : isUpcoming ? (
-                        <Badge className="bg-slate-900 text-slate-400 border-slate-800 font-black text-[9px] uppercase tracking-widest px-3 py-1">Upcoming</Badge>
+                        <Badge className="bg-white/40 text-[#7A80B8] border-white/60 font-black text-[9px] uppercase tracking-widest px-3 py-1.5 rounded-full">Upcoming</Badge>
                       ) : (
-                        <Badge className="bg-danger/10 text-danger border-danger/20 font-black text-[9px] uppercase tracking-widest px-3 py-1">Expired</Badge>
+                        <Badge className="bg-[#FF6B8A]/10 text-[#FF6B8A] border-[#FF6B8A]/20 font-black text-[9px] uppercase tracking-widest px-3 py-1.5 rounded-full">Expired</Badge>
                       )}
                     </div>
-                    <CardTitle className="text-xl font-black text-slate-50 group-hover:text-primary transition-colors tracking-tighter uppercase leading-none">
+                    <CardTitle className="text-2xl font-black text-[#1E2455] group-hover:text-[#6C8BFF] transition-colors tracking-tighter uppercase leading-tight font-poppins">
                       {session.title.replace('CMP: ', '').replace('INT: ', '')}
                     </CardTitle>
-                    <CardDescription className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-2">
+                    <CardDescription className="text-[11px] font-bold text-[#7A80B8] uppercase tracking-widest mt-3 flex items-center gap-2">
+                      <div className="w-1 h-1 bg-[#6C8BFF] rounded-full" />
                       {isUpcoming
-                        ? `Begins: ${startDateTime.toLocaleDateString()} at ${session.startTime}`
-                        : `Phase: ${session.courseName} conceptual analysis`}
+                        ? `T-Minus: ${session.startTime}`
+                        : `${session.courseName} Audit`}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="px-8 pb-4 flex-grow">
-                    <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                        <ListChecks className="h-4 w-4 text-primary" />
-                        Aptitude Verification
+                  <CardContent className="px-8 pb-6 flex-grow">
+                    <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-[#3A3F6B] opacity-60">
+                      <ListChecks className="h-4 w-4 text-[#6C8BFF]" />
+                      Professional Aptitude
                     </div>
                   </CardContent>
-                  <CardFooter className="p-8 pt-4 bg-slate-950/20 border-t border-slate-800">
+                  <CardFooter className="p-8 pt-6 bg-white/20 border-t border-white/30 mt-auto">
                     <Button
                       onClick={() => setSelectedCompetitive(session)}
                       disabled={!isLive && !isCompleted}
                       className={cn(
-                        "w-full h-11 font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg transition-all flex items-center justify-center gap-3",
-                        !isLive && !isCompleted ? "bg-slate-800 text-slate-500 cursor-not-allowed opacity-50" : "",
-                        isCompleted ? "bg-slate-900 border border-slate-800 text-slate-100 hover:bg-slate-800" : "bg-primary hover:bg-primary/90 text-white shadow-primary/20"
+                        "pastel-button-primary w-full h-12 text-[10px] tracking-widest",
+                        !isLive && !isCompleted ? "grayscale opacity-50 cursor-not-allowed" : "",
+                        isCompleted ? "from-white/60 to-white/40 !text-[#6C8BFF] border border-[#6C8BFF]/30 shadow-sm" : ""
                       )}
                     >
                       {isCompleted
-                        ? <> <PlayCircle className="h-4 w-4" /> Review Archive </>
+                        ? <> <PlayCircle className="h-4 w-4" /> Review Submission </>
                         : isUpcoming
-                          ? `Scheduled: ${session.startTime}`
+                          ? `Access Restricted: ${session.startTime}`
                           : isExpired
-                            ? "Access Denied: Expired"
-                            : <> <PlayCircle className="h-4 w-4" /> Initiate Session </>
+                            ? "Session Closed"
+                            : <> <PlayCircle className="h-4 w-4" /> Initialize Core Link </>
                       }
                     </Button>
                   </CardFooter>
@@ -286,13 +295,15 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
   };
 
   const renderMyResults = () => (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-2">
-        <h2 className="text-3xl font-black text-slate-50 flex items-center gap-4 uppercase tracking-tighter">
-            <BarChart className="h-8 w-8 text-primary" /> 
-            Simulation Archives
+    <div className="space-y-10 animate-in fade-in duration-700">
+      <div className="flex flex-col gap-3">
+        <h2 className="text-3xl font-black text-[#1E2455] flex items-center gap-4 tracking-tighter font-poppins uppercase">
+          <div className="p-2.5 bg-[#6C8BFF]/10 rounded-2xl shadow-sm">
+            <BarChart className="h-8 w-8 text-[#6C8BFF]" />
+          </div>
+          Performance Archives
         </h2>
-        <p className="text-slate-500 font-bold italic tracking-tight">Access your historical performance data and valuation records.</p>
+        <p className="text-[#3A3F6B] font-bold opacity-70 ml-2">Access your historical performance metrics and verified valuation records.</p>
       </div>
       <div className="space-y-6">
         <StudentResultsList studentAttempts={studentAttempts} quizzes={quizzes} />
@@ -301,29 +312,31 @@ const StudentDashboardContent = ({ activeView, studentName, registerNumber }: St
   );
 
   const renderLeaderboard = () => (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-2">
-        <h2 className="text-3xl font-black text-slate-50 flex items-center gap-4 uppercase tracking-tighter">
-            <Trophy className="h-8 w-8 text-primary shadow-xl shadow-primary/20" /> 
-            Global Merit Ranking
+    <div className="space-y-10 animate-in fade-in duration-700">
+      <div className="flex flex-col gap-3">
+        <h2 className="text-3xl font-black text-[#1E2455] flex items-center gap-4 tracking-tighter font-poppins uppercase">
+          <div className="p-2.5 bg-[#FFB86C]/10 rounded-2xl shadow-md">
+            <Trophy className="h-8 w-8 text-[#FFB86C]" />
+          </div>
+          Distinction Registry
         </h2>
-        <p className="text-slate-500 font-bold italic tracking-tight">The ultimate repository of top-tier simulation performers.</p>
+        <p className="text-[#3A3F6B] font-bold opacity-70 ml-2">The verified repository of high-tier academic simulation achievers.</p>
       </div>
-      <Card className="p-10 bg-card border border-slate-800 shadow-2xl shadow-primary/5 rounded-[40px] relative overflow-hidden group">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.03)_0%,transparent_70%)]" />
-        <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
-            <div className="w-32 h-32 bg-slate-900 border border-slate-800 rounded-[32px] flex items-center justify-center shadow-inner group-hover:border-primary/30 transition-all">
-                <Trophy className="h-16 w-16 text-slate-700 group-hover:text-primary transition-all" />
-            </div>
-            <div className="flex-1 text-center md:text-left">
-                <h3 className="text-2xl font-black text-slate-50 uppercase tracking-tighter mb-2">Authorized Access Required</h3>
-                <p className="text-slate-500 font-bold italic tracking-tight mb-8">Synchronize with the global leaderboard to verify your standing among elite scholars.</p>
-                <Link to="/leaderboard">
-                    <Button className="px-10 h-14 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-[0.98]">
-                        Access Merit Registry
-                    </Button>
-                </Link>
-            </div>
+      <Card className="glass-card p-12 relative overflow-hidden group shadow-xl">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#6C8BFF]/5 to-[#E38AD6]/5 opacity-50" />
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
+          <div className="w-40 h-40 bg-white/40 border border-white/60 rounded-[40px] flex items-center justify-center shadow-sm group-hover:scale-110 transition-all duration-700">
+            <Trophy className="h-20 w-20 text-[#FFB86C] drop-shadow-md" />
+          </div>
+          <div className="flex-1 text-center md:text-left space-y-4">
+            <h3 className="text-3xl font-black text-[#1E2455] tracking-tight font-poppins uppercase">AUTHENTICATION REQUIRED</h3>
+            <p className="text-[#7A80B8] font-bold italic tracking-tight mb-8 max-w-lg">Synchronize with the global distinction network to verify your competitive standing among the institution's elite scholars.</p>
+            <Link to="/leaderboard" className="block w-fit">
+              <Button className="pastel-button-primary px-12 h-14 text-xs tracking-widest">
+                ACCESS REGISTRY
+              </Button>
+            </Link>
+          </div>
         </div>
       </Card>
     </div>

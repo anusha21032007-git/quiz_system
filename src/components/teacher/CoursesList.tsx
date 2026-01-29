@@ -35,6 +35,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 
 import React, { useState, useMemo } from 'react';
 
@@ -115,62 +116,65 @@ const CoursesList = () => {
     }, [availableCourses, searchQuery]);
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 font-poppins">
             {/* Header Section */}
-            <div className="bg-card p-10 rounded-[40px] border border-slate-800 shadow-2xl shadow-primary/5 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-80 h-80 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-primary/10 transition-all duration-1000" />
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-                    <div className="flex items-center gap-6">
-                        <div className="w-20 h-20 bg-primary/10 border border-primary/20 rounded-[28px] flex items-center justify-center shadow-xl shadow-primary/5 group-hover:scale-105 transition-all duration-500">
-                            <GraduationCap className="h-10 w-10 text-primary" />
+            <div className="glass-card p-10 relative overflow-hidden group border-white/60">
+                <div className="absolute top-0 right-0 w-80 h-80 bg-[#6C8BFF]/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-[#6C8BFF]/10 transition-all duration-1000" />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 relative z-10">
+                    <div className="flex items-center gap-8">
+                        <div className="w-24 h-24 bg-[#6C8BFF]/10 border border-[#6C8BFF]/20 rounded-[32px] flex items-center justify-center shadow-xl group-hover:scale-105 transition-all duration-700 p-6">
+                            <GraduationCap className="h-full w-full text-[#6C8BFF]" />
                         </div>
                         <div>
-                            <h2 className="text-4xl font-black text-slate-50 tracking-tighter uppercase leading-none mb-2">
+                            <h2 className="text-4xl lg:text-5xl font-black text-[#1E2455] tracking-tighter uppercase leading-none mb-3">
                                 Curriculum Repository
                             </h2>
-                            <p className="text-slate-500 font-bold italic tracking-tight text-sm">Register and manage academic disciplines within the simulation environment.</p>
+                            <p className="text-[#3A3F6B] font-bold italic opacity-70 tracking-tight text-base">Register and manage academic disciplines within the simulation environment.</p>
                         </div>
                     </div>
 
                     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                         <DialogTrigger asChild>
-                            <Button className="h-16 px-10 bg-primary hover:bg-primary/90 text-white rounded-[24px] font-black uppercase text-xs tracking-[0.2em] shadow-2xl shadow-primary/20 transition-all active:scale-[0.98] flex items-center gap-3">
-                                <Plus className="h-5 w-5" />
-                                Index Course
+                            <Button className="pastel-button-primary h-18 px-12 text-[11px] tracking-[0.2em] group">
+                                <Plus className="h-6 w-6 group-hover:rotate-90 transition-transform duration-500" />
+                                <span className="pt-0.5">INDEX DISCIPLINE</span>
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 rounded-[32px] p-8 shadow-2xl animate-in zoom-in-95 duration-200 sm:max-w-md">
+                        <DialogContent className="glass-card bg-white/40 backdrop-blur-xl border-white/60 shadow-2xl animate-in zoom-in-95 duration-300 sm:max-w-md p-10 rounded-[48px]">
                             <DialogHeader>
-                                <DialogTitle className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
-                                    <PlusCircle className="h-6 w-6 text-primary" />
+                                <DialogTitle className="text-3xl font-black text-[#1E2455] uppercase tracking-tighter flex items-center gap-4">
+                                    <div className="p-2 bg-[#6C8BFF]/10 rounded-xl">
+                                        <PlusCircle className="h-7 w-7 text-[#6C8BFF]" />
+                                    </div>
                                     New Discipline
                                 </DialogTitle>
-                                <DialogDescription className="text-slate-500 font-bold italic pt-2">
+                                <DialogDescription className="text-[#3A3F6B] font-bold italic pt-4 text-base opacity-70">
                                     Register a new academic domain for simulation training.
                                 </DialogDescription>
                             </DialogHeader>
-                            <div className="py-6">
+                            <div className="py-10">
+                                <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-[#7A80B8] pl-2 block mb-3">DISCIPLINARY DESIGNATION</Label>
                                 <Input
                                     placeholder="e.g. Theoretical Physics v.4"
                                     value={newCourseName}
                                     onChange={(e) => setNewCourseName(e.target.value)}
-                                    className="h-14 bg-slate-950 border-slate-800 rounded-2xl text-lg font-bold placeholder-slate-700 focus:border-primary transition-all shadow-inner"
+                                    className="glass-input h-16 text-2xl font-black text-[#1E2455] placeholder-[#7A80B8]/40"
                                     autoFocus
                                 />
                             </div>
-                            <DialogFooter className="gap-3">
+                            <DialogFooter className="gap-4">
                                 <Button
                                     variant="ghost"
                                     onClick={() => setIsDialogOpen(false)}
-                                    className="h-12 px-6 hover:bg-slate-800 text-slate-400 font-black uppercase tracking-widest text-[10px]"
+                                    className="h-14 px-8 hover:bg-[#6C8BFF]/5 text-[#7A80B8] font-black uppercase tracking-[0.2em] text-[10px] rounded-2xl"
                                 >
                                     Cancel
                                 </Button>
                                 <Button
                                     onClick={handleAddCourse}
-                                    className="h-12 px-8 bg-primary hover:bg-primary/90 text-white rounded-xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20"
+                                    className="pastel-button-primary h-14 px-10 text-[10px] tracking-[0.2em]"
                                 >
-                                    Register Entry
+                                    REGISTER ENTRY
                                 </Button>
                             </DialogFooter>
                         </DialogContent>
@@ -180,31 +184,31 @@ const CoursesList = () => {
 
             {/* Controls Bar */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-4">
-                <div className="flex items-center gap-4">
-                    <h3 className="text-sm font-black text-slate-100 uppercase tracking-[0.3em] flex items-center gap-4">
-                        <Layers className="h-5 w-5 text-primary" />
+                <div className="flex items-center gap-6">
+                    <h3 className="text-sm font-black text-[#1E2455] uppercase tracking-[0.4em] flex items-center gap-5">
+                        <Layers className="h-6 w-6 text-[#6C8BFF]" />
                         Disciplines
-                        <Badge variant="outline" className="bg-primary/5 border-primary/20 text-primary font-black py-1 px-3 rounded-lg text-[10px]">
-                            {availableCourses.length} TOTAL
+                        <Badge className="bg-[#6C8BFF]/10 border-[#6C8BFF]/20 text-[#6C8BFF] font-black py-2 px-5 rounded-xl text-[10px] tracking-widest shadow-sm">
+                            {availableCourses.length} REGISTERED
                         </Badge>
                     </h3>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="relative w-80">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                <div className="flex items-center gap-4">
+                    <div className="relative w-96 group">
+                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-[#7A80B8] transition-colors group-focus-within:text-[#6C8BFF]" />
                         <Input
                             placeholder="Filter library repository..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-12 h-12 bg-slate-900/50 border-slate-800 rounded-2xl text-xs font-bold text-slate-300 placeholder-slate-700 focus:border-primary transition-all shadow-sm"
+                            className="glass-input pl-14 h-14 text-sm font-black text-[#1E2455] placeholder-[#7A80B8]/60 focus:bg-white/50"
                         />
                     </div>
                 </div>
             </div>
 
             {/* Records List */}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-6">
                 {filteredCourses.length > 0 ? (
                     filteredCourses.map((course, idx) => {
                         const isEditing = editingCourse === course;
@@ -212,101 +216,103 @@ const CoursesList = () => {
 
                         return (
                             <div key={idx} className={cn(
-                                "group bg-card rounded-[32px] border border-slate-800 shadow-sm transition-all duration-500 relative overflow-hidden",
-                                isEditing ? "p-10 border-primary bg-primary/5 shadow-2xl shadow-primary/10" : "p-8 hover:border-slate-700 hover:bg-slate-900/40 hover:shadow-xl"
+                                "group glass-card border-white/40 shadow-sm transition-all duration-700 relative overflow-hidden",
+                                isEditing ? "p-12 border-[#6C8BFF]/60 bg-white/60 shadow-glass-hover" : "p-10 hover:border-white/70 hover:bg-white/40 hover:shadow-glass-hover hover:-translate-y-1"
                             )}>
+                                <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-white/5 to-transparent translate-x-full group-hover:translate-x-0 transition-transform duration-1000" />
+
                                 {isEditing ? (
-                                    <div className="flex flex-col gap-8 animate-in zoom-in-95 duration-300">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-14 h-14 bg-primary/20 border border-primary/30 rounded-2xl flex items-center justify-center shrink-0">
-                                                <Edit2 className="h-6 w-6 text-primary" />
+                                    <div className="flex flex-col gap-10 animate-in zoom-in-95 duration-500 relative z-10">
+                                        <div className="flex items-center gap-6">
+                                            <div className="w-16 h-16 bg-[#6C8BFF]/10 border border-[#6C8BFF]/30 rounded-2xl flex items-center justify-center shrink-0 shadow-sm">
+                                                <Edit2 className="h-8 w-8 text-[#6C8BFF]" />
                                             </div>
                                             <div>
-                                                <h4 className="font-black text-slate-100 uppercase tracking-[0.2em] text-xs">Modify Disciplinary Title</h4>
-                                                <p className="text-slate-500 text-[10px] font-bold italic tracking-widest uppercase mt-1 px-1">Simulation Record: #{idx + 1}</p>
+                                                <h4 className="font-black text-[#1E2455] uppercase tracking-[0.3em] text-[10px]">Modify Disciplinary Title</h4>
+                                                <p className="text-[#7A80B8] text-[10px] font-black italic tracking-[0.3em] uppercase mt-1.5 opacity-60">Simulation Record: #{idx + 1}</p>
                                             </div>
                                         </div>
-                                        <div className="flex flex-col sm:flex-row gap-4">
+                                        <div className="flex flex-col lg:flex-row gap-6">
                                             <Input
                                                 value={editingName}
                                                 onChange={(e) => setEditingName(e.target.value)}
-                                                className="h-16 bg-slate-950 border-slate-800 rounded-2xl text-2xl font-black text-slate-100 focus:border-primary transition-all shadow-inner px-8"
+                                                className="glass-input h-18 text-3xl font-black text-[#1E2455] focus:bg-white px-10 flex-1"
                                                 autoFocus
                                             />
-                                            <div className="flex gap-3 shrink-0">
+                                            <div className="flex gap-4 shrink-0">
                                                 <Button
                                                     onClick={handleSaveEdit}
-                                                    className="h-16 px-10 bg-primary hover:bg-primary/90 text-white rounded-[20px] font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20"
+                                                    className="pastel-button-primary h-18 px-12 text-[10px] tracking-[0.2em]"
                                                 >
-                                                    <Check className="h-5 w-5 mr-3" /> Commit Changes
+                                                    <Check className="h-6 w-6 mr-3" /> COMMIT CHANGES
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
                                                     onClick={() => setEditingCourse(null)}
-                                                    className="h-16 px-8 hover:bg-slate-800 text-slate-500 rounded-[20px] font-black uppercase tracking-widest text-xs"
+                                                    className="h-18 px-10 hover:bg-[#FF6B8A]/5 text-[#7A80B8] hover:text-[#FF6B8A] rounded-[24px] font-black uppercase tracking-[0.25em] text-[10px] border border-transparent hover:border-[#FF6B8A]/20 transition-all shadow-sm"
                                                 >
-                                                    <X className="h-5 w-5 mr-3" /> Abort
+                                                    <X className="h-6 w-6 mr-3" /> ABORT
                                                 </Button>
                                             </div>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-10">
-                                            <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-slate-900 text-slate-600 font-black text-xs border border-slate-800 group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-all duration-500 shadow-inner shrink-0 tracking-widest">
-                                                ID: {String(idx + 1).padStart(2, '0')}
+                                    <div className="flex flex-wrap items-center justify-between relative z-10 gap-10">
+                                        <div className="flex flex-wrap items-center gap-10 flex-1 min-w-0">
+                                            <div className="flex items-center justify-center w-14 h-14 rounded-[20px] bg-white/60 text-[#7A80B8] font-black text-xs border border-white shadow-inner group-hover:bg-gradient-to-br group-hover:from-[#6C8BFF] group-hover:to-[#E38AD6] group-hover:text-white group-hover:border-transparent transition-all duration-700 shrink-0 tracking-widest">
+                                                ID-{String(idx + 1).padStart(2, '0')}
                                             </div>
 
-                                            <div className="w-20 h-20 bg-primary/5 border border-primary/10 rounded-[24px] flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-primary/10 transition-all duration-500 group-hover:rotate-6">
-                                                <BookOpen className="h-10 w-10 text-primary shadow-2xl shadow-primary/20" />
+                                            <div className="w-24 h-24 bg-white/40 border border-white/60 rounded-[32px] flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-white/60 transition-all duration-1000 group-hover:rotate-6 p-6 shadow-sm">
+                                                <BookOpen className="h-full w-full text-[#6C8BFF]" />
                                             </div>
 
-                                            <div>
-                                                <div className="flex items-center gap-4 mb-3">
-                                                    <h4 className="text-3xl font-black text-slate-50 group-hover:text-primary transition-colors tracking-tighter uppercase leading-none">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-5 mb-4">
+                                                    <h4 className="text-4xl font-black text-[#1E2455] group-hover:text-[#6C8BFF] transition-colors tracking-tighter uppercase leading-none truncate font-poppins">
                                                         {course}
                                                     </h4>
                                                     <Badge className={cn(
-                                                        "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-sm",
-                                                        status === 'Operational' ? "bg-success/10 text-success border-success/20" : "bg-slate-800 text-slate-500 border-slate-700"
+                                                        "px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em] shadow-sm",
+                                                        status === 'Operational' ? "bg-[#4EE3B2]/10 text-[#4EE3B2] border-[#4EE3B2]/20 shadow-[#4EE3B2]/5" : "bg-white/40 text-[#7A80B8] border-white/60"
                                                     )}>
                                                         {status}
                                                     </Badge>
                                                 </div>
-                                                <div className="flex items-center gap-6">
-                                                    <div className="flex -space-x-3">
+                                                <div className="flex flex-wrap items-center gap-8">
+                                                    <div className="flex -space-x-4">
                                                         {[1, 2, 3].map(i => (
-                                                            <div key={i} className="w-8 h-8 bg-slate-900 border-2 border-slate-950 rounded-xl flex items-center justify-center text-[10px] font-black text-slate-500 shadow-xl group-hover:border-primary/20 transition-all">
+                                                            <div key={i} className="w-10 h-10 bg-white/80 border-2 border-white rounded-[14px] flex items-center justify-center text-[10px] font-black text-[#7A80B8] shadow-sm group-hover:border-[#6C8BFF]/30 group-hover:scale-110 transition-all duration-500">
                                                                 {String.fromCharCode(64 + i)}
                                                             </div>
                                                         ))}
                                                     </div>
-                                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] group-hover:text-slate-400 transition-colors">
-                                                        Simulation Access: <span className="text-slate-200">Authorized Faculty</span>
+                                                    <span className="text-[10px] font-black text-[#7A80B8] uppercase tracking-[0.4em] group-hover:text-[#1E2455] transition-colors bg-white/40 px-5 py-2 rounded-xl border border-white/60 italic opacity-80">
+                                                        ACCESS: <span className="text-[#1E2455] not-italic font-black">AUTHORIZED FACULTY</span>
                                                     </span>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-5">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" className="h-14 w-14 rounded-2xl text-slate-400 hover:text-slate-100 hover:bg-slate-800 border border-transparent hover:border-slate-700 transition-all duration-300">
-                                                        <MoreVertical className="h-6 w-6" />
+                                                    <Button variant="ghost" className="h-16 w-16 rounded-2xl text-[#7A80B8] hover:text-[#1E2455] hover:bg-white/60 border border-white shadow-sm transition-all duration-500 flex items-center justify-center p-0">
+                                                        <MoreVertical className="h-7 w-7" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-56 rounded-[24px] p-3 bg-slate-900 border border-slate-800 shadow-2xl animate-in zoom-in-95 duration-200">
+                                                <DropdownMenuContent align="end" className="w-72 p-3 glass-card bg-white/40 backdrop-blur-xl border-white/60 shadow-2xl animate-in zoom-in-95 duration-300 rounded-[32px] side-bottom-4">
                                                     <DropdownMenuItem
                                                         onClick={() => handleStartEdit(course)}
-                                                        className="gap-4 font-black text-slate-400 text-[10px] uppercase tracking-[0.2em] p-4 rounded-xl focus:bg-primary/10 focus:text-primary mb-1 cursor-pointer transition-all"
+                                                        className="gap-5 font-black text-[#7A80B8] hover:text-[#6C8BFF] text-[10px] uppercase tracking-[0.3em] p-5 rounded-2xl focus:bg-[#6C8BFF]/10 focus:text-[#6C8BFF] mb-2 cursor-pointer transition-all"
                                                     >
-                                                        <Edit2 className="h-4 w-4" /> Edit Metadata
+                                                        <Edit2 className="h-5 w-5" /> Edit Metadata
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                         onClick={() => handleDeleteCourse(course)}
-                                                        className="gap-4 font-black text-danger/70 text-[10px] uppercase tracking-[0.2em] p-4 rounded-xl focus:bg-danger/10 focus:text-danger cursor-pointer transition-all"
+                                                        className="gap-5 font-black text-[#FF6B8A]/70 text-[10px] uppercase tracking-[0.3em] p-5 rounded-2xl focus:bg-[#FF6B8A]/10 focus:text-[#FF6B8A] cursor-pointer transition-all"
                                                     >
-                                                        <Trash2 className="h-4 w-4" /> De-index Entry
+                                                        <Trash2 className="h-5 w-5" /> Purge Entry
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
@@ -317,16 +323,16 @@ const CoursesList = () => {
                         );
                     })
                 ) : (
-                    <div className="py-40 bg-card rounded-[48px] border border-slate-800 shadow-2xl shadow-primary/5 text-center relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.03)_0%,transparent_70%)] opacity-50 group-hover:opacity-100 transition-opacity" />
-                        <div className="w-28 h-28 bg-slate-900 border border-slate-800 rounded-[32px] flex items-center justify-center mx-auto mb-10 shadow-inner group-hover:border-primary/30 group-hover:rotate-12 transition-all duration-500">
-                            <GraduationCap className="h-14 w-14 text-slate-700 group-hover:text-primary transition-all duration-500" />
+                    <div className="py-48 glass-card rounded-[56px] border-white/50 text-center relative overflow-hidden group shadow-2xl">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(108,139,255,0.05)_0%,transparent_70%)] opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
+                        <div className="w-32 h-32 bg-white/40 border border-white/60 rounded-[40px] flex items-center justify-center mx-auto mb-12 shadow-glass group-hover:scale-110 group-hover:rotate-12 transition-all duration-700 p-8">
+                            <GraduationCap className="h-full w-full text-[#7A80B8] group-hover:text-[#6C8BFF] transition-all duration-500" />
                         </div>
-                        <h3 className="text-3xl font-black text-slate-100 mb-4 uppercase tracking-tighter relative z-10">
-                            {searchQuery ? "Repository Search Null" : "Archive Vacant"}
+                        <h3 className="text-4xl font-black text-[#1E2455] mb-6 uppercase tracking-tighter relative z-10">
+                            {searchQuery ? "Search Nullified" : "Archive Vacant"}
                         </h3>
-                        <p className="text-slate-500 max-w-sm mx-auto font-bold italic tracking-tight relative z-10 text-lg">
-                            {searchQuery ? "The system could not locate any matching disciplinary dossiers." : "No academic domains have been indexed into the central repository system."}
+                        <p className="text-[#3A3F6B] max-w-md mx-auto font-bold italic opacity-60 tracking-tight relative z-10 text-xl px-10">
+                            {searchQuery ? "The system could not locate any matching disciplinary dossiers in the current index." : "No academic domains have been indexed into the central curriculum repository system."}
                         </p>
                     </div>
                 )}

@@ -23,6 +23,7 @@ import HistoryPage from "./pages/HistoryPage";
 import TeacherLogin from "./pages/teacher/Login";
 import TeacherSignup from "./pages/teacher/Signup";
 import StudentLogin from "./pages/student/Login";
+import GenerateQuizLanding from "./components/teacher/GenerateQuizLanding";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => (
               {/* Teacher Protected Routes */}
               <Route path="/teacher" element={<AuthGuard allowedRole="teacher"><TeacherDashboard /></AuthGuard>} />
               <Route path="/teacher/courses" element={<AuthGuard allowedRole="teacher"><CoursesPage /></AuthGuard>} />
+              <Route path="/teacher/create-quiz" element={<AuthGuard allowedRole="teacher"><GenerateQuizLanding /></AuthGuard>} />
               <Route path="/teacher/history" element={<AuthGuard allowedRole="teacher"><HistoryPage /></AuthGuard>} />
 
               {/* Student Protected Routes */}

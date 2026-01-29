@@ -34,29 +34,31 @@ const TeacherSidebar = ({ activeView, isMobile }: TeacherSidebarProps) => {
   ];
 
   const renderNav = () => (
-    <div className="flex flex-col h-full bg-sidebar text-slate-400">
-      <div className="p-6 flex items-center gap-3">
-        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-          <GraduationCap className="h-6 w-6 text-primary" />
+    <div className="flex flex-col h-full bg-gradient-to-b from-[#8EA2FF] to-[#B39DDB] text-white">
+      <div className="p-8 flex items-center gap-3">
+        <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/30 shadow-sm">
+          <GraduationCap className="h-6 w-6 text-white" />
         </div>
-        <span className="text-xl font-bold text-slate-50 tracking-tight">QUIZ MANAGEMENT SYSTEM</span>
+        <span className="text-xl font-black text-white tracking-tighter leading-tight font-poppins">QUIZ MASTER</span>
       </div>
 
-      <div className="px-6 py-4">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Core Management</p>
-        <nav className="space-y-1">
+      <div className="px-4 py-6">
+        <p className="px-4 text-[10px] font-bold text-white/70 uppercase tracking-widest mb-6">Management Portal</p>
+        <nav className="space-y-2">
           {navItems.map((item) => {
             const isActive = activeView === item.id || (item.id === 'quizzes' && activeView === 'create-quiz');
             return (
-              <Link key={item.id} to={item.path} className="block">
+              <Link key={item.id} to={item.path} className="block px-2">
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start gap-3 h-11 px-4 transition-all duration-200 rounded-xl font-medium",
-                    isActive ? "bg-sidebar-accent text-sidebar-primary shadow-sm" : "text-sidebar-foreground hover:bg-accent hover:text-accent-foreground"
+                    "w-full justify-start gap-3 h-12 px-4 transition-all duration-300 rounded-[16px] font-bold",
+                    isActive
+                      ? "bg-white/30 text-white shadow-glass border border-white/40"
+                      : "text-white/80 hover:bg-white/20 hover:text-white"
                   )}
                 >
-                  <item.icon className={cn("h-5 w-5", isActive ? "text-sidebar-primary" : "text-secondary")} />
+                  <item.icon className={cn("h-5 w-5", isActive ? "text-white" : "text-white/70")} />
                   {item.label}
                 </Button>
               </Link>
@@ -66,17 +68,17 @@ const TeacherSidebar = ({ activeView, isMobile }: TeacherSidebarProps) => {
       </div>
 
       <div className="mt-auto p-6">
-        <div className="bg-slate-900/50 rounded-2xl p-5 border border-slate-800/50 mb-4">
-          <p className="text-[10px] font-bold text-primary/70 uppercase tracking-widest mb-1">Teacher Account</p>
-          <p className="text-xs font-semibold text-slate-300 truncate">{teacherData?.full_name || user?.email}</p>
+        <div className="bg-white/20 backdrop-blur-lg rounded-[24px] p-5 border border-white/30 mb-4 shadow-sm">
+          <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1">Academic Profile</p>
+          <p className="text-xs font-black text-white truncate">{teacherData?.full_name || user?.email}</p>
         </div>
 
         <button
-          className="w-full flex items-center gap-3 h-11 px-4 text-slate-400 hover:bg-red-500/10 hover:text-red-400 rounded-xl transition-all duration-200"
+          className="w-full flex items-center gap-3 h-12 px-6 text-white/80 hover:bg-white/20 hover:text-white rounded-[16px] transition-all duration-300 font-bold"
           onClick={signOut}
         >
           <LogOut className="h-5 w-5" />
-          <span className="font-medium">Logout</span>
+          <span className="font-bold">Log out</span>
         </button>
       </div>
     </div>
